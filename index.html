@@ -210,6 +210,68 @@ tbody tr:hover td{background:var(--bg3)}
    RESPONSIVE — スマホ・タブレット対応
    ============================================================ */
 @media (max-width: 768px){
+  /* ダッシュボード: 2カラム → 1カラム */
+  #ct > div[style*="grid-template-columns:1.3fr 1fr"],
+  #ct > div[style*="grid-template-columns:1fr 1fr"] {
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  /* 今週スケジュール: 横スクロール */
+  #ct > div:last-child > div:last-child > div {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* テーブルヘッダー/セルを非表示にしてカード化 */
+  .tw table { display: block; }
+  .tw thead { display: none; }
+  .tw tbody { display: flex; flex-direction: column; gap: 8px; padding: 8px; }
+  .tw tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    padding: 11px 12px;
+    align-items: center;
+  }
+  .tw tbody td {
+    display: inline-flex;
+    border-bottom: none !important;
+    padding: 2px 0;
+    font-size: 13px;
+  }
+  /* 顧客管理: 名前を大きく */
+  .tw tbody td:nth-child(2) { font-size: 14px; font-weight: 700; width: 100%; }
+  /* ボタン系のtdを右端に */
+  .tw tbody td:last-child { margin-left: auto; display: flex; gap: 4px; }
+  /* カレンダーナビ */
+  .gh { flex-wrap: wrap; gap: 6px; padding: 8px; }
+  .gt { font-size: 13px; }
+  /* カレンダー月ビュー文字サイズ */
+  .gdh-c { font-size: 10px; padding: 4px 1px; }
+  /* FAB: フローティング追加ボタン */
+  #fab {
+    position: fixed;
+    bottom: 24px;
+    right: 20px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: #fff;
+    font-size: 28px;
+    border: none;
+    box-shadow: 0 4px 16px rgba(74,124,95,.4);
+    cursor: pointer;
+    z-index: 90;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform .15s;
+  }
+  #fab:active { transform: scale(.92); }
+
   /* サイドバーをオーバーレイに */
   #sb{
     position:fixed;left:0;top:0;bottom:0;z-index:100;
@@ -336,6 +398,7 @@ tbody tr:hover td{background:var(--bg3)}
   <div id="ct"></div>
 </div>
 <div id="toast"></div>
+<button id="fab" onclick="_fabAction()" style="display:none">＋</button>
 <div class="resize-tooltip" id="resize-tooltip"></div>
 
 <script>
@@ -488,6 +551,7 @@ function buildPage(){
   else if(page==='quotes') pgQuotes();
   else if(page==='schedule'){pgCal();}
   else if(page==='settings') pgSettings();
+  _updateFab();
 }
 
 // ============================================================
@@ -879,7 +943,7 @@ function calMonth(){
       calSForDay(c.date).slice(0,2).forEach(s=>{ev+=`<div style="background:${s.color||'var(--accent)'}20;color:${s.color||'var(--accent)'};border-left:2px solid ${s.color||'var(--accent)'};border-radius:2px;padding:1px 3px;font-size:9px;margin-bottom:1px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;cursor:pointer;font-weight:700" onclick="event.stopPropagation();showSchedMo(${s.id},'${c.date}')">${s.st} ${esc(s.title)}</div>`;});
     }
     const dnStyle=isT?'background:var(--accent);color:#fff;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:10px':(isRed?'color:var(--red)':dw===6?'color:var(--blue)':'');
-    return`<div id="mc-${c.date||idx}" style="min-height:88px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:4px;${!c.cur?'background:var(--bg3);opacity:.55':hol?'background:rgba(184,64,64,.03)':''};cursor:pointer;position:relative" onclick="${c.date?`showSchedMo(null,'${c.date}')`:''}" >
+    return`<div id="mc-${c.date||idx}" style="min-height:88px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:4px;${!c.cur?'background:var(--bg3);opacity:.55':hol?'background:rgba(184,64,64,.03)':''};cursor:pointer;position:relative" onclick="${c.date?`_calDayTap('${c.date}')`:''}" >
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:2px">
         <span style="${dnStyle};font-size:11px;font-weight:700">${c.day}</span>
         <span id="wx-m-${c.date||'x'}" style="display:flex;flex-direction:column;align-items:flex-end;line-height:1"></span>
@@ -2594,6 +2658,58 @@ nav('dashboard');
 // ============================================================
 // MOBILE SIDEBAR TOGGLE
 // ============================================================
+function _calDayTap(ds){
+  if(window.innerWidth<=768){
+    // スマホ: 選択日のスケジュール一覧を下に表示
+    const hols=jpHols(new Date(ds).getFullYear());
+    const hol=hols[ds];
+    const ad=calADForDay(ds);
+    const sc=calSForDay(ds);
+    const d=new Date(ds);
+    const dns=['日','月','火','水','木','金','土'];
+    const label=`${d.getMonth()+1}月${d.getDate()}日（${dns[d.getDay()]}）${hol?'🎌'+hol:''}`;
+    // 既存のデイパネルを削除
+    document.getElementById('mob-day-panel')?.remove();
+    const panel=document.createElement('div');
+    panel.id='mob-day-panel';
+    panel.style.cssText='position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:2px solid var(--accent);border-radius:14px 14px 0 0;padding:14px 16px 32px;z-index:95;max-height:55vh;overflow-y:auto;box-shadow:0 -4px 20px rgba(44,38,32,.15)';
+    const items=[
+      ...ad.map(it=>it.phase!==undefined
+        ?`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="background:${pc(it.phase)};color:#fff;border-radius:5px;padding:2px 7px;font-size:11px;font-weight:700">⚡終日</span><span style="font-weight:600">${esc(it.title)}</span><button class="btn bs bsm" style="margin-left:auto" onclick="showProjMo(${it.id})">✏️</button></div>`
+        :`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="background:${it.color||'var(--accent)'};color:#fff;border-radius:5px;padding:2px 7px;font-size:11px;font-weight:700">終日</span><span style="font-weight:600">${esc(it.title)}</span></div>`
+      ),
+      ...sc.map(s=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="background:${s.color||'var(--accent)'};color:#fff;border-radius:5px;padding:2px 7px;font-size:11px;font-weight:700">${s.st}–${s.et}</span><span style="font-weight:600;flex:1">${esc(s.title)}</span><button class="btn bs bsm" onclick="showSchedMo(${s.id},'${ds}')">✏️</button></div>`)
+    ].join('');
+    panel.innerHTML=`
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div style="font-size:15px;font-weight:700">${label}</div>
+        <button class="btn bs bsm" onclick="document.getElementById('mob-day-panel')?.remove()">✕</button>
+      </div>
+      ${items||'<div style="text-align:center;padding:16px;color:var(--text3)">予定なし</div>'}
+      <button class="btn bp" style="width:100%;justify-content:center;margin-top:10px" onclick="showSchedMo(null,'${ds}');document.getElementById('mob-day-panel')?.remove()">＋ この日に追加</button>
+    `;
+    document.body.appendChild(panel);
+  } else {
+    showSchedMo(null,ds);
+  }
+}
+function _fabAction(){
+  // ページに応じてFABのアクションを変える
+  if(page==='customers') showCustMo();
+  else if(page==='projects') showProjMo();
+  else if(page==='quotes') showQuoteMo();
+  else if(page==='schedule') showSchedMo(null,today());
+  else if(page==='dashboard') showSchedMo(null,today());
+}
+function _updateFab(){
+  const fab=document.getElementById('fab');
+  if(!fab)return;
+  if(window.innerWidth<=768){
+    fab.style.display='flex';
+  } else {
+    fab.style.display='none';
+  }
+}
 function toggleSb(){
   const sb=document.getElementById('sb');
   const ov=document.getElementById('sb-ov');
