@@ -232,7 +232,7 @@ tbody tr:hover td{background:var(--bg3)}
   /* トップバーをシンプルに */
   #tbact .btn.bsm{ font-size:10px;padding:3px 6px; }
   /* ボトムナビ表示 */
-  #mob-nav{ display:flex !important; }
+  #mob-nav{ display:block !important; }
   /* カレンダー月ビュー: スマホでコンパクトに */
   .gw{ font-size:11px;border-radius:0;border-left:none;border-right:none;margin:0 -10px;width:calc(100% + 20px); }
   .gh{ padding:7px 8px;flex-wrap:nowrap;gap:4px; }
@@ -312,23 +312,13 @@ tbody tr:hover td{background:var(--bg3)}
 <div id="toast"></div>
 
 <!-- スマホ用ボトムナビ -->
-<div id="mob-nav" style="display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg2);border-top:1px solid var(--border);z-index:90;box-shadow:0 -2px 8px rgba(44,38,32,.08);padding-bottom:env(safe-area-inset-bottom,0px)">
-  <div style="display:flex;height:56px">
-    <button class="mob-tab-btn" data-page="dashboard" onclick="nav('dashboard')" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border:none;background:none;cursor:pointer;color:var(--text3);font-size:10px;font-family:inherit">
-      <span style="font-size:22px">◈</span><span>ホーム</span>
-    </button>
-    <button class="mob-tab-btn" data-page="customers" onclick="nav('customers')" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border:none;background:none;cursor:pointer;color:var(--text3);font-size:10px;font-family:inherit">
-      <span style="font-size:22px">👥</span><span>顧客</span>
-    </button>
-    <button class="mob-tab-btn" data-page="projects" onclick="nav('projects')" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border:none;background:none;cursor:pointer;color:var(--text3);font-size:10px;font-family:inherit">
-      <span style="font-size:22px">⚡</span><span>案件</span>
-    </button>
-    <button class="mob-tab-btn" data-page="schedule" onclick="nav('schedule')" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border:none;background:none;cursor:pointer;color:var(--text3);font-size:10px;font-family:inherit">
-      <span style="font-size:22px">📅</span><span>予定</span>
-    </button>
-    <button class="mob-tab-btn" data-page="quotes" onclick="nav('quotes')" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;border:none;background:none;cursor:pointer;color:var(--text3);font-size:10px;font-family:inherit">
-      <span style="font-size:22px">📋</span><span>見積</span>
-    </button>
+<div id="mob-nav" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #ddd;z-index:9999;padding-bottom:env(safe-area-inset-bottom,0px)">
+  <div style="display:flex;flex-direction:row;height:56px;width:100%">
+    <button onclick="nav('dashboard')" id="mbt-dashboard" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border:none;background:none;cursor:pointer;color:#888;font-size:10px;font-family:inherit;gap:2px"><span style="font-size:22px">◈</span><span>ホーム</span></button>
+    <button onclick="nav('customers')" id="mbt-customers" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border:none;background:none;cursor:pointer;color:#888;font-size:10px;font-family:inherit;gap:2px"><span style="font-size:22px">👥</span><span>顧客</span></button>
+    <button onclick="nav('projects')" id="mbt-projects" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border:none;background:none;cursor:pointer;color:#888;font-size:10px;font-family:inherit;gap:2px"><span style="font-size:22px">⚡</span><span>案件</span></button>
+    <button onclick="nav('schedule')" id="mbt-schedule" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border:none;background:none;cursor:pointer;color:#888;font-size:10px;font-family:inherit;gap:2px"><span style="font-size:22px">📅</span><span>予定</span></button>
+    <button onclick="nav('quotes')" id="mbt-quotes" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border:none;background:none;cursor:pointer;color:#888;font-size:10px;font-family:inherit;gap:2px"><span style="font-size:22px">📋</span><span>見積</span></button>
   </div>
 </div>
 
@@ -436,10 +426,9 @@ function nav(pg,cid){
   }
   document.querySelectorAll('.nb[data-page]').forEach(b=>b.classList.toggle('on',b.dataset.page===pg));
   // ボトムナビのアクティブ状態更新
-  document.querySelectorAll('.mob-tab-btn').forEach(b=>{
-    const on=b.dataset.page===pg;
-    b.style.color=on?'var(--accent)':'var(--text3)';
-    b.style.fontWeight=on?'700':'400';
+  ['dashboard','customers','projects','schedule','quotes'].forEach(function(p){
+    const btn=document.getElementById('mbt-'+p);
+    if(btn){btn.style.color=p===pg?'var(--accent)':'#888';btn.style.fontWeight=p===pg?'700':'400';}
   });
   document.getElementById('pg-title').textContent=detCid?'顧客詳細':{dashboard:'ダッシュボード',customers:'顧客管理',projects:'案件・工事管理',quotes:'見積・請求管理',schedule:'スケジュール',settings:'設定'}[pg]||pg;
   buildTopbar();
@@ -760,20 +749,19 @@ function pgCal(){
 function t2px(t){const[h,m]=(t||'00:00').split(':').map(Number);return(h*60+m)/60*SH;}
 function dpx(s,e){return Math.max(t2px(e)-t2px(s),18);}
 function calNavH(label){
-  const mob=window.innerWidth<=768;
-  return'<div class="gh" style="flex-wrap:nowrap;gap:4px;padding:8px 10px">'+
-    '<div style="display:flex;gap:3px;flex-shrink:0">'+
-      '<button class="btn bs bsm" id="cprev">◀</button>'+
-      '<button class="btn bs bsm" id="ctod">今日</button>'+
-      '<button class="btn bs bsm" id="cnext">▶</button>'+
+  return'<div style="padding:8px 10px;border-bottom:1px solid var(--border)">'+
+    '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">'+
+      '<button class="btn bs bsm" id="cprev" style="padding:5px 10px">◀</button>'+
+      '<span style="flex:1;font-size:15px;font-weight:900;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+label+'</span>'+
+      '<button class="btn bs bsm" id="ctod" style="font-size:11px;padding:5px 8px">今日</button>'+
+      '<button class="btn bs bsm" id="cnext" style="padding:5px 10px">▶</button>'+
     '</div>'+
-    '<span class="gt" style="flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:13px;padding-left:6px">'+label+'</span>'+
-    '<div style="display:flex;gap:3px;flex-shrink:0">'+
-      '<button class="btn bsm '+(calV==='day'?'bp':'bs')+'" onclick="calV=\'day\';buildPage()">日</button>'+
-      '<button class="btn bsm '+(calV==='week'?'bp':'bs')+'" onclick="calV=\'week\';buildPage()">週</button>'+
-      '<button class="btn bsm '+(calV==='month'?'bp':'bs')+'" onclick="calV=\'month\';buildPage()">月</button>'+
+    '<div style="display:flex;gap:5px">'+
+      '<button class="btn bsm '+(calV==='month'?'bp':'bs')+'" onclick="calV=&quot;month&quot;;buildPage()" style="flex:1">月</button>'+
+      '<button class="btn bsm '+(calV==='week'?'bp':'bs')+'" onclick="calV=&quot;week&quot;;buildPage()" style="flex:1">週</button>'+
+      '<button class="btn bsm '+(calV==='day'?'bp':'bs')+'" onclick="calV=&quot;day&quot;;buildPage()" style="flex:1">日</button>'+
+      '<button class="btn bp bsm" onclick="showSchedMo(null,today())" style="flex:1">＋追加</button>'+
     '</div>'+
-    '<button class="btn bp bsm" style="flex-shrink:0" onclick="showSchedMo(null,\''+today()+'\')">＋</button>'+
   '</div>';
 }
 
