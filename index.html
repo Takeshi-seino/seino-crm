@@ -471,7 +471,11 @@ function _dsr(){srch=document.getElementById('srch')?.value||'';clearTimeout(_ds
 function buildPage(){
   if(page==='dashboard') pgDash();
   else if(page==='customers') detCid?pgCustDetail():pgCusts();
-  else if(page==='projects') pView==='cal'?pgCal():pgProjs();
+  else if(page==='projects'){
+    // スマホでは常にカード表示
+    if(window.innerWidth<=768) pgProjs();
+    else pView==='cal'?pgCal():pgProjs();
+  }
   else if(page==='quotes') pgQuotes();
   else if(page==='schedule'){pgCal();}
   else if(page==='settings') pgSettings();
@@ -743,12 +747,162 @@ const SH=48; // slot height px
 
 function pgCal(){
   if(window.innerWidth<=768){
-    mobCal(); // スマホ専用
+    // スマホ: calVに応じて切り替え
+    if(calV==='week') mobCalWeek();
+    else if(calV==='day') mobCalDay();
+    else mobCal(); // 月ビュー（デフォルト）
   } else {
     if(calV==='month')calMonth();
     else if(calV==='day')calDay();
     else calWeek();
   }
+}
+
+// ============================================================
+// スマホ専用カレンダー: 週ビュー（リスト形式）
+// ============================================================
+function mobCalWeek(){
+  const days=Array.from({length:7},function(_,i){const d=new Date(calWS);d.setDate(calWS.getDate()+i);return d;});
+  const dns=['日','月','火','水','木','金','土'];
+  const now=new Date();
+  const hols=jpHols(calY);
+  const label=(days[0].getMonth()+1)+'月'+days[0].getDate()+'日〜'+(days[6].getMonth()+1)+'月'+days[6].getDate()+'日';
+
+  const viewBtns='<div style="display:flex;gap:4px;padding:6px 10px;border-bottom:1px solid var(--border)">'+
+    '<button class="btn bsm bs" style="flex:1" onclick="calV=&quot;month&quot;;mobCal()">月</button>'+
+    '<button class="btn bsm bp" style="flex:1">週</button>'+
+    '<button class="btn bsm bs" style="flex:1" onclick="calV=&quot;day&quot;;pgCal()">日</button>'+
+    '<button class="btn bp bsm" style="flex:1" onclick="showSchedMo(null,today())">＋</button>'+
+  '</div>';
+
+  var rows=days.map(function(dd){
+    const ds=dd.toISOString().slice(0,10);
+    const dw=dd.getDay();
+    const isT=dd.toDateString()===now.toDateString();
+    const hol=hols[ds];
+    const isRed=dw===0||hol;
+    const ad=calADForDay(ds);
+    const sc=calSForDay(ds).sort(function(a,b){return(a.st||'').localeCompare(b.st||'');});
+    if(!ad.length&&!sc.length)return'';
+
+    var items='';
+    ad.forEach(function(it){
+      items+='<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid var(--border)">'+
+        '<div style="width:3px;height:28px;border-radius:2px;background:'+(it.phase!==undefined?pc(it.phase):(it.color||'var(--accent)'))+';flex-shrink:0"></div>'+
+        '<div><div style="font-size:10px;color:var(--text3)">終日</div>'+
+        '<div style="font-size:13px;font-weight:700">'+(it.phase!==undefined?'⚡':'')+esc(it.title)+'</div></div>'+
+      '</div>';
+    });
+    sc.forEach(function(s){
+      items+='<div class="mob-sched-item" data-sid="'+s.id+'" data-ds="'+ds+'" style="display:flex;align-items:center;gap:8px;padding:6px 12px;border-bottom:1px solid var(--border);cursor:pointer">'+
+        '<div style="width:3px;height:36px;border-radius:2px;background:'+(s.color||'var(--accent)')+';flex-shrink:0"></div>'+
+        '<div><div style="font-size:11px;color:var(--text3);font-weight:700">'+s.st+'–'+s.et+'</div>'+
+        '<div style="font-size:13px;font-weight:700">'+esc(s.title)+'</div></div>'+
+      '</div>';
+    });
+
+    return'<div>'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:var(--bg3);border-bottom:1px solid var(--border)">'+
+        '<span style="font-size:13px;font-weight:700;color:'+(isRed?'var(--red)':dw===6?'var(--blue)':'var(--text)')+'">'+
+          (isT?'<span style="background:var(--accent);color:#fff;border-radius:50%;padding:2px 7px;">':'')+(dw===0?'日':dw===1?'月':dw===2?'火':dw===3?'水':dw===4?'木':dw===5?'金':'土')+(dd.getMonth()+1)+'/'+dd.getDate()+(isT?'</span>':'')+
+        '</span>'+
+        '<button class="btn bs bsm" data-ds="'+ds+'" onclick="showSchedMo(null,this.dataset.ds)">＋</button>'+
+      '</div>'+
+      items+
+    '</div>';
+  }).join('');
+
+  if(!rows.trim()){
+    rows='<div style="padding:30px;text-align:center;color:var(--text3)">この週の予定はありません</div>';
+  }
+
+  document.getElementById('ct').innerHTML=
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:8px">'+
+      '<div style="display:flex;align-items:center;padding:8px 10px;gap:6px;border-bottom:1px solid var(--border)">'+
+        '<button class="btn bs bsm" id="cprev">◀</button>'+
+        '<span style="flex:1;text-align:center;font-size:14px;font-weight:700">'+label+'</span>'+
+        '<button class="btn bs bsm" id="ctod" style="font-size:11px">今日</button>'+
+        '<button class="btn bs bsm" id="cnext">▶</button>'+
+      '</div>'+
+      viewBtns+
+      rows+
+    '</div>';
+
+  bindNav(
+    function(){calWS=wkStart(new Date(calWS.getTime()-7*86400000));buildPage();},
+    function(){calWS=wkStart(new Date());buildPage();},
+    function(){calWS=wkStart(new Date(calWS.getTime()+7*86400000));buildPage();}
+  );
+  setTimeout(function(){
+    document.querySelectorAll('.mob-sched-item').forEach(function(el){
+      el.addEventListener('click',function(){showSchedMo(parseInt(this.dataset.sid),this.dataset.ds);});
+    });
+  },0);
+}
+
+// ============================================================
+// スマホ専用カレンダー: 日ビュー（リスト形式）
+// ============================================================
+function mobCalDay(){
+  const ds=new Date(calY,calM,calD).toISOString().slice(0,10);
+  const hols=jpHols(calY);const hol=hols[ds];
+  const now=new Date();const isT=new Date(ds).toDateString()===now.toDateString();
+  const dns=['日','月','火','水','木','金','土'];
+  const dw=new Date(ds).getDay();
+  const label=calY+'年'+(calM+1)+'月'+calD+'日（'+dns[dw]+'）'+(hol?' 🎌'+hol:'');
+  const ad=calADForDay(ds);
+  const sc=calSForDay(ds).sort(function(a,b){return(a.st||'').localeCompare(b.st||'');});
+
+  const viewBtns='<div style="display:flex;gap:4px;padding:6px 10px;border-bottom:1px solid var(--border)">'+
+    '<button class="btn bsm bs" style="flex:1" onclick="calV=&quot;month&quot;;mobCal()">月</button>'+
+    '<button class="btn bsm bs" style="flex:1" onclick="calV=&quot;week&quot;;pgCal()">週</button>'+
+    '<button class="btn bsm bp" style="flex:1">日</button>'+
+    '<button class="btn bp bsm" style="flex:1" data-ds="'+ds+'" onclick="showSchedMo(null,this.dataset.ds)">＋</button>'+
+  '</div>';
+
+  var items='';
+  if(!ad.length&&!sc.length){
+    items='<div style="padding:30px;text-align:center;color:var(--text3)">予定なし</div>';
+  }
+  ad.forEach(function(it){
+    items+='<div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border)">'+
+      '<div style="width:4px;height:36px;border-radius:2px;background:'+(it.phase!==undefined?pc(it.phase):(it.color||'var(--accent)'))+';flex-shrink:0"></div>'+
+      '<div><div style="font-size:11px;color:var(--text3)">終日</div>'+
+      '<div style="font-size:15px;font-weight:700">'+(it.phase!==undefined?'⚡':'')+esc(it.title)+'</div></div>'+
+    '</div>';
+  });
+  sc.forEach(function(s){
+    items+='<div class="mob-sched-item" data-sid="'+s.id+'" data-ds="'+ds+'" style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer">'+
+      '<div style="width:4px;height:44px;border-radius:2px;background:'+(s.color||'var(--accent)')+';flex-shrink:0"></div>'+
+      '<div><div style="font-size:13px;color:var(--text3);font-weight:700">'+s.st+' – '+s.et+'</div>'+
+      '<div style="font-size:15px;font-weight:700">'+esc(s.title)+'</div>'+
+      (s.memo?'<div style="font-size:12px;color:var(--text3)">'+esc(s.memo)+'</div>':'')+
+      '</div>'+
+    '</div>';
+  });
+
+  document.getElementById('ct').innerHTML=
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">'+
+      '<div style="display:flex;align-items:center;padding:8px 10px;gap:6px;border-bottom:1px solid var(--border)">'+
+        '<button class="btn bs bsm" id="cprev">◀</button>'+
+        '<span style="flex:1;text-align:center;font-size:14px;font-weight:700;color:'+(dw===0?'var(--red)':dw===6?'var(--blue)':'var(--text)')+'">'+label+'</span>'+
+        '<button class="btn bs bsm" id="ctod" style="font-size:11px">今日</button>'+
+        '<button class="btn bs bsm" id="cnext">▶</button>'+
+      '</div>'+
+      viewBtns+
+      items+
+    '</div>';
+
+  bindNav(
+    function(){const d=new Date(calY,calM,calD-1);calY=d.getFullYear();calM=d.getMonth();calD=d.getDate();buildPage();},
+    function(){const d=new Date();calY=d.getFullYear();calM=d.getMonth();calD=d.getDate();buildPage();},
+    function(){const d=new Date(calY,calM,calD+1);calY=d.getFullYear();calM=d.getMonth();calD=d.getDate();buildPage();}
+  );
+  setTimeout(function(){
+    document.querySelectorAll('.mob-sched-item').forEach(function(el){
+      el.addEventListener('click',function(){showSchedMo(parseInt(this.dataset.sid),this.dataset.ds);});
+    });
+  },0);
 }
 
 // ============================================================
@@ -832,11 +986,17 @@ function mobCal(){
   document.getElementById('ct').innerHTML=
     // ヘッダー
     '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:8px">'+
-      '<div style="display:flex;align-items:center;padding:10px 12px;border-bottom:1px solid var(--border)">'+
+      '<div style="display:flex;align-items:center;padding:8px 10px;gap:6px;border-bottom:1px solid var(--border)">'+
         '<button class="btn bs bsm" id="cprev">◀</button>'+
-        '<span style="flex:1;text-align:center;font-size:16px;font-weight:900">'+calY+'年 '+(calM+1)+'月</span>'+
+        '<span style="flex:1;text-align:center;font-size:15px;font-weight:900">'+calY+'年 '+(calM+1)+'月</span>'+
         '<button class="btn bs bsm" id="ctod" style="font-size:11px">今日</button>'+
         '<button class="btn bs bsm" id="cnext">▶</button>'+
+      '</div>'+
+      '<div style="display:flex;gap:4px;padding:6px 10px;border-bottom:1px solid var(--border)">'+
+        '<button class="btn bsm bp" style="flex:1">月</button>'+
+        '<button class="btn bsm bs" style="flex:1" onclick="calV=&quot;week&quot;;pgCal()">週</button>'+
+        '<button class="btn bsm bs" style="flex:1" onclick="calV=&quot;day&quot;;pgCal()">日</button>'+
+        '<button class="btn bp bsm" style="flex:1" onclick="showSchedMo(null,today())">＋追加</button>'+
       '</div>'+
       // 曜日ヘッダー
       '<div style="display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--border)">'+
@@ -896,11 +1056,11 @@ function calNavH(label){
       '<button class="btn bs bsm" id="ctod" style="font-size:11px;padding:5px 8px">今日</button>'+
       '<button class="btn bs bsm" id="cnext" style="padding:5px 10px">▶</button>'+
     '</div>'+
-    '<div style="display:flex;gap:5px">'+
-      '<button class="btn bsm '+(calV==='month'?'bp':'bs')+'" onclick="calV=&quot;month&quot;;buildPage()" style="flex:1">月</button>'+
-      '<button class="btn bsm '+(calV==='week'?'bp':'bs')+'" onclick="calV=&quot;week&quot;;buildPage()" style="flex:1">週</button>'+
-      '<button class="btn bsm '+(calV==='day'?'bp':'bs')+'" onclick="calV=&quot;day&quot;;buildPage()" style="flex:1">日</button>'+
-      '<button class="btn bp bsm" onclick="showSchedMo(null,today())" style="flex:1">＋追加</button>'+
+    '<div style="display:flex;gap:4px;padding-top:2px">'+
+      '<button class="btn bsm '+(calV==='month'?'bp':'bs')+'" onclick="if(window.innerWidth<=768){mobCal();}else{calV=&quot;month&quot;;buildPage();}" style="flex:1">月</button>'+
+      '<button class="btn bsm '+(calV==='week'?'bp':'bs')+'" onclick="calV=&quot;week&quot;;pgCal();" style="flex:1">週</button>'+
+      '<button class="btn bsm '+(calV==='day'?'bp':'bs')+'" onclick="calV=&quot;day&quot;;pgCal();" style="flex:1">日</button>'+
+      '<button class="btn bp bsm" onclick="showSchedMo(null,today())" style="flex:1">＋</button>'+
     '</div>'+
   '</div>';
 }
