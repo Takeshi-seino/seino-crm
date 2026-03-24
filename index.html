@@ -786,101 +786,131 @@ function calADForDay(ds){
 function calSForDay(ds){return D.schedules.filter(s=>s.date===ds&&!s.allDay);}
 
 function calWeek(){
-  const days=Array.from({length:7},(_,i)=>{const d=new Date(calWS);d.setDate(calWS.getDate()+i);return d;});
-  const now=new Date();const hols=jpHols(calY);
-  const hrs=Array.from({length:24},(_,i)=>i);
-  const label=`${days[0].getMonth()+1}月${days[0].getDate()}日 〜 ${days[6].getMonth()+1}月${days[6].getDate()}日（${calY}年）`;
+  const days=Array.from({length:7},function(_,i){const d=new Date(calWS);d.setDate(calWS.getDate()+i);return d;});
+  const now=new Date();
+  const mob=window.innerWidth<=768;
+  const hols=jpHols(calY);
   const dns=['日','月','火','水','木','金','土'];
-  const nowPx=(now.getHours()*60+now.getMinutes())/60*SH;
-  const isThisWk=days.some(d=>d.toDateString()===now.toDateString());
+  const SH2=mob?40:SH; // スマホは1時間あたり40px
+  const nowPx=(now.getHours()*60+now.getMinutes())/60*SH2;
+  const isThisWk=days.some(function(d){return d.toDateString()===now.toDateString();});
+  const label=(days[0].getMonth()+1)+'月'+days[0].getDate()+'日 〜 '+(days[6].getMonth()+1)+'月'+days[6].getDate()+'日（'+calY+'年）';
 
-  const hdrs=days.map(dd=>{
-    const ds=dd.toISOString().slice(0,10);const dw=dd.getDay();
-    const isT=dd.toDateString()===now.toDateString();const hol=hols[ds];const isRed=dw===0||hol;
-    return`<div class="gdh-c" style="${hol?'background:rgba(184,64,64,.04)':''}">
-      <div class="gdh-dow" style="color:${isRed?'var(--red)':dw===6?'var(--blue)':'var(--text3)'}">${dns[dw]}</div>
-      <div class="gdh-dn ${isT?'today':''}" style="${isRed&&!isT?'color:var(--red)':''}">${dd.getDate()}</div>
-      ${hol?`<div style="font-size:8px;color:var(--red);font-weight:700;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">🎌${hol}</div>`:''}
-      <div id="wx-w-${ds}" style="min-height:42px;display:flex;flex-direction:column;align-items:center;justify-content:center"></div>
-    </div>`;
+  // ヘッダー列（天気なし）
+  var hdrs=days.map(function(dd){
+    const ds=dd.toISOString().slice(0,10);
+    const dw=dd.getDay();
+    const isT=dd.toDateString()===now.toDateString();
+    const hol=hols[ds];
+    const isRed=dw===0||hol;
+    return'<div style="flex:1;text-align:center;padding:4px 2px;border-right:1px solid var(--border);font-size:11px">'+
+      '<div style="font-size:9px;color:'+(isRed?'var(--red)':dw===6?'var(--blue)':'var(--text3)')+';font-weight:700">'+dns[dw]+'</div>'+
+      '<div style="font-size:'+(mob?'13':'16')+'px;font-weight:900;'+(isT?'background:var(--accent);color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:12px':isRed?'color:var(--red)':'')+'">'+dd.getDate()+'</div>'+
+    '</div>';
   }).join('');
 
-  const adRow=days.map(dd=>{
-    const ds=dd.toISOString().slice(0,10);const items=calADForDay(ds);
-    return`<div class="gadc" onclick="showSchedMo(null,'${ds}',null,null,true)">${items.map(it=>it.phase!==undefined?`<div style="background:${pc(it.phase)};color:#fff;border-radius:3px;padding:1px 3px;font-size:9px;font-weight:700;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;cursor:pointer;margin-bottom:1px" onclick="event.stopPropagation();showProjMo(${it.id})">⚡${it.title}</div>`:`<div style="background:${it.color||'var(--accent)'};color:#fff;border-radius:3px;padding:1px 3px;font-size:9px;font-weight:700;margin-bottom:1px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${it.title}</div>`).join('')}</div>`;
+  // 終日行
+  var adRow=days.map(function(dd){
+    const ds=dd.toISOString().slice(0,10);
+    const items=calADForDay(ds);
+    return'<div style="flex:1;border-right:1px solid var(--border);padding:2px 1px;font-size:9px;cursor:pointer;min-height:20px" onclick="showSchedMo(null,\''+ds+'\',null,null,true)">'+
+      items.map(function(it){
+        return it.phase!==undefined?
+          '<div style="background:'+pc(it.phase)+';color:#fff;border-radius:2px;padding:1px 2px;margin-bottom:1px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;cursor:pointer" onclick="event.stopPropagation();showProjMo('+it.id+')">⚡'+esc(it.title)+'</div>':
+          '<div style="background:'+(it.color||'var(--accent)')+';color:#fff;border-radius:2px;padding:1px 2px;margin-bottom:1px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">'+esc(it.title)+'</div>';
+      }).join('')+
+    '</div>';
   }).join('');
 
-  const tlabs=hrs.map(h=>`<div style="height:${SH}px;border-bottom:1px dashed rgba(44,38,32,.07);display:flex;align-items:flex-start;justify-content:flex-end;padding-right:5px;padding-top:2px;font-size:10px;color:var(--text3);flex-shrink:0">${String(h).padStart(2,'0')}:00</div>`).join('');
+  // 時間ラベル
+  var tlabs=Array.from({length:24},function(_,h){
+    return'<div style="height:'+SH2+'px;border-bottom:1px dashed rgba(44,38,32,.07);display:flex;align-items:flex-start;justify-content:flex-end;padding-right:4px;padding-top:2px;font-size:9px;color:var(--text3);flex-shrink:0">'+String(h).padStart(2,'0')+':00</div>';
+  }).join('');
 
-  const dcols=days.map(dd=>{
-    const ds=dd.toISOString().slice(0,10);const sc=calSForDay(ds);
-    const hlines=hrs.map(()=>`<div class="ghr"></div>`).join('');
-    const evs=sc.map(s=>{const top=t2px(s.st);const ht=dpx(s.st,s.et);const pj=s.pid?D.projects.find(p=>p.id===s.pid):null;
-      return`<div class="gev" style="top:${top}px;height:${ht}px;background:${s.color||'var(--accent)'}" onclick="event.stopPropagation();showSchedMo(${s.id},'${ds}')"><div style="font-size:9.5px;font-weight:700;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">${esc(s.title)}</div><div style="font-size:8.5px;opacity:.85">${s.st}–${s.et}${pj?' · '+pj.title.slice(0,8):''}</div></div>`;
+  // 日付列
+  var dcols=days.map(function(dd){
+    const ds=dd.toISOString().slice(0,10);
+    const sc=calSForDay(ds);
+    const hlines=Array.from({length:24},function(){return'<div style="height:'+SH2+'px;border-bottom:1px dashed rgba(44,38,32,.07)"></div>';}).join('');
+    const evs=sc.map(function(s){
+      const top=(function(t){const p=t.split(':').map(Number);return(p[0]*60+p[1])/60*SH2;})(s.st||'0:00');
+      const ht=Math.max((function(st,et){return(function(t){const p=t.split(':').map(Number);return(p[0]*60+p[1])/60*SH2;})(et)-(function(t){const p=t.split(':').map(Number);return(p[0]*60+p[1])/60*SH2;})(st);})(s.st||'0:00',s.et||'0:00'),18);
+      return'<div style="position:absolute;left:1px;right:1px;top:'+top+'px;height:'+ht+'px;background:'+(s.color||'var(--accent)')+';border-radius:3px;padding:1px 3px;font-size:9px;font-weight:700;cursor:pointer;overflow:hidden;color:#fff;z-index:3" onclick="event.stopPropagation();showSchedMo('+s.id+',\''+ds+'\')">'+esc(s.title)+'<br><span style="font-size:8px;opacity:.85">'+s.st+'–'+s.et+'</span></div>';
     }).join('');
-    return`<div class="gcol" onclick="clickCal(event,'${ds}',this)">${hlines}${evs}</div>`;
+    return'<div style="flex:1;border-right:1px solid var(--border);position:relative;cursor:pointer" onclick="clickCal(event,\''+ds+'\',this)">'+hlines+evs+'</div>';
   }).join('');
 
-  document.getElementById('ct').innerHTML=`<div class="gw">${calNavH(label)}
-    <div class="gb">
-      <div style="display:flex;flex-direction:column;width:50px;flex-shrink:0;border-right:1px solid var(--border)">
-        <div style="height:44px;border-bottom:1px solid var(--border);background:var(--bg3)"></div>
-        <div style="height:28px;border-bottom:1px solid var(--border);background:rgba(74,124,95,.03);font-size:9px;color:var(--text3);display:flex;align-items:center;justify-content:center">終日</div>
-        <div>${tlabs}</div>
-      </div>
-      <div style="flex:1;overflow-y:auto;display:flex;flex-direction:column">
-        <div class="gdh">${hdrs}</div>
-        <div class="gad">${adRow}</div>
-        <div style="display:flex;position:relative;flex:1">
-          <div style="display:flex;flex:1;position:relative">
-            ${isThisWk?`<div class="gnow" style="top:${nowPx}px"></div>`:''}
-            ${dcols}
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>${mtotBar()}`;
+  document.getElementById('ct').innerHTML=
+    '<div class="gw">'+calNavH(label)+
+      '<div style="display:flex;overflow:hidden;'+(mob?'max-height:calc(100vh - 200px)':'max-height:600px')+'">'+
+        '<div style="display:flex;flex-direction:column;width:'+(mob?'32':'50')+'px;flex-shrink:0;border-right:1px solid var(--border)">'+
+          '<div style="height:'+(mob?'30':'44')+'px;border-bottom:1px solid var(--border);background:var(--bg3)"></div>'+
+          '<div style="height:22px;border-bottom:1px solid var(--border);background:rgba(74,124,95,.03);font-size:9px;color:var(--text3);display:flex;align-items:center;justify-content:center">終日</div>'+
+          '<div style="overflow-y:hidden">'+tlabs+'</div>'+
+        '</div>'+
+        '<div style="flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column">'+
+          '<div style="display:flex;border-bottom:1px solid var(--border);background:var(--bg3);height:'+(mob?'30':'44')+'px">'+hdrs+'</div>'+
+          '<div style="display:flex;border-bottom:1px solid var(--border);background:rgba(74,124,95,.03)">'+adRow+'</div>'+
+          '<div style="display:flex;position:relative;flex:1">'+
+            '<div style="display:flex;flex:1;position:relative">'+
+              (isThisWk?'<div style="position:absolute;left:0;right:0;height:2px;background:var(--red);z-index:10;top:'+nowPx+'px"><div style="position:absolute;left:-4px;top:-4px;width:9px;height:9px;border-radius:50%;background:var(--red)"></div></div>':'')+
+              dcols+
+            '</div>'+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+    '</div>'+mtotBar();
 
   calY=days[3].getFullYear();calM=days[3].getMonth();
   bindNav(
-    ()=>{calWS=wkStart(new Date(calWS.getTime()-7*86400000));buildPage();},
-    ()=>{calWS=wkStart(new Date());buildPage();},
-    ()=>{calWS=wkStart(new Date(calWS.getTime()+7*86400000));buildPage();}
+    function(){calWS=wkStart(new Date(calWS.getTime()-7*86400000));buildPage();},
+    function(){calWS=wkStart(new Date());buildPage();},
+    function(){calWS=wkStart(new Date(calWS.getTime()+7*86400000));buildPage();}
   );
-  // async weather
-  (async()=>{const dates=days.map(d=>d.toISOString().slice(0,10));const w=await wx(dates);dates.forEach(ds=>{const el=document.getElementById('wx-w-'+ds);if(el&&w[ds])el.innerHTML=wxHtml(w[ds]);});})();
 }
 
 function calDay(){
   const ds=new Date(calY,calM,calD).toISOString().slice(0,10);
   const hols=jpHols(calY);const hol=hols[ds];
   const now=new Date();const isT=new Date(ds).toDateString()===now.toDateString();
-  const nowPx=isT?(now.getHours()*60+now.getMinutes())/60*SH:null;
+  const mob=window.innerWidth<=768;
+  const SH2=mob?40:SH;
+  const nowPx=isT?(now.getHours()*60+now.getMinutes())/60*SH2:null;
   const sc=calSForDay(ds);const ad=calADForDay(ds);
-  const hrs=Array.from({length:24},(_,i)=>i);
-  const label=`${calY}年${calM+1}月${calD}日${hol?' 🎌'+hol:''}`;
-  const tlabs=hrs.map(h=>`<div style="height:${SH}px;border-bottom:1px dashed rgba(44,38,32,.08);padding-left:6px;padding-top:2px;font-size:10px;color:var(--text3)">${String(h).padStart(2,'0')}:00</div>`).join('');
-  const evs=sc.map(s=>{const top=t2px(s.st);const ht=dpx(s.st,s.et);const pj=s.pid?D.projects.find(p=>p.id===s.pid):null;
-    return`<div class="gev" style="top:${top}px;height:${ht}px;background:${s.color||'var(--accent)'};left:58px;right:4px" onclick="event.stopPropagation();showSchedMo(${s.id},'${ds}')"><div style="font-size:11px;font-weight:700">${esc(s.title)}</div><div style="font-size:9px;opacity:.85">${s.st}–${s.et}${pj?' · '+pj.title:''}</div></div>`;
+  const label=calY+'年'+(calM+1)+'月'+calD+'日'+(hol?' 🎌'+hol:'');
+
+  var tlabs=Array.from({length:24},function(_,h){
+    return'<div style="height:'+SH2+'px;border-bottom:1px dashed rgba(44,38,32,.08);padding-left:5px;padding-top:2px;font-size:10px;color:var(--text3)">'+String(h).padStart(2,'0')+':00</div>';
   }).join('');
 
-  document.getElementById('ct').innerHTML=`<div class="gw">${calNavH(label)}
-    <div style="padding:7px 11px;border-bottom:1px solid var(--border);background:rgba(74,124,95,.03);min-height:30px">
-      <span style="font-size:11px;color:var(--text3);font-weight:700">終日：</span>
-      ${ad.length?ad.map(it=>it.phase!==undefined?`<span style="background:${pc(it.phase)};color:#fff;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700;margin-right:3px">⚡${it.title}</span>`:`<span style="background:${it.color||'var(--accent)'};color:#fff;border-radius:4px;padding:2px 7px;font-size:10px;font-weight:700;margin-right:3px">${it.title}</span>`).join(''):`<span style="font-size:11px;color:var(--text3)">なし</span>`}
-      <span id="wx-day" style="margin-left:12px;font-size:12px"></span>
-    </div>
-    <div style="flex:1;overflow-y:auto;position:relative;min-height:400px" onclick="clickCal(event,'${ds}',this)">
-      ${tlabs}${nowPx!==null?`<div class="gnow" style="top:${nowPx}px;left:52px"></div>`:''}${evs}
-    </div>
-  </div>${mtotBar()}`;
+  var evs=sc.map(function(s){
+    const top=(function(t){const p=t.split(':').map(Number);return(p[0]*60+p[1])/60*SH2;})(s.st||'0:00');
+    const ht=Math.max((function(st,et){return(function(t){const p=t.split(':').map(Number);return(p[0]*60+p[1])/60*SH2;})(et)-(function(t){const p=t.split(':').map(Number);return(p[0]*60+p[1])/60*SH2;})(st);})(s.st||'0:00',s.et||'0:00'),22);
+    return'<div style="position:absolute;left:'+(mob?'38':'58')+'px;right:4px;top:'+top+'px;height:'+ht+'px;background:'+(s.color||'var(--accent)')+';border-radius:4px;padding:2px 5px;font-size:11px;font-weight:700;cursor:pointer;overflow:hidden;color:#fff" onclick="event.stopPropagation();showSchedMo('+s.id+',\''+ds+'\')">'+esc(s.title)+'<div style="font-size:9px;opacity:.85">'+s.st+'–'+s.et+'</div></div>';
+  }).join('');
+
+  document.getElementById('ct').innerHTML=
+    '<div class="gw">'+calNavH(label)+
+      '<div style="padding:7px 10px;border-bottom:1px solid var(--border);background:rgba(74,124,95,.03);min-height:24px;font-size:11px">'+
+        '<span style="color:var(--text3);font-weight:700">終日：</span>'+
+        (ad.length?ad.map(function(it){
+          return it.phase!==undefined?
+            '<span style="background:'+pc(it.phase)+';color:#fff;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;margin-right:3px">⚡'+esc(it.title)+'</span>':
+            '<span style="background:'+(it.color||'var(--accent)')+';color:#fff;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;margin-right:3px">'+esc(it.title)+'</span>';
+        }).join(''):'<span style="color:var(--text3)">なし</span>')+
+      '</div>'+
+      '<div style="flex:1;overflow-y:auto;position:relative;min-height:300px;'+(mob?'max-height:calc(100vh - 220px)':'')+'" onclick="clickCal(event,\''+ds+'\',this)">'+
+        tlabs+
+        (nowPx!==null?'<div style="position:absolute;left:0;right:0;height:2px;background:var(--red);z-index:10;top:'+nowPx+'px;left:'+(mob?'34':'52')+'px"><div style="position:absolute;left:-4px;top:-4px;width:9px;height:9px;border-radius:50%;background:var(--red)"></div></div>':'')+
+        evs+
+      '</div>'+
+    '</div>'+mtotBar();
 
   bindNav(
-    ()=>{const d=new Date(calY,calM,calD-1);calY=d.getFullYear();calM=d.getMonth();calD=d.getDate();buildPage();},
-    ()=>{const d=new Date();calY=d.getFullYear();calM=d.getMonth();calD=d.getDate();buildPage();},
-    ()=>{const d=new Date(calY,calM,calD+1);calY=d.getFullYear();calM=d.getMonth();calD=d.getDate();buildPage();}
+    function(){const d=new Date(calY,calM,calD-1);calY=d.getFullYear();calM=d.getMonth();calD=d.getDate();buildPage();},
+    function(){const d=new Date();calY=d.getFullYear();calM=d.getMonth();calD=d.getDate();buildPage();},
+    function(){const d=new Date(calY,calM,calD+1);calY=d.getFullYear();calM=d.getMonth();calD=d.getDate();buildPage();}
   );
-  (async()=>{const w=await wx([ds]);const el=document.getElementById('wx-day');if(el&&w[ds]){const wd=w[ds];el.innerHTML=`${WE[wd.code]||''} ${Math.round(wd.max)}°/${Math.round(wd.min)}° 💨${wd.wind}m/s`;}})();
 }
 
 function calMonth(){
