@@ -752,12 +752,14 @@ function swDTab(t){
   const pjs=D.projects.filter(p=>p.cid===detCid);
   const qts=D.quotes.filter(q=>q.cid===detCid);
   const c=D.customers.find(c=>c.id===detCid);
-  if(t==='h') document.getElementById('dt-body').innerHTML=dtHistory(pjs,qts);
-  else if(t==='e') document.getElementById('dt-body').innerHTML=dtEquip(c);
-  else if(t==='c') document.getElementById('dt-body').innerHTML=dtContract(c);
-  else if(t==='p') document.getElementById('dt-body').innerHTML=dtProjs(pjs);
-  else if(t==='q') document.getElementById('dt-body').innerHTML=dtQuots(qts);
-  else if(t==='r') document.getElementById('dt-body').innerHTML=dtReports(pjs);
+  const body=document.getElementById('dt-body');
+  if(!body)return;
+  if(t==='h') body.innerHTML=dtHistory(pjs,qts);
+  else if(t==='p') body.innerHTML=dtProjs(pjs);
+  else if(t==='q') body.innerHTML=dtQuots(qts);
+  else if(t==='e') body.innerHTML=dtEquip(c);
+  else if(t==='c') body.innerHTML=dtContracts();
+  else if(t==='r') body.innerHTML=dtReport(pjs);
 }
 function dtProjs(pjs){
   if(!pjs.length)return`<div class="emp"><div style="font-size:30px">📭</div><div>案件がありません</div></div>`;
@@ -2417,6 +2419,121 @@ function showProjDetail(id){
   }).join(''):'<div style="color:var(--text3);font-size:11px">なし</div>';
   const html='<div style="margin-bottom:12px;padding-bottom:10px;border-bottom:2px solid var(--accent)"><div style="font-size:17px;font-weight:900;margin-bottom:4px">'+esc(p.title)+'</div><div style="display:flex;flex-wrap:wrap;gap:8px;font-size:12px;color:var(--text2)">'+(cust?'<span>'+esc(cust.name)+'</span>':'')+'<span>'+bdg(p.phase)+'</span>'+(p.sd?'<span>'+p.sd+(p.ed?' - '+p.ed:'')+'</span>':'')+(p.amount?'<span>'+fmt(p.amount)+'</span>':'')+'</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px"><div><div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px">段取りチェック</div>'+progBar+ckHtml+'</div><div><div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px">人員</div>'+stHtml+'</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px"><div><div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px">機器・商品</div>'+eqHtml+'</div><div><div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px">材料・部材</div>'+mtHtml+'</div></div>'+(p.memo?'<div style="padding:8px;background:var(--bg3);border-radius:6px;font-size:12px;margin-bottom:12px;white-space:pre-wrap">'+esc(p.memo)+'</div>':'')+'<div class="mf"><button class="btn bs" onclick="cmo()">閉じる</button><button class="btn bg bsm" onclick="printProjSheet('+id+')">印刷</button><button class="btn bp" onclick="cmo();showProjMo('+id+')" style="margin-left:auto">編集</button></div>';
   mo(html,true);
+}
+
+function dtHistory(pjs, qts){
+  // 案件と見積を時系列でまとめる
+  const items = [
+    ...pjs.map(p=>({
+      type:'project', date:p.ed||p.sd||p.created||'', obj:p,
+      label:`⚡ ${p.title}`, sub:`${p.phase} / ${fmt(p.amount)}`,
+      color:'var(--accent)', badge:bdg(p.phase)
+    })),
+    ...qts.map(q=>({
+      type:'quote', date:q.date||q.created||'', obj:q,
+      label:`${q.isInvoice?'':''} ${q.title}`, sub:`${q.qn} / ${fmt(q.amount+(q.tax||0))}`,
+      color:'var(--blue)', badge:bdg(q.status)
+    }))
+  ].filter(i=>i.date).sort((a,b)=>b.date.localeCompare(a.date));
+
+  if(!items.length) return`<div class="emp"><div style="font-size:30px"></div><div>履歴がありません</div></div>`;
+
+  return`<div style="display:flex;flex-direction:column;gap:0">
+    ${items.map((it,i)=>`
+    <div style="display:flex;gap:12px;padding:10px 4px;border-bottom:1px solid var(--border);cursor:pointer"
+      onclick="${it.type==='project'?`showProjMo(${it.obj.id})`:`editDoc(${it.obj.id},${it.obj.isInvoice?1:0})`}">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:0;flex-shrink:0;width:52px">
+        <div style="font-size:10px;color:var(--text3);font-weight:700">${it.date.slice(0,7).replace('-','/')}</div>
+        <div style="font-size:13px;font-weight:900;color:var(--text)">${it.date.slice(8,10)}日</div>
+        ${i<items.length-1?`<div style="flex:1;width:1px;background:var(--border);margin:3px 0;min-height:16px"></div>`:''}
+      </div>
+      <div style="flex:1;padding:2px 0">
+        <div style="font-size:13px;font-weight:700;margin-bottom:3px">${esc(it.label)}</div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:4px">${esc(it.sub)}</div>
+        ${it.badge}
+      </div>
+      <div style="color:var(--text3);font-size:16px;align-self:center">›</div>
+    </div>`).join('')}
+  </div>`;
+}
+
+function dtEquip(c){
+  if(!c) return '';
+  if(!c.equipment) c.equipment=[];
+  const eqs=c.equipment;
+
+  const rows=eqs.length?eqs.map((eq,i)=>`
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:11px 13px;margin-bottom:8px">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
+        <div>
+          <div style="font-size:14px;font-weight:700">${esc(eq.name||'')}</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:1px">${esc(eq.maker||'')} ${esc(eq.model||'')}</div>
+        </div>
+        <div style="display:flex;gap:4px">
+          <button class="btn bs bsm" onclick="showEquipMo(${c.id},${i})">✏️</button>
+          <button class="btn bd bsm" onclick="delEquip(${c.id},${i})"></button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 12px;font-size:11px">
+        ${eq.location?`<div><span style="color:var(--text3)">設置場所</span> ${esc(eq.location)}</div>`:''}
+        ${eq.installDate?`<div><span style="color:var(--text3)">設置日</span> ${eq.installDate}</div>`:''}
+        ${eq.purchaseDate?`<div><span style="color:var(--text3)">購入日</span> ${eq.purchaseDate}</div>`:''}
+        ${eq.warrantyDate?`<div><span style="color:${new Date(eq.warrantyDate)<new Date()?'var(--red)':'var(--green)'}">保証期限</span> <span style="font-weight:700">${eq.warrantyDate}</span></div>`:''}
+        ${eq.lastCheck?`<div><span style="color:var(--text3)">最終点検</span> ${eq.lastCheck}</div>`:''}
+        ${eq.nextCheck?`<div><span style="color:var(--accent)">次回点検</span> <span style="font-weight:700">${eq.nextCheck}</span></div>`:''}
+      </div>
+      ${eq.memo?`<div style="margin-top:6px;font-size:11px;color:var(--text3);padding:5px 8px;background:var(--bg3);border-radius:5px">${esc(eq.memo)}</div>`:''}
+      ${eq.photos?.length?`<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">${eq.photos.map(p=>`<img src="${p}" style="width:60px;height:60px;object-fit:cover;border-radius:5px;cursor:pointer" onclick="showImgViewer('${p}')">`).join('')}</div>`:''}
+    </div>`).join('')
+  :`<div class="emp"><div style="font-size:30px"></div><div>保有機器が登録されていません</div></div>`;
+
+  return`<div>
+    <div style="margin-bottom:10px;display:flex;justify-content:flex-end">
+      <button class="btn bp" onclick="showEquipMo(${c.id},-1)">＋ 機器を追加</button>
+    </div>
+    ${rows}
+  </div>`;
+}
+
+function dtContracts(){
+  const c=D.customers.find(c=>c.id===detCid);if(!c)return'';
+  if(!c.contracts)c.contracts={warranty:[],maintenance:[],aircon:[],inspection:[],lease:[]};
+  const tabs=[['warranty','保証'],['maintenance','保守'],['aircon','エアクリ'],['inspection','点検'],['lease','リース']];
+  let html='<div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap">';
+  tabs.forEach(([key,label])=>{
+    html+=`<button class="btn bs bsm" onclick="swCTab('${key}')" id="ct-${key}">${label}</button>`;
+  });
+  html+='</div><div id="ct-body">';
+  const items=(c.contracts.warranty||[]);
+  if(!items.length){
+    html+='<div class="emp"><div>登録なし</div></div>';
+  } else {
+    html+=items.map(it=>`<div class="tli"><div style="flex:1"><div style="font-weight:700">${esc(it.name||'')}</div><div style="font-size:11px;color:var(--text3)">${esc(it.date||'')} 〜 ${esc(it.exp||'')}</div></div></div>`).join('');
+  }
+  html+='</div>';
+  return html;
+}
+function swCTab(key){
+  const c=D.customers.find(c=>c.id===detCid);if(!c)return;
+  if(!c.contracts)c.contracts={warranty:[],maintenance:[],aircon:[],inspection:[],lease:[]};
+  const items=c.contracts[key]||[];
+  const body=document.getElementById('ct-body');
+  if(!body)return;
+  if(!items.length){
+    body.innerHTML='<div class="emp"><div>登録なし</div></div>';
+  } else {
+    body.innerHTML=items.map(it=>`<div class="tli"><div style="flex:1"><div style="font-weight:700">${esc(it.name||'')}</div><div style="font-size:11px;color:var(--text3)">${esc(it.date||'')} 〜 ${esc(it.exp||'')}</div></div></div>`).join('');
+  }
+}
+
+function dtReport(pjs){
+  if(!pjs.length) return '<div class="emp"><div style="font-size:30px">📝</div><div>レポートなし</div></div>';
+  return pjs.filter(p=>p.memo).map(p=>`
+    <div class="card" style="margin-bottom:8px">
+      <div style="font-weight:700;margin-bottom:4px">${esc(p.title)}</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:6px">${fmtD(p.sd||'')} 〜 ${fmtD(p.ed||'')} &nbsp;${bdg(p.phase)}</div>
+      <div style="font-size:12px;white-space:pre-wrap;color:var(--text2)">${esc(p.memo)}</div>
+    </div>`).join('') || '<div class="emp"><div>メモ付き案件なし</div></div>';
 }
 
 // ============================================================
