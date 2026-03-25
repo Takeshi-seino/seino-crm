@@ -312,13 +312,13 @@ tbody tr:hover td{background:var(--bg3)}
 <div id="toast"></div>
 
 <!-- スマホ用ボトムナビ -->
-<div id="mob-nav" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #ddd;z-index:9999;padding-bottom:env(safe-area-inset-bottom,0px)">
-  <div style="display:flex;flex-direction:row;height:56px;width:100%">
-    <button onclick="nav('dashboard')" id="mbt-dashboard" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border:none;background:none;cursor:pointer;color:#888;font-size:10px;font-family:inherit;gap:2px"><span style="font-size:22px">◈</span><span>ホーム</span></button>
-    <button onclick="nav('customers')" id="mbt-customers" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border:none;background:none;cursor:pointer;color:#888;font-size:10px;font-family:inherit;gap:2px"><span style="font-size:22px">👥</span><span>顧客</span></button>
-    <button onclick="nav('projects')" id="mbt-projects" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border:none;background:none;cursor:pointer;color:#888;font-size:10px;font-family:inherit;gap:2px"><span style="font-size:22px">⚡</span><span>案件</span></button>
-    <button onclick="nav('schedule')" id="mbt-schedule" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border:none;background:none;cursor:pointer;color:#888;font-size:10px;font-family:inherit;gap:2px"><span style="font-size:22px">📅</span><span>予定</span></button>
-    <button onclick="nav('quotes')" id="mbt-quotes" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border:none;background:none;cursor:pointer;color:#888;font-size:10px;font-family:inherit;gap:2px"><span style="font-size:22px">📋</span><span>見積</span></button>
+<div id="mob-nav" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #ddd;z-index:9999;padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box">
+  <div style="display:flex;flex-direction:row;height:52px;width:100%;box-sizing:border-box">
+    <button onclick="nav('dashboard')" id="mbt-dashboard" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border:none;background:none;cursor:pointer;color:#888;font-size:9px;font-family:inherit;gap:1px"><span style="font-size:20px">◈</span><span>ホーム</span></button>
+    <button onclick="nav('customers')" id="mbt-customers" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border:none;background:none;cursor:pointer;color:#888;font-size:9px;font-family:inherit;gap:1px"><span style="font-size:20px">👥</span><span>顧客</span></button>
+    <button onclick="nav('projects')" id="mbt-projects" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border:none;background:none;cursor:pointer;color:#888;font-size:9px;font-family:inherit;gap:1px"><span style="font-size:20px">⚡</span><span>案件</span></button>
+    <button onclick="nav('schedule')" id="mbt-schedule" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border:none;background:none;cursor:pointer;color:#888;font-size:9px;font-family:inherit;gap:1px"><span style="font-size:20px">📅</span><span>予定</span></button>
+    <button onclick="nav('quotes')" id="mbt-quotes" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border:none;background:none;cursor:pointer;color:#888;font-size:9px;font-family:inherit;gap:1px"><span style="font-size:20px">📋</span><span>見積</span></button>
   </div>
 </div>
 
@@ -546,60 +546,108 @@ function pgDash(){
   const pend=D.quotes.filter(q=>q.status==='提出済'||q.status==='作成中').length;
   const tq=D.quotes.reduce((s,q)=>s+q.amount,0);
   const now=new Date();const ws=wkStart(now);
-  const days7=Array.from({length:7},(_,i)=>{const d=new Date(ws);d.setDate(ws.getDate()+i);return d;});
+  const days7=Array.from({length:7},function(_,i){const d=new Date(ws);d.setDate(ws.getDate()+i);return d;});
   const dns=['日','月','火','水','木','金','土'];
-  const cols7=days7.map(dd=>{
+  const mob=window.innerWidth<=768;
+
+  // 今週のカレンダー列
+  const cols7=days7.map(function(dd){
     const ds=dd.toISOString().slice(0,10);
     const isT=dd.toDateString()===now.toDateString();
     const dw=dd.getDay();
-    const sc=D.schedules.filter(s=>s.date===ds);
-    const al=D.projects.filter(p=>p.sd&&p.ed&&new Date(p.sd)<=dd&&new Date(p.ed)>=dd);
+    const sc=D.schedules.filter(function(s){return s.date===ds;});
+    const al=D.projects.filter(function(p){return p.sd&&p.ed&&new Date(p.sd)<=dd&&new Date(p.ed)>=dd;});
     const ev=[
-      ...al.slice(0,1).map(p=>`<div style="background:${pc(p.phase)}22;color:${pc(p.phase)};border-left:2px solid ${pc(p.phase)};border-radius:3px;padding:2px 4px;font-size:9px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px">⚡${p.title}</div>`),
-      ...sc.slice(0,2).map(s=>`<div style="background:${s.color||'var(--accent)'}18;color:${s.color||'var(--accent)'};border-left:2px solid ${s.color||'var(--accent)'};border-radius:3px;padding:2px 4px;font-size:9px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;cursor:pointer" onclick="showSchedMo(${s.id},'${ds}')">${s.st} ${esc(s.title)}</div>`)
+      ...al.slice(0,1).map(function(p){return'<div style="background:'+pc(p.phase)+'22;color:'+pc(p.phase)+';border-left:2px solid '+pc(p.phase)+';border-radius:3px;padding:2px 4px;font-size:9px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px">⚡'+p.title+'</div>';}),
+      ...sc.slice(0,2).map(function(s){return'<div style="background:'+(s.color||'var(--accent)')+'18;color:'+(s.color||'var(--accent)')+';border-left:2px solid '+(s.color||'var(--accent)')+';border-radius:3px;padding:2px 4px;font-size:9px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;cursor:pointer" onclick="showSchedMo('+s.id+',\''+ds+'\')">'+s.st+' '+esc(s.title)+'</div>';})
     ].join('');
-    return`<div style="flex:1;border-right:1px solid var(--border);padding:7px 5px;min-height:100px;background:${isT?'rgba(74,124,95,.05)':'transparent'};cursor:pointer" onclick="showSchedMo(null,'${ds}')">
-      <div style="text-align:center;margin-bottom:5px">
-        <div style="font-size:10px;color:${dw===0?'var(--red)':dw===6?'var(--blue)':'var(--text3)'};font-weight:700">${dns[dw]}</div>
-        <div style="font-size:15px;font-weight:900;${isT?'background:var(--accent);color:#fff;border-radius:50%;width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;font-size:12px':''}">${dd.getDate()}</div>
-      </div>
-      ${ev||`<div style="font-size:10px;color:var(--text3);text-align:center">—</div>`}
-    </div>`;
+    return'<div style="flex:1;border-right:1px solid var(--border);padding:5px 3px;min-height:80px;background:'+(isT?'rgba(74,124,95,.05)':'transparent')+';cursor:pointer" onclick="showSchedMo(null,\''+ds+'\')">'+
+      '<div style="text-align:center;margin-bottom:4px">'+
+        '<div style="font-size:9px;color:'+(dw===0?'var(--red)':dw===6?'var(--blue)':'var(--text3)')+';font-weight:700">'+dns[dw]+'</div>'+
+        '<div style="font-size:13px;font-weight:900;'+(isT?'background:var(--accent);color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:11px':'')+'">'+dd.getDate()+'</div>'+
+      '</div>'+
+      (ev||'<div style="font-size:9px;color:var(--text3);text-align:center">—</div>')+
+    '</div>';
   }).join('');
 
-  document.getElementById('ct').innerHTML=`
-  <div class="sg">
-    <div class="sc"><div class="sl">総顧客数</div><div class="sv" style="color:var(--blue)">${D.customers.length}</div><div class="ss">登録顧客</div></div>
-    <div class="sc"><div class="sl">進行中案件</div><div class="sv" style="color:var(--accent)">${act}</div><div class="ss">現在稼働中</div></div>
-    <div class="sc"><div class="sl">未処理見積</div><div class="sv" style="color:var(--purple)">${pend}</div><div class="ss">要対応</div></div>
-    <div class="sc"><div class="sl">完了案件 売上</div><div class="sv" style="color:var(--green);font-size:16px">${fmt(done)}</div><div class="ss">累計</div></div>
-  </div>
-  <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:12px;margin-bottom:12px">
-    <div class="card"><div class="ct">⚡ 進行中の案件</div>
-      ${D.projects.filter(p=>p.status!=='完了').length?D.projects.filter(p=>p.status!=='完了').map(p=>`<div class="tli"><div class="tlic" style="background:${pc(p.phase)}22">${PI[p.phase]||'⚡'}</div><div style="flex:1"><div style="font-weight:700;font-size:13px">${p.title}</div><div style="font-size:11px;color:var(--text3)">${cname(p.cid)} · ${fmtD(p.ed)}まで</div></div><div style="text-align:right"><div class="amt" style="font-size:12px">${fmt(p.amount)}</div>${bdg(p.phase)}</div></div>`).join(''):`<div class="emp"><div style="font-size:36px">📭</div></div>`}
+  // 統計カード（スマホは小さく）
+  const statCards=mob?
+    `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+      <div class="sc" style="padding:10px 12px"><div class="sl">総顧客数</div><div style="font-size:18px;font-weight:900;color:var(--blue)">${D.customers.length}</div></div>
+      <div class="sc" style="padding:10px 12px"><div class="sl">進行中案件</div><div style="font-size:18px;font-weight:900;color:var(--accent)">${act}</div></div>
+      <div class="sc" style="padding:10px 12px"><div class="sl">未処理見積</div><div style="font-size:18px;font-weight:900;color:var(--purple)">${pend}</div></div>
+      <div class="sc" style="padding:10px 12px"><div class="sl">完了売上</div><div style="font-size:14px;font-weight:900;color:var(--green)">${fmt(done)}</div></div>
+    </div>`:
+    `<div class="sg">
+      <div class="sc"><div class="sl">総顧客数</div><div class="sv" style="color:var(--blue)">${D.customers.length}</div><div class="ss">登録顧客</div></div>
+      <div class="sc"><div class="sl">進行中案件</div><div class="sv" style="color:var(--accent)">${act}</div><div class="ss">現在稼働中</div></div>
+      <div class="sc"><div class="sl">未処理見積</div><div class="sv" style="color:var(--purple)">${pend}</div><div class="ss">要対応</div></div>
+      <div class="sc"><div class="sl">完了案件 売上</div><div class="sv" style="color:var(--green);font-size:16px">${fmt(done)}</div><div class="ss">累計</div></div>
+    </div>`;
+
+  // 進行中案件・最近の見積（スマホは縦1列）
+  const midSection=mob?
+    `<div class="card" style="margin-bottom:12px">
+      <div class="ct">⚡ 進行中の案件</div>
+      ${D.projects.filter(p=>p.status!=='完了').length?
+        D.projects.filter(p=>p.status!=='完了').map(p=>`<div class="tli" style="cursor:pointer" onclick="showProjDetail(${p.id})">
+          <div class="tlic" style="background:${pc(p.phase)}22">${PI[p.phase]||'⚡'}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.title}</div>
+            <div style="font-size:11px;color:var(--text3)">${cname(p.cid)} · ${fmtD(p.ed)}まで</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;margin-left:8px">
+            <div class="amt" style="font-size:12px">${fmt(p.amount)}</div>
+            ${bdg(p.phase)}
+          </div>
+        </div>`).join(''):
+        '<div class="emp"><div style="font-size:30px">📭</div></div>'}
     </div>
-    <div class="card"><div class="ct">📋 最近の見積</div>
-      ${D.quotes.slice(-5).reverse().map(q=>`<div class="tli"><div style="flex:1"><div style="font-weight:600;font-size:12px">${q.title}</div><div style="font-size:11px;color:var(--text3)">${q.qn} · ${cname(q.cid)}</div></div><div style="text-align:right"><div class="amt" style="font-size:12px">${fmt(q.amount)}</div>${bdg(q.status)}</div></div>`).join('')}
-      <div style="padding-top:9px;border-top:1px solid var(--border);display:flex;justify-content:space-between"><span style="font-size:11px;color:var(--text3)">見積合計</span><span class="amt">${fmt(tq)}</span></div>
-    </div>
-  </div>
-  <div>
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-      <div style="font-size:13px;font-weight:700">📅 今週のスケジュール</div>
-      <div style="display:flex;gap:5px">
-        <button class="btn bs bsm" onclick="pView='cal';nav('projects')">カレンダーを開く →</button>
-        <button class="btn bp bsm" onclick="showSchedMo(null,'${today()}')">＋ 追加</button>
+    <div class="card" style="margin-bottom:12px">
+      <div class="ct">📋 最近の見積</div>
+      ${D.quotes.slice(-3).reverse().map(q=>`<div class="tli">
+        <div style="flex:1;min-width:0">
+          <div style="font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${q.title}</div>
+          <div style="font-size:11px;color:var(--text3)">${q.qn} · ${cname(q.cid)}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0;margin-left:8px">
+          <div class="amt" style="font-size:12px">${fmt(q.amount)}</div>
+          ${bdg(q.status)}
+        </div>
+      </div>`).join('')}
+      <div style="padding-top:8px;border-top:1px solid var(--border);display:flex;justify-content:space-between">
+        <span style="font-size:11px;color:var(--text3)">見積合計</span>
+        <span class="amt">${fmt(tq)}</span>
       </div>
-    </div>
-    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow2)">
-      <div style="display:flex">${cols7}</div>
-    </div>
-  </div>`;
+    </div>`:
+    `<div style="display:grid;grid-template-columns:1.3fr 1fr;gap:12px;margin-bottom:12px">
+      <div class="card"><div class="ct">⚡ 進行中の案件</div>
+        ${D.projects.filter(p=>p.status!=='完了').length?D.projects.filter(p=>p.status!=='完了').map(p=>`<div class="tli"><div class="tlic" style="background:${pc(p.phase)}22">${PI[p.phase]||'⚡'}</div><div style="flex:1"><div style="font-weight:700;font-size:13px">${p.title}</div><div style="font-size:11px;color:var(--text3)">${cname(p.cid)} · ${fmtD(p.ed)}まで</div></div><div style="text-align:right"><div class="amt" style="font-size:12px">${fmt(p.amount)}</div>${bdg(p.phase)}</div></div>`).join(''):`<div class="emp"><div style="font-size:36px">📭</div></div>`}
+      </div>
+      <div class="card"><div class="ct">📋 最近の見積</div>
+        ${D.quotes.slice(-5).reverse().map(q=>`<div class="tli"><div style="flex:1"><div style="font-weight:600;font-size:12px">${q.title}</div><div style="font-size:11px;color:var(--text3)">${q.qn} · ${cname(q.cid)}</div></div><div style="text-align:right"><div class="amt" style="font-size:12px">${fmt(q.amount)}</div>${bdg(q.status)}</div></div>`).join('')}
+        <div style="padding-top:9px;border-top:1px solid var(--border);display:flex;justify-content:space-between"><span style="font-size:11px;color:var(--text3)">見積合計</span><span class="amt">${fmt(tq)}</span></div>
+      </div>
+    </div>`;
+
+  document.getElementById('ct').innerHTML=
+    statCards+
+    midSection+
+    `<div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:13px;font-weight:700">📅 今週のスケジュール</div>
+        <div style="display:flex;gap:5px">
+          <button class="btn bs bsm" onclick="nav('schedule')">カレンダーを開く →</button>
+          <button class="btn bp bsm" onclick="showSchedMo(null,'${today()}')">＋ 追加</button>
+        </div>
+      </div>
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow2)">
+        <div style="display:flex;overflow-x:${mob?'auto':'hidden'}">${cols7}</div>
+      </div>
+    </div>`;
 }
 
-// ============================================================
-// CUSTOMERS
-// ============================================================
+
 function pgCusts(){
   let list=D.customers;
   if(srch){const q=srch.toLowerCase();list=list.filter(c=>c.name.toLowerCase().includes(q)||c.cn?.toLowerCase().includes(q)||c.phone?.includes(q)||c.contact?.toLowerCase().includes(q));}
