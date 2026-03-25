@@ -328,6 +328,7 @@ tbody tr:hover td{background:var(--bg3)}
 
 <script>
 'use strict';
+'use strict';
 // ============================================================
 // DATA — single in-memory object, flush to localStorage on debounce
 // ============================================================
@@ -1407,6 +1408,13 @@ function mo(html,lg){
   ov.innerHTML=`<div class="mo${lg?' mo-lg':''}">${html}</div>`;
   ov.addEventListener('click',e=>{if(e.target===ov)cmo();});
   document.body.appendChild(ov);
+  setTimeout(function(){
+    var btn=document.getElementById('mob-back-btn');
+    if(btn)btn.addEventListener('click',function(){document.getElementById('print-preview-ov')?.remove();});
+  },0);
+  document.getElementById('close-preview-btn').addEventListener('click',function(){
+    document.getElementById('print-preview-ov').remove();
+  });
 }
 function cmo(){document.getElementById('mo-ov')?.remove();}
 const gv=id=>document.getElementById(id)?.value||'';
@@ -1650,6 +1658,13 @@ function _saveQP(id){
 
 function printQ(id){
   const q=D.quotes.find(q=>q.id===id);if(!q)return;
+  if(window.innerWidth<=768){_showPrintPreview(id,'quote');return;}
+  // スマホは新しいタブの代わりにモーダルで印刷プレビュー表示
+  if(window.innerWidth<=768){
+    _showPrintPreview(id,'quote');
+    return;
+  }
+
   const its=q.items||[];const sub=q.amount||0;const tax=q.tax||0;const tot=sub+tax;
   const tr=q.taxRate||10;const tl=tr>0?`内消費税（${tr}%）`:'消費税（非課税）';
   const toNm=q.toName||(q.cid?cname(q.cid):'');
@@ -1691,20 +1706,19 @@ function printQ(id){
   <div class="cd"><table><tr><td>受渡場所</td><td>${esc(q.deliveryPlace||'')}</td><td style="width:80px;background:#f0f0f0;text-align:center;font-weight:700;color:#555">納入期日</td><td>${esc(q.deliveryDate||'')}</td></tr><tr><td>取引方法</td><td>${esc(q.payment||'')}</td><td style="background:#f0f0f0;text-align:center;font-weight:700;color:#555">有効期限</td><td>${esc(q.validity||'')}</td></tr></table></div>
   ${q.memo?`<div class="mb"><span style="font-size:8pt;color:#888;font-weight:700">備考</span><br>${esc(q.memo)}</div>`:''}
   <div class="sr"><div class="sb">承認</div><div class="sb">確認</div><div class="sb">担当</div></div>
-  </div></div><scr\ipt>window.onload=()=>window.print();<\/scr\ipt></body></html>`);
+  </div></div><scr'+'ipt>window.onload=()=>window.print();<\/scr'+'ipt></body></html>`);
   pw.document.close();
 }
 
-// 請求書PDF（見積書をベースに請求書として出力）
 function _buildInvoicePrintHtml(id){
   const q=D.quotes.find(q=>q.id===id);if(!q)return;
+  if(window.innerWidth<=768){_showPrintPreview(id,'invoice');return;}
   const its=q.items||[];const sub=q.amount||0;const tax=q.tax||0;const tot=sub+tax;
   const tr=q.taxRate||10;const tl=tr>0?`内消費税（${tr}%）`:'消費税（非課税）';
   const toNm=q.toName||(q.cid?cname(q.cid):'');
-  const now=new Date();
-  const ds=now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日';
-  const irows=its.map(it=>{const a=(parseFloat(it.qty)||0)*(parseFloat(it.price)||0);
-    return`<tr><td style="white-space:pre-wrap">${esc(it.name)}</td><td style="text-align:right">${it.qty}</td><td style="text-align:center">${esc(it.unit)}</td><td style="text-align:right">¥${fmtN(parseFloat(it.price)||0)}</td><td style="text-align:right">¥${fmtN(a)}</td><td style="font-size:8pt;color:#666">${esc(it.note)}</td></tr>`;}).join('');
+  const dt=new Date();
+  const ds=dt.getFullYear()+'年'+(dt.getMonth()+1)+'月'+dt.getDate()+'日';
+  const irows=its.map(it=>{const a=(parseFloat(it.qty)||0)*(parseFloat(it.price)||0);return`<tr><td style="white-space:pre-wrap">${esc(it.name)}</td><td style="text-align:right">${it.qty}</td><td style="text-align:center">${esc(it.unit)}</td><td style="text-align:right">¥${fmtN(parseFloat(it.price)||0)}</td><td style="text-align:right">¥${fmtN(a)}</td><td style="font-size:8pt;color:#666">${esc(it.note)}</td></tr>`;}).join('');
   const er=Array(Math.max(0,8-its.length)).fill('<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td></tr>').join('');
   const pw=window.open('','_blank');
   pw.document.write(`<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
@@ -1730,41 +1744,203 @@ function _buildInvoicePrintHtml(id){
   .mb{margin-top:6px;padding:6px 8px;border:1px solid #ccc;background:#fafafa;font-size:8.5pt;color:#444;white-space:pre-wrap}
   </style></head><body>
   <div class="ob"><div class="tb">御　請　求　書</div><div class="bd">
-  <div class="gb"><div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:11pt;font-weight:700">合計金額</span><span style="font-size:9pt;color:#ccc">No. ${q.qn}</span></div><span style="font-size:15pt;font-weight:900;font-family:'Noto Sans JP',sans-serif">¥${fmtN(tot)}&nbsp;<span style="font-size:9pt;font-weight:400">（税込）</span></span></div>
+  <div class="gb"><div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:11pt;font-weight:700">合計金額</span><span style="font-size:9pt;color:#ccc">No. ${esc(q.qn)}</span></div><span style="font-size:15pt;font-weight:900;font-family:'Noto Sans JP',sans-serif">¥${fmtN(tot)}&nbsp;<span style="font-size:9pt;font-weight:400">（税込）</span></span></div>
   <div class="hd"><div class="lf"><div style="font-size:8.5pt;color:#555;margin-bottom:2px">御請求先</div><div class="tn">${esc(toNm)}<span style="font-size:11pt;font-weight:400;margin-left:4px">様</span></div>${q.subject?`<div class="sj">件名：${esc(q.subject)}</div>`:''}</div>
   <div class="db"><table><tr><td style="color:#555;width:58px">請求日</td><td style="font-weight:700">${ds}</td></tr><tr><td style="color:#555">担当者</td><td>${esc(q.cp||'')}</td></tr></table>
-  <div class="cb"><div style="font-size:13pt;font-weight:900;font-family:'Noto Sans JP',sans-serif">セイノデンキ</div><div style="font-size:9pt;color:#444">清野電気商会</div><div style="font-size:8pt;color:#555;line-height:1.7">〒981-0215<br>宮城県宮城郡松島町高城字町155-2</div><div style="font-size:8pt;color:#555">TEL.022-354-3011&nbsp;FAX.022-354-3095</div><div style="font-size:9pt;font-weight:700;margin-top:2px">代表　清野　刻</div></div></div></div>
+  <div class="cb"><div style="font-size:13pt;font-weight:900;font-family:'Noto Sans JP',sans-serif">セイノデンキ</div><div style="font-size:9pt;color:#444">清野電気商会</div><div style="font-size:8pt;color:#555;line-height:1.7">〒981-0215<br>宮城県宮城郡松島町高城字町１５５－２</div><div style="font-size:8pt;color:#555">TEL.022-354-3011&nbsp;FAX.022-354-3095</div><div style="font-size:9pt;font-weight:700;margin-top:2px">代表　清野　剛</div></div></div></div>
   <div class="nt">下記の通り御請求申し上げます。</div>
   <table class="qt"><thead><tr><th style="min-width:140px;text-align:left">品番・品名</th><th style="width:46px">数量</th><th style="width:44px">単位</th><th style="width:88px">単価</th><th style="width:98px">金額</th><th style="width:78px">備考</th></tr></thead><tbody>${irows}${er}</tbody></table>
   <div class="sw"><table class="st"><tr><td>小　計</td><td>¥${fmtN(sub)}</td></tr><tr><td>${tl}</td><td>¥${fmtN(tax)}</td></tr><tr class="gr"><td>合計金額</td><td>¥${fmtN(tot)}</td></tr></table></div>
   <div class="cd"><table><tr><td>受渡場所</td><td>${esc(q.deliveryPlace||'')}</td><td style="width:80px;background:#f0f0f0;text-align:center;font-weight:700;color:#555">納入期日</td><td>${esc(q.deliveryDate||'')}</td></tr><tr><td>取引方法</td><td>${esc(q.payment||'')}</td><td style="background:#f0f0f0;text-align:center;font-weight:700;color:#555">有効期限</td><td>${esc(q.validity||'')}</td></tr></table></div>
   ${q.memo?`<div class="mb"><span style="font-size:8pt;color:#888;font-weight:700">備考</span><br>${esc(q.memo)}</div>`:''}
   <div class="sr"><div class="sb">承認</div><div class="sb">確認</div><div class="sb">担当</div></div>
-  </div></div><scr\ipt>window.onload=()=>window.print();<\/scr\ipt></body></html>`);
+  </div></div><scr'+'ipt>window.onload=()=>window.print();<\/scr'+'ipt></body></html>`);
   pw.document.close();
 }
 
-// _buildQuotePrintHtml（PDFボタン用 → printQ に委譲）
-function _buildQuotePrintHtml(id){ printQ(id); }
-
-
-// DELETE CONFIRM
-function delCon(type,id){
-  const lbl={customer:'顧客',project:'案件',quote:'見積',schedule:'スケジュール'};
-  const ov=document.createElement('div');ov.className='cov';ov.id='cov';
-  ov.innerHTML=`<div class="cb"><div style="font-size:34px;margin-bottom:9px">⚠️</div><div style="font-size:15px;font-weight:700;margin-bottom:6px">${lbl[type]}を削除しますか？</div><div style="font-size:13px;color:var(--text2);margin-bottom:18px">この操作は取り消せません。</div><div style="display:flex;gap:7px;justify-content:center"><button class="btn bs" onclick="document.getElementById('cov').remove()">キャンセル</button><button class="btn bd" onclick="_del('${type}',${id})">削除する</button></div></div>`;
+// ============================================================
+// スマホ印刷プレビュー
+// ============================================================
+function _showPrintPreview(id,type){
+  const q=D.quotes.find(q=>q.id===id);if(!q)return;
+  const its=q.items||[];const sub=q.amount||0;const tax=q.tax||0;const tot=sub+tax;
+  const toNm=q.toName||(q.cid?cname(q.cid):'');
+  const title=type==='invoice'?'御請求書':'御見積書';
+  const irows=its.map(function(it){
+    const a=(parseFloat(it.qty)||0)*(parseFloat(it.price)||0);
+    return'<tr><td>'+esc(it.name)+'</td><td style="text-align:right">'+it.qty+'</td><td>'+esc(it.unit)+'</td><td style="text-align:right">¥'+fmtN(parseFloat(it.price)||0)+'</td><td style="text-align:right">¥'+fmtN(a)+'</td></tr>';
+  }).join('');
+  const ov=document.createElement('div');
+  ov.id='print-preview-ov';
+  ov.style.cssText='position:fixed;inset:0;background:#fff;z-index:9999;overflow-y:auto;';
+  ov.innerHTML=
+    '<div style="position:sticky;top:0;background:#fff;border-bottom:1px solid #ddd;padding:10px 14px;display:flex;align-items:center;gap:10px;z-index:10">'+
+      '<button id="mob-back-btn" style="background:none;border:1px solid #ccc;border-radius:6px;padding:6px 12px;font-size:14px;cursor:pointer">← 戻る</button>'+
+      '<span style="flex:1;font-weight:700;font-size:15px">'+title+'</span>'+
+      '<button onclick="window.print()" style="background:#4a7c5f;color:#fff;border:none;border-radius:6px;padding:6px 14px;font-size:14px;cursor:pointer;font-weight:700">🖨️ 印刷</button>'+
+    '</div>'+
+    '<div style="padding:16px;max-width:600px;margin:0 auto">'+
+      '<div style="border:2px solid #222;border-radius:4px;overflow:hidden;margin-bottom:16px">'+
+        '<div style="background:#222;color:#fff;text-align:center;padding:8px;font-size:16px;font-weight:700">'+title+'</div>'+
+        '<div style="padding:12px">'+
+          '<div style="display:flex;justify-content:space-between">'+
+            '<div><div style="font-size:11px;color:#666">御'+(type==='invoice'?'請求':'見積')+'先</div>'+
+            '<div style="font-size:16px;font-weight:700">'+esc(toNm)+'様</div></div>'+
+            '<div style="text-align:right"><div style="font-size:11px;color:#666">'+q.qn+'</div>'+
+            '<div style="font-size:18px;font-weight:900;color:#4a7c5f">¥'+fmtN(tot)+'</div>'+
+            '<div style="font-size:11px;color:#666">税込</div></div>'+
+          '</div>'+
+        '</div>'+
+      '</div>'+
+      '<div style="overflow-x:auto;margin-bottom:16px">'+
+        '<table style="width:100%;border-collapse:collapse;font-size:12px">'+
+          '<thead><tr style="background:#222;color:#fff">'+
+            '<th style="padding:6px;text-align:left">品名</th>'+
+            '<th style="padding:6px;text-align:right">数量</th>'+
+            '<th style="padding:6px">単位</th>'+
+            '<th style="padding:6px;text-align:right">単価</th>'+
+            '<th style="padding:6px;text-align:right">金額</th>'+
+          '</tr></thead>'+
+          '<tbody>'+irows+'</tbody>'+
+        '</table>'+
+      '</div>'+
+      '<div style="display:flex;justify-content:flex-end;margin-bottom:16px">'+
+        '<table style="border-collapse:collapse;font-size:13px">'+
+          '<tr><td style="padding:4px 10px;background:#f0f0f0;font-weight:700">小計</td><td style="padding:4px 14px;text-align:right">¥'+fmtN(sub)+'</td></tr>'+
+          '<tr><td style="padding:4px 10px;background:#f0f0f0;font-weight:700">消費税</td><td style="padding:4px 14px;text-align:right">¥'+fmtN(tax)+'</td></tr>'+
+          '<tr style="background:#222;color:#fff"><td style="padding:6px 10px;font-weight:700">合計金額</td><td style="padding:6px 14px;text-align:right;font-weight:900">¥'+fmtN(tot)+'</td></tr>'+
+        '</table>'+
+      '</div>'+
+      '<div style="text-align:center;padding:16px 0;border-top:1px solid #ddd">'+
+        '<button onclick="window.print()" style="background:#4a7c5f;color:#fff;border:none;border-radius:8px;padding:12px 28px;font-size:15px;cursor:pointer;font-weight:700">🖨️ 印刷 / PDF保存</button>'+
+      '</div>'+
+    '</div>';
   document.body.appendChild(ov);
+  setTimeout(function(){
+    var btn=document.getElementById('mob-back-btn');
+    if(btn)btn.addEventListener('click',function(){
+      document.getElementById('print-preview-ov')?.remove();
+    });
+  },0);
 }
-function _del(type,id){
-  document.getElementById('cov')?.remove();
-  if(type==='customer'){D.customers=D.customers.filter(c=>c.id!==id);D.projects=D.projects.filter(p=>p.cid!==id);D.quotes=D.quotes.filter(q=>q.cid!==id);toast('顧客を削除しました');if(detCid===id){detCid=null;page='customers';}}
-  else if(type==='project'){D.projects=D.projects.filter(p=>p.id!==id);toast('案件を削除しました');}
-  else if(type==='quote'){D.quotes=D.quotes.filter(q=>q.id!==id);toast('見積を削除しました');}
-  else if(type==='schedule'){D.schedules=D.schedules.filter(s=>s.id!==id);toast('スケジュールを削除しました');}
-  save();cmo();buildPage();
+function _buildQuotePrintHtml(id){printQ(id);}
+
+// ============================================================
+// STAFF・STOCK（準備中）
+// ============================================================
+function pgStaff(){
+  document.getElementById('ct').innerHTML=
+    '<div style="text-align:center;padding:60px 20px">'+
+    '<div style="font-size:60px;margin-bottom:16px">👷</div>'+
+    '<div style="font-size:20px;font-weight:900;margin-bottom:8px">スタッフ・協力会社</div>'+
+    '<div style="font-size:14px;color:var(--text3);margin-bottom:24px">この機能は現在開発中です</div>'+
+    '<div style="background:var(--bg3);border-radius:var(--radius);padding:16px;max-width:320px;margin:0 auto;text-align:left;font-size:13px;color:var(--text2)">'+
+    '<div style="font-weight:700;margin-bottom:8px">実装予定：</div>'+
+    '<div>✅ スタッフ・外注業者登録</div>'+
+    '<div>✅ 案件へのアサイン</div>'+
+    '<div>✅ 稼働管理</div>'+
+    '</div></div>';
+}
+function pgStock(){
+  document.getElementById('ct').innerHTML=
+    '<div style="text-align:center;padding:60px 20px">'+
+    '<div style="font-size:60px;margin-bottom:16px">📦</div>'+
+    '<div style="font-size:20px;font-weight:900;margin-bottom:8px">在庫管理</div>'+
+    '<div style="font-size:14px;color:var(--text3);margin-bottom:24px">この機能は現在開発中です</div>'+
+    '<div style="background:var(--bg3);border-radius:var(--radius);padding:16px;max-width:320px;margin:0 auto;text-align:left;font-size:13px;color:var(--text2)">'+
+    '<div style="font-weight:700;margin-bottom:8px">実装予定：</div>'+
+    '<div>✅ 品目登録（電線・部材など）</div>'+
+    '<div>✅ 入出庫管理</div>'+
+    '<div>✅ 発注点アラート</div>'+
+    '<div>✅ 発注書PDF印刷</div>'+
+    '</div></div>';
 }
 
-// DATA MENU TOGGLE
+// ============================================================
+// SETTINGS
+// ============================================================
+function pgSettings(){
+  if(!D.cfg)D.cfg={};
+  const c=D.cfg;
+  document.getElementById('ct').innerHTML=`
+  <div style="max-width:600px">
+    <div class="card" style="margin-bottom:12px">
+      <div class="ct">🏢 会社情報</div>
+      <div class="fg">
+        <div class="fr" style="grid-column:1/-1"><label class="fl">会社名（略称）</label><input id="cfg-cn" value="${esc(c.companyName||'セイノデンキ')}"></div>
+        <div class="fr" style="grid-column:1/-1"><label class="fl">会社名（正式）</label><input id="cfg-cnf" value="${esc(c.companyNameFull||'清野電気商会')}"></div>
+        <div class="fr"><label class="fl">電話番号</label><input id="cfg-tel" value="${esc(c.tel||'')}"></div>
+        <div class="fr"><label class="fl">FAX</label><input id="cfg-fax" value="${esc(c.fax||'')}"></div>
+        <div class="fr" style="grid-column:1/-1"><label class="fl">住所</label><input id="cfg-addr" value="${esc(c.address||'')}"></div>
+        <div class="fr" style="grid-column:1/-1"><label class="fl">担当者名</label><input id="cfg-rep" value="${esc(c.rep||'')}"></div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <div class="ct">🤖 AI設定</div>
+      <div class="fg">
+        <div class="fr"><label class="fl">使用するAI</label>
+          <select id="cfg-ai-type">
+            ${[['none','使用しない'],['claude','Claude'],['chatgpt','ChatGPT'],['gemini','Gemini']].map(a=>`<option value="${a[0]}" ${(c.aiType||'none')===a[0]?'selected':''}>${a[1]}</option>`).join('')}
+          </select>
+        </div>
+        <div class="fr"><label class="fl">APIキー</label><input id="cfg-ai-key" type="password" value="${esc(c.aiKey||'')}" placeholder="APIキーを入力..."></div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <div class="ct">🔔 アラート設定</div>
+      <div class="fg">
+        <div class="fr">
+          <label class="fl">何日前から通知するか</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input type="number" id="cfg-alert-days" value="${c.alertDays||14}" min="1" max="90" style="width:80px">
+            <span>日前</span>
+          </div>
+        </div>
+        <div class="fr">
+          <label class="fl">起動時ポップアップ</label>
+          <div style="display:flex;gap:12px;margin-top:4px">
+            <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="cfg-popup" value="1" ${c.alertPopup!==false?'checked':''}> 表示する</label>
+            <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="cfg-popup" value="0" ${c.alertPopup===false?'checked':''}> 表示しない</label>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <div class="ct">🎨 テーマカラー</div>
+      <div class="fr">
+        <label class="fl">アクセントカラー</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          ${['#4a7c5f','#2563eb','#7c3aed','#dc2626','#d97706','#0891b2'].map(col=>
+            `<div onclick="document.querySelectorAll('.cc2').forEach(e=>e.style.outline='none');this.style.outline='3px solid var(--text)';document.getElementById('cfg-color').value='${col}'"
+              class="cc2" style="width:28px;height:28px;background:${col};border-radius:50%;cursor:pointer;outline:${(c.accentColor||'#4a7c5f')===col?'3px solid var(--text)':'none'}"></div>`
+          ).join('')}
+          <input type="color" id="cfg-color" value="${c.accentColor||'#4a7c5f'}" style="width:28px;height:28px;padding:0;border:none;cursor:pointer;border-radius:50%">
+        </div>
+      </div>
+    </div>
+    <div class="mf" style="border-top:none;padding-top:0">
+      <button class="btn bp" onclick="saveCfg()">💾 設定を保存</button>
+    </div>
+  </div>`;
+}
+function saveCfg(){
+  if(!D.cfg)D.cfg={};
+  D.cfg.companyName    = document.getElementById('cfg-cn')?.value||'セイノデンキ';
+  D.cfg.companyNameFull= document.getElementById('cfg-cnf')?.value||'';
+  D.cfg.tel            = document.getElementById('cfg-tel')?.value||'';
+  D.cfg.fax            = document.getElementById('cfg-fax')?.value||'';
+  D.cfg.address        = document.getElementById('cfg-addr')?.value||'';
+  D.cfg.rep            = document.getElementById('cfg-rep')?.value||'';
+  D.cfg.aiType         = document.getElementById('cfg-ai-type')?.value||'none';
+  D.cfg.aiKey          = document.getElementById('cfg-ai-key')?.value||'';
+  D.cfg.alertDays      = parseInt(document.getElementById('cfg-alert-days')?.value)||14;
+  D.cfg.alertPopup     = document.querySelector('input[name="cfg-popup"]:checked')?.value!=='0';
+  D.cfg.accentColor    = document.getElementById('cfg-color')?.value||'#4a7c5f';
+  save();
+  (function applyCfg(){if(!D||!D.cfg)return;const c=D.cfg;if(c.accentColor&&document.documentElement)document.documentElement.style.setProperty('--accent',c.accentColor);})();
+  toast('設定を保存しました ✅');
+}
+
 function toggleDM(){
   const m=document.getElementById('dm');const a=document.getElementById('dm-arr');
   if(!m)return;const op=m.style.display==='none'||!m.style.display;
@@ -1777,1549 +1953,189 @@ function exportCSV(type){
   if(type==='customers'){hdrs=['顧客番号','会社名/氏名','担当者','電話番号','メール','住所','種別','ステータス','登録日','メモ'];rows=D.customers.map(c=>[c.cn,c.name,c.contact,c.phone,c.email,c.address,c.type,c.status,c.created,c.memo]);}
   else if(type==='projects'){hdrs=['ID','案件名','顧客番号','顧客名','ステータス','フェーズ','金額','開始日','終了日','メモ'];rows=D.projects.map(p=>[p.id,p.title,cn(p.cid),cname(p.cid),p.status,p.phase,p.amount,p.sd,p.ed,p.memo]);}
   else if(type==='quotes'){hdrs=['見積番号','見積書名','顧客番号','顧客名','見積日','金額(税別)','消費税','税込合計','ステータス'];rows=D.quotes.map(q=>[q.qn,q.title,cn(q.cid),cname(q.cid),q.date,q.amount,q.tax||0,q.amount+(q.tax||0),q.status]);}
-  const bom='\uFEFF';const csv=bom+[hdrs,...rows].map(r=>r.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\r\n');
+  const bom='\﻿';const csv=bom+[hdrs,...rows].map(r=>r.map(v=>`"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\r\
+');
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));a.download=`seino_${type}_${today()}.csv`;a.click();toast('CSVをエクスポートしました','in');
 }
 function backupData(){
   const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({...D,ver:'5.0',exportDate:new Date().toISOString()})],{type:'application/json'}));a.download=`seino_backup_${today()}.json`;a.click();toast('バックアップを保存しました','in');
 }
-function restoreData(e){
-  const f=e.target.files[0];if(!f)return;
-  const r=new FileReader();r.onload=ev=>{
-    try{
-      const b=JSON.parse(ev.target.result);
-      D={customers:b.customers||[],projects:b.projects||[],quotes:b.quotes||[],schedules:b.schedules||[],nextId:b.nextId||200};
-      // handle old field names (cid vs customerId, sd/ed vs startDate/endDate)
-      D.projects=D.projects.map(p=>({...p,cid:p.cid||p.customerId,sd:p.sd||p.startDate,ed:p.ed||p.endDate,imgs:p.imgs||p.images||[]}));
-      D.quotes=D.quotes.map(q=>({...q,cid:q.cid||q.customerId,qn:q.qn||q.quoteNo,cp:q.cp||q.contactPerson}));
-      D.schedules=D.schedules.map(s=>({...s,pid:s.pid||s.projectId,st:s.st||s.startTime,et:s.et||s.endTime}));
-      D.customers=D.customers.map(c=>({...c,cn:c.cn||c.custNo}));
-      _flush();toast('データを復元しました','in');buildPage();_bc();
-    }catch{toast('復元に失敗しました','er');}
-  };r.readAsText(f);e.target.value='';
+function _getAlerts(){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const days = parseInt(D.cfg?.alertDays||14);
+  const limit = new Date(today); limit.setDate(today.getDate()+days);
+  const alerts = [];
+
+  const addAlert = (type, label, date, cid, custName, detail) => {
+    if(!date) return;
+    const d = new Date(date); d.setHours(0,0,0,0);
+    const diff = Math.floor((d-today)/(1000*60*60*24));
+    if(diff <= days) {
+      alerts.push({type, label, date, diff, cid, custName, detail,
+        urgent: diff <= 3,
+        overdue: diff < 0
+      });
+    }
+  };
+
+  D.customers.forEach(c => {
+    const name = c.name;
+    // 保有機器
+    (c.equipment||[]).forEach(eq => {
+      if(eq.warrantyDate) addAlert('equip', `${name}｜${eq.name} 保証期限`, eq.warrantyDate, c.id, name, '保証期限');
+      if(eq.nextCheck)    addAlert('equip', `${name}｜${eq.name} 点検予定`, eq.nextCheck, c.id, name, '次回点検');
+    });
+    // 契約
+    const ct = c.contracts||{};
+    (ct.warranty||[]).forEach(item  => { if(item.expire) addAlert('contract', `${name}｜保証期限 ${item.title}`, item.expire, c.id, name, '保証'); });
+    (ct.maintenance||[]).forEach(item => { if(item.renew)  addAlert('contract', `${name}｜保守契約更新 ${item.title}`, item.renew, c.id, name, '保守契約'); });
+    (ct.aircleaning||[]).forEach(item => { if(item.next)   addAlert('contract', `${name}｜エアクリ予定 ${item.title}`, item.next, c.id, name, 'エアクリ'); });
+    (ct.inspection||[]).forEach(item  => { if(item.next)   addAlert('contract', `${name}｜点検予定 ${item.title}`, item.next, c.id, name, '点検契約'); });
+    (ct.lease||[]).forEach(item       => { if(item.end)    addAlert('contract', `${name}｜リース終了 ${item.title}`, item.end, c.id, name, 'リース'); });
+  });
+
+  // 案件の終了日
+  D.projects.forEach(p => {
+    if(p.ed && p.status !== '完了' && p.status !== '中止') {
+      const c = p.cid ? D.customers.find(c=>c.id===p.cid) : null;
+      addAlert('project', `${c?c.name:'案件'}｜${p.title} 終了日`, p.ed, p.cid, c?.name||'', '案件終了');
+    }
+  });
+
+  // 見積の有効期限
+  D.quotes.forEach(q => {
+    if(!q.isInvoice && q.validity) {
+      // validity が日付形式の場合
+      const m = String(q.validity).match(/(\d{4}[-\/]\d{1,2}[-\/]\d{1,2})/);
+      if(m) {
+        const c = q.cid ? D.customers.find(c=>c.id===q.cid) : null;
+        addAlert('quote', `${c?c.name:'見積'}｜${q.title} 有効期限`, m[1], q.cid, c?.name||'', '見積期限');
+      }
+    }
+  });
+
+  return alerts.sort((a,b) => a.date.localeCompare(b.date));
 }
 
-// TOAST
-function toast(msg,type='ok'){
-  const el=document.createElement('div');el.className=`tst ts-${type}`;el.textContent=msg;
-  document.getElementById('toast').appendChild(el);setTimeout(()=>el.remove(),3200);
+// アラートバッジ数
+function _alertCount(){
+  return _getAlerts().filter(a=>!a.overdue||a.diff>=-7).length;
 }
 
-// NAV CLICK HANDLER
-document.getElementById('sb-nav').addEventListener('click',e=>{
-  const btn=e.target.closest('.nb[data-page]');
-  if(btn)nav(btn.dataset.page);
-});
+// 起動時アラートポップアップ
 
+function _checkAlerts(){
+  const alerts = _getAlerts().filter(a => a.diff >= 0 && a.diff <= 3); // 3日以内のみ起動時表示
+  if(!alerts.length) return;
+  const html = alerts.slice(0,5).map(a=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:18px">${a.diff===0?'':a.diff<=3?'':''}</span>
+      <div style="flex:1">
+        <div style="font-size:12px;font-weight:700">${esc(a.label)}</div>
+        <div style="font-size:11px;color:var(--text3)">${a.diff===0?'今日':'あと'+a.diff+'日'} — ${a.date}</div>
+      </div>
+    </div>`).join('');
+  const ov=document.createElement('div');ov.className='cov';ov.id='alert-pop';
+  ov.innerHTML=`<div class="cb" style="max-width:420px">
+    <div style="font-size:22px;margin-bottom:8px"></div>
+    <div style="font-size:15px;font-weight:700;margin-bottom:12px">アラート通知 (${alerts.length}件)</div>
+    <div style="max-height:300px;overflow-y:auto">${html}</div>
+    ${alerts.length>5?`<div style="font-size:11px;color:var(--text3);margin-top:6px">他 ${alerts.length-5}件...</div>`:''}
+    <div style="display:flex;gap:7px;justify-content:center;margin-top:14px">
+      <button class="btn bs" onclick="document.getElementById('alert-pop')?.remove()">閉じる</button>
+      <button class="btn bp" onclick="document.getElementById('alert-pop')?.remove();nav('dashboard')">ダッシュボードで確認</button>
+    </div>
+  </div>`;
+  document.body.appendChild(ov);
+}
+
+// カレンダーの日付にマークを付ける（calMonth用）
 
 function showProjDetail(id){
   const p=D.projects.find(p=>p.id===id);if(!p)return;
   if(!p.detail)p.detail={checklist:[],equipment:[],materials:[],staff:[],schedule:[]};
-  _pdView(id); // 閲覧モードで開く
-}
-
-// ============================================================
-// 閲覧モード（カードクリックで開く）
-// ============================================================
-function _pdView(id){
-  const p=D.projects.find(p=>p.id===id);if(!p)return;
+  const dl=p.detail;
+  if(!dl.checklist)dl.checklist=[];
+  if(!dl.equipment)dl.equipment=[];
+  if(!dl.materials)dl.materials=[];
+  if(!dl.staff)dl.staff=[];
   const cust=p.cid?D.customers.find(c=>c.id===p.cid):null;
-  if(!p.detail)p.detail={checklist:[],equipment:[],materials:[],staff:[],schedule:[]};
-  const dl=p.detail;if(!dl.staff)dl.staff=[];if(!dl.schedule)dl.schedule=[];
-
-  const done=dl.checklist.filter(function(c){return c.done;}).length;
+  const done=dl.checklist.filter(c=>c.done).length;
   const total=dl.checklist.length;
   const pct=total?Math.round(done/total*100):0;
-  const sd=p.sd||''; const ed=p.ed||'';
-  const days=sd&&ed?Math.floor((new Date(ed)-new Date(sd))/(1000*60*60*24))+1:null;
-
-  // 進捗バー
-  var progBar=total?
-    '<div style="background:var(--border);border-radius:4px;height:8px;margin:6px 0 2px">'+
-    '<div style="background:var(--accent);height:8px;border-radius:4px;width:'+pct+'%;transition:width .3s"></div></div>'+
-    '<div style="font-size:10px;color:var(--text3);text-align:right;margin-bottom:8px">'+done+'/'+total+' 完了 ('+pct+'%)</div>':'';
-
-  // 段取り
-  var ckRows=dl.checklist.length?dl.checklist.map(function(it,i){
-    return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">'+
-      '<input type="checkbox" '+(it.done?'checked':'')+' onchange="_pdCkTog('+id+','+i+',this.checked)" style="width:15px;height:15px;accent-color:var(--accent)">'+
+  const progBar=total?
+    '<div style="background:var(--border);border-radius:4px;height:8px;margin:4px 0 2px">'+
+    '<div style="background:var(--accent);height:8px;border-radius:4px;width:'+pct+'%"></div></div>'+
+    '<div style="font-size:10px;color:var(--text3);text-align:right">'+done+'/'+total+' ('+pct+'%)</div>':'';
+  const ckHtml=dl.checklist.length?dl.checklist.map(function(it,i){
+    return'<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">'+
+      '<input type="checkbox" '+(it.done?'checked':'')+' onchange="(function(){var p=D.projects.find(function(p){return p.id==='+id+'});if(p&&p.detail){p.detail.checklist['+i+'].done=this.checked;save();}}).call(this)" style="width:15px;height:15px;accent-color:var(--accent)">'+
       '<span style="flex:1;font-size:12px;'+(it.done?'text-decoration:line-through;color:var(--text3)':'')+'">'+esc(it.text)+'</span>'+
       (it.due?'<span style="font-size:10px;color:var(--text3)">'+it.due+'</span>':'')+
     '</div>';
-  }).join(''):'<div style="color:var(--text3);font-size:11px;padding:6px 0">なし</div>';
-
-  // 機器
-  var eqRows=dl.equipment.length?dl.equipment.map(function(it){
-    var sc=it.status==='入荷済'?'var(--green)':it.status==='発注済'?'var(--blue)':'#c04040';
-    return '<div style="display:flex;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px">'+
+  }).join(''):'<div style="color:var(--text3);font-size:11px">なし</div>';
+  const eqHtml=dl.equipment.length?dl.equipment.map(function(it){
+    const sc=it.status==='入荷済'?'var(--green)':it.status==='発注済'?'var(--blue)':'var(--red)';
+    return'<div style="display:flex;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px">'+
       '<span style="flex:2;font-weight:600">'+esc(it.name)+'</span>'+
-      '<span style="flex:1;color:var(--text3)">'+esc(it.spec||'')+'</span>'+
-      '<span style="width:40px;text-align:right">'+esc(String(it.qty||''))+'</span>'+
+      '<span style="width:36px;text-align:right">'+esc(String(it.qty||''))+'</span>'+
       '<span style="width:24px;color:var(--text3)">'+esc(it.unit||'')+'</span>'+
-      '<span style="width:52px;color:'+sc+';font-weight:700;font-size:10px">'+esc(it.status||'')+'</span>'+
+      '<span style="width:50px;color:'+sc+';font-weight:700;font-size:10px">'+esc(it.status||'')+'</span>'+
     '</div>';
-  }).join(''):'<div style="color:var(--text3);font-size:11px;padding:6px 0">なし</div>';
-
-  // 材料
-  var mtRows=dl.materials.length?dl.materials.map(function(it){
-    var sc=it.status==='入荷済'?'var(--green)':it.status==='発注済'?'var(--blue)':'#c04040';
-    return '<div style="display:flex;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px">'+
+  }).join(''):'<div style="color:var(--text3);font-size:11px">なし</div>';
+  const mtHtml=dl.materials.length?dl.materials.map(function(it){
+    const sc=it.status==='入荷済'?'var(--green)':it.status==='発注済'?'var(--blue)':'var(--red)';
+    return'<div style="display:flex;gap:6px;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px">'+
       '<span style="flex:2;font-weight:600">'+esc(it.name)+'</span>'+
-      '<span style="flex:1;color:var(--text3)">'+esc(it.spec||'')+'</span>'+
-      '<span style="width:40px;text-align:right">'+esc(String(it.qty||''))+'</span>'+
+      '<span style="width:36px;text-align:right">'+esc(String(it.qty||''))+'</span>'+
       '<span style="width:24px;color:var(--text3)">'+esc(it.unit||'')+'</span>'+
-      '<span style="width:52px;color:'+sc+';font-weight:700;font-size:10px">'+esc(it.status||'')+'</span>'+
+      '<span style="width:50px;color:'+sc+';font-weight:700;font-size:10px">'+esc(it.status||'')+'</span>'+
     '</div>';
-  }).join(''):'<div style="color:var(--text3);font-size:11px;padding:6px 0">なし</div>';
-
-  // 人員
-  var stRows=dl.staff.length?dl.staff.map(function(it){
-    return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">'+
-      '<div style="width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0">'+esc((it.name||'?').slice(0,1))+'</div>'+
+  }).join(''):'<div style="color:var(--text3);font-size:11px">なし</div>';
+  const stHtml=dl.staff.length?dl.staff.map(function(it){
+    return'<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">'+
+      '<div style="width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">'+esc((it.name||'?').slice(0,1))+'</div>'+
       '<div style="flex:1"><div style="font-size:12px;font-weight:600">'+esc(it.name||'')+'</div>'+
       '<div style="font-size:10px;color:var(--text3)">'+esc(it.role||'')+(it.phone?' · '+esc(it.phone):'')+'</div></div>'+
-      (it.date?'<span style="font-size:10px;color:var(--text3)">'+esc(it.date)+'</span>':'')+
       (it.days?'<span style="font-size:11px;font-weight:700;color:var(--accent)">'+esc(it.days)+'日</span>':'')+
     '</div>';
-  }).join(''):'<div style="color:var(--text3);font-size:11px;padding:6px 0">なし</div>';
-
-  // 工程
-  var totalDays=sd&&ed?Math.floor((new Date(ed)-new Date(sd))/(1000*60*60*24))+1:null;
-  var ganttHtml='';
-  if(totalDays&&dl.schedule.length){
-    ganttHtml='<div style="margin-bottom:8px">'+
-      dl.schedule.map(function(it){
-        var color=it.color||'var(--accent)';
-        var left=it.startDay?Math.max(0,((it.startDay-1)/totalDays)*100):0;
-        var width=it.days?Math.min(100-left,(it.days/totalDays)*100):Math.max(1,100/totalDays);
-        return '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">'+
-          '<div style="width:60px;font-size:10px;color:var(--text3);text-align:right;flex-shrink:0;overflow:hidden;white-space:nowrap">'+esc(it.day||'')+'</div>'+
-          '<div style="flex:1;background:var(--bg3);border-radius:3px;height:18px;position:relative">'+
-            '<div style="position:absolute;left:'+left+'%;width:'+Math.max(width,2)+'%;background:'+color+';height:18px;border-radius:3px;display:flex;align-items:center;padding:0 4px;min-width:3px">'+
-              '<span style="font-size:9px;color:#fff;white-space:nowrap;overflow:hidden">'+esc(it.work||'')+'</span>'+
-            '</div>'+
-          '</div>'+
-        '</div>';
-      }).join('')+
-    '</div>';
-  }
-  var scRows=dl.schedule.length?dl.schedule.map(function(it){
-    return '<div style="display:flex;gap:8px;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px">'+
-      '<span style="width:65px;font-weight:700;color:var(--accent);flex-shrink:0">'+esc(it.day||'')+'</span>'+
-      '<span style="flex:1">'+esc(it.work||'')+'</span>'+
-      '<span style="color:var(--text3);font-size:10px">'+esc(it.hours||'')+'</span>'+
-    '</div>';
-  }).join(''):'<div style="color:var(--text3);font-size:11px;padding:6px 0">なし</div>';
-
-  var html=
-    // ヘッダー
-    '<div style="margin-bottom:14px;padding-bottom:12px;border-bottom:2px solid var(--accent)">'+
-      '<div style="font-size:18px;font-weight:900;margin-bottom:4px">'+esc(p.title)+'</div>'+
-      '<div style="display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--text2)">'+
-        (cust?'<span>👥 '+esc(cust.name)+'</span>':'')+
+  }).join(''):'<div style="color:var(--text3);font-size:11px">なし</div>';
+  const html=
+    '<div style="margin-bottom:12px;padding-bottom:10px;border-bottom:2px solid var(--accent)">'+
+      '<div style="font-size:17px;font-weight:900;margin-bottom:4px">'+esc(p.title)+'</div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:8px;font-size:12px;color:var(--text2)">'+
+        (cust?'<span>'+esc(cust.name)+'</span>':'')+
         '<span>'+bdg(p.phase)+'</span>'+
-        (sd?'<span>📅 '+sd+(ed?' 〜 '+ed:''+(days?' ('+days+'日間)':''))+'</span>':'')+
-        (p.amount?'<span>💴 '+fmt(p.amount)+'</span>':'')+
+        (p.sd?'<span>'+p.sd+(p.ed?' - '+p.ed:'')+'</span>':'')+
+        (p.amount?'<span>'+fmt(p.amount)+'</span>':'')+
       '</div>'+
     '</div>'+
-
-    // 2列グリッド
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">'+
-
-      // 段取り
-      '<div>'+
-        '<div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px;display:flex;align-items:center;gap:4px">📋 段取りチェックリスト</div>'+
-        progBar+ckRows+
-      '</div>'+
-
-      // 人員
-      '<div>'+
-        '<div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px">👷 人員</div>'+
-        stRows+
-      '</div>'+
-
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">'+
+      '<div><div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px">段取りチェック</div>'+progBar+ckHtml+'</div>'+
+      '<div><div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px">人員</div>'+stHtml+'</div>'+
     '</div>'+
-
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">'+
-
-      // 機器
-      '<div>'+
-        '<div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px">🔧 機器・商品</div>'+
-        (dl.equipment.length?'<div style="display:flex;gap:6px;font-size:10px;color:var(--text3);font-weight:700;padding-bottom:3px;border-bottom:1px solid var(--border);margin-bottom:2px"><span style="flex:2">品名</span><span style="flex:1">仕様</span><span style="width:40px;text-align:right">数量</span><span style="width:24px">単位</span><span style="width:52px">状態</span></div>':'')+
-        eqRows+
-      '</div>'+
-
-      // 材料
-      '<div>'+
-        '<div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px">📦 材料・部材</div>'+
-        (dl.materials.length?'<div style="display:flex;gap:6px;font-size:10px;color:var(--text3);font-weight:700;padding-bottom:3px;border-bottom:1px solid var(--border);margin-bottom:2px"><span style="flex:2">品名</span><span style="flex:1">規格</span><span style="width:40px;text-align:right">数量</span><span style="width:24px">単位</span><span style="width:52px">状態</span></div>':'')+
-        mtRows+
-      '</div>'+
-
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">'+
+      '<div><div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px">機器・商品</div>'+eqHtml+'</div>'+
+      '<div><div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px">材料・部材</div>'+mtHtml+'</div>'+
     '</div>'+
-
-    // 工程
-    '<div style="margin-bottom:14px">'+
-      '<div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px">📅 工程</div>'+
-      ganttHtml+scRows+
-    '</div>'+
-
-    // メモ
-    (p.memo?'<div style="padding:8px 10px;background:var(--bg3);border-radius:7px;font-size:12px;margin-bottom:14px;white-space:pre-wrap">'+esc(p.memo)+'</div>':'')+
-
-    // フッター
+    (p.memo?'<div style="padding:8px;background:var(--bg3);border-radius:6px;font-size:12px;margin-bottom:12px;white-space:pre-wrap">'+esc(p.memo)+'</div>':'')+
     '<div class="mf">'+
       '<button class="btn bs" onclick="cmo()">閉じる</button>'+
-      '<button class="btn bg bsm" onclick="printProjSheet('+id+')">🖨️ 指示書印刷</button>'+
-      '<button class="btn bp" onclick="_pdEdit('+id+')" style="margin-left:auto">✏️ 編集</button>'+
+      '<button class="btn bg bsm" onclick="printProjSheet('+id+')">印刷</button>'+
+      '<button class="btn bp" onclick="cmo();showProjMo('+id+')" style="margin-left:auto">編集</button>'+
     '</div>';
-
-  mo(html, true);
-}
-
-// ============================================================
-// 編集モード（1ページで全項目入力）
-// ============================================================
-function _pdEdit(id){
-  const p=D.projects.find(p=>p.id===id);if(!p)return;
-  if(!p.detail)p.detail={checklist:[],equipment:[],materials:[],staff:[],schedule:[]};
-  const dl=p.detail;if(!dl.staff)dl.staff=[];if(!dl.schedule)dl.schedule=[];
-
-  function ckRows(){
-    return dl.checklist.map(function(it,i){
-      return '<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border)">'+
-        '<input type="checkbox" '+(it.done?'checked':'')+' onchange="_pdCkTog('+id+','+i+',this.checked);_pdEditRefresh('+id+')" style="width:15px;height:15px;accent-color:var(--accent)">'+
-        '<input value="'+esc(it.text)+'" oninput="_pdCkUpd('+id+','+i+',this.value)" style="flex:1;font-size:12px;padding:3px 6px;'+(it.done?'text-decoration:line-through;color:var(--text3)':'')+'">'+
-        '<input type="date" value="'+esc(it.due||'')+'" onchange="_pdCkDue('+id+','+i+',this.value)" style="font-size:11px;padding:3px;width:130px">'+
-        '<button onclick="_pdCkDel('+id+','+i+');_pdEditRefresh('+id+')" style="border:none;background:none;cursor:pointer;color:var(--text3);font-size:16px;padding:0 3px">×</button>'+
-      '</div>';
-    }).join('');
-  }
-
-  function eqRows(){
-    return dl.equipment.map(function(it,i){
-      var sc=it.status==='入荷済'?'var(--green)':it.status==='発注済'?'var(--blue)':'#c04040';
-      return '<div style="display:flex;align-items:center;gap:4px;padding:4px 0;border-bottom:1px solid var(--border)">'+
-        '<input value="'+esc(it.name)+'" oninput="_pdEqUpd('+id+','+i+')" id="eq-n-'+i+'" placeholder="機器名" style="flex:2;font-size:12px;padding:3px 5px;font-weight:600">'+
-        '<input value="'+esc(it.spec||'')+'" oninput="_pdEqUpd('+id+','+i+')" id="eq-s-'+i+'" placeholder="仕様" style="flex:1;font-size:11px;padding:3px 5px">'+
-        '<input value="'+esc(String(it.qty||''))+'" oninput="_pdEqUpd('+id+','+i+')" id="eq-q-'+i+'" type="number" style="width:50px;font-size:12px;padding:3px 4px;text-align:right">'+
-        '<input value="'+esc(it.unit||'')+'" oninput="_pdEqUpd('+id+','+i+')" id="eq-u-'+i+'" placeholder="台" style="width:36px;font-size:12px;padding:3px 4px">'+
-        '<select onchange="_pdEqSt('+id+','+i+',this.value)" style="font-size:11px;padding:3px;border-radius:4px;border:1px solid var(--border);color:'+sc+';font-weight:700;width:66px">'+
-          ['未発注','発注済','入荷済'].map(function(s){return '<option '+(it.status===s?'selected':'')+'>'+s+'</option>';}).join('')+
-        '</select>'+
-        '<button onclick="_pdEqDel('+id+','+i+');_pdEditRefresh('+id+')" style="border:none;background:none;cursor:pointer;color:var(--text3);font-size:16px">×</button>'+
-      '</div>';
-    }).join('');
-  }
-
-  function mtRows(){
-    return dl.materials.map(function(it,i){
-      var sc=it.status==='入荷済'?'var(--green)':it.status==='発注済'?'var(--blue)':'#c04040';
-      return '<div style="display:flex;align-items:center;gap:4px;padding:4px 0;border-bottom:1px solid var(--border)">'+
-        '<input value="'+esc(it.name)+'" oninput="_pdMtUpd('+id+','+i+')" id="mt-n-'+i+'" placeholder="材料名" style="flex:2;font-size:12px;padding:3px 5px;font-weight:600">'+
-        '<input value="'+esc(it.spec||'')+'" oninput="_pdMtUpd('+id+','+i+')" id="mt-s-'+i+'" placeholder="規格" style="flex:1;font-size:11px;padding:3px 5px">'+
-        '<input value="'+esc(String(it.qty||''))+'" oninput="_pdMtUpd('+id+','+i+')" id="mt-q-'+i+'" type="number" style="width:50px;font-size:12px;padding:3px 4px;text-align:right">'+
-        '<input value="'+esc(it.unit||'')+'" oninput="_pdMtUpd('+id+','+i+')" id="mt-u-'+i+'" placeholder="m" style="width:36px;font-size:12px;padding:3px 4px">'+
-        '<select onchange="_pdMtSt('+id+','+i+',this.value)" style="font-size:11px;padding:3px;border-radius:4px;border:1px solid var(--border);color:'+sc+';font-weight:700;width:66px">'+
-          ['未発注','発注済','入荷済'].map(function(s){return '<option '+(it.status===s?'selected':'')+'>'+s+'</option>';}).join('')+
-        '</select>'+
-        '<button onclick="_pdMtDel('+id+','+i+');_pdEditRefresh('+id+')" style="border:none;background:none;cursor:pointer;color:var(--text3);font-size:16px">×</button>'+
-      '</div>';
-    }).join('');
-  }
-
-  function stRows(){
-    return dl.staff.map(function(it,i){
-      return '<div style="display:flex;align-items:center;gap:4px;padding:4px 0;border-bottom:1px solid var(--border)">'+
-        '<input value="'+esc(it.name||'')+'" oninput="_pdStUpd('+id+','+i+')" id="st-n-'+i+'" placeholder="氏名*" style="flex:2;font-size:12px;padding:3px 5px;font-weight:600">'+
-        '<input value="'+esc(it.role||'')+'" oninput="_pdStUpd('+id+','+i+')" id="st-r-'+i+'" placeholder="役割" style="flex:1;font-size:12px;padding:3px 5px">'+
-        '<input value="'+esc(it.phone||'')+'" oninput="_pdStUpd('+id+','+i+')" id="st-p-'+i+'" placeholder="電話" style="flex:1;font-size:12px;padding:3px 5px">'+
-        '<input type="date" value="'+esc(it.date||'')+'" onchange="_pdStUpd('+id+','+i+')" id="st-d-'+i+'" style="font-size:11px;padding:3px;width:130px">'+
-        '<input value="'+esc(it.days||'')+'" oninput="_pdStUpd('+id+','+i+')" id="st-dy-'+i+'" type="number" placeholder="日数" style="width:50px;font-size:12px;padding:3px 4px">'+
-        '<button onclick="_pdStDel('+id+','+i+');_pdEditRefresh('+id+')" style="border:none;background:none;cursor:pointer;color:var(--text3);font-size:16px">×</button>'+
-      '</div>';
-    }).join('');
-  }
-
-  function scRows(){
-    var colors=['var(--accent)','var(--blue)','var(--accent2)','var(--purple)','var(--green)'];
-    return dl.schedule.map(function(it,i){
-      return '<div style="display:flex;align-items:center;gap:4px;padding:4px 0;border-bottom:1px solid var(--border)">'+
-        '<div style="width:8px;height:8px;border-radius:50%;background:'+(it.color||'var(--accent)')+';flex-shrink:0"></div>'+
-        '<input value="'+esc(it.day||'')+'" oninput="_pdScUpd('+id+','+i+')" id="sc-d-'+i+'" placeholder="日程" style="width:100px;font-size:12px;padding:3px 5px">'+
-        '<input value="'+esc(it.work||'')+'" oninput="_pdScUpd('+id+','+i+')" id="sc-w-'+i+'" placeholder="作業内容*" style="flex:1;font-size:12px;padding:3px 5px">'+
-        '<input value="'+esc(it.hours||'')+'" oninput="_pdScUpd('+id+','+i+')" id="sc-h-'+i+'" placeholder="時間/日数" style="width:75px;font-size:12px;padding:3px 4px">'+
-        '<input value="'+(it.startDay||'')+'" oninput="_pdScUpd('+id+','+i+')" id="sc-s-'+i+'" type="number" placeholder="開始日" min="1" style="width:58px;font-size:12px;padding:3px 4px">'+
-        '<input value="'+(it.days||'')+'" oninput="_pdScUpd('+id+','+i+')" id="sc-n-'+i+'" type="number" placeholder="日数" min="1" style="width:46px;font-size:12px;padding:3px 4px">'+
-        '<button onclick="_pdScDel('+id+','+i+');_pdEditRefresh('+id+')" style="border:none;background:none;cursor:pointer;color:var(--text3);font-size:16px">×</button>'+
-      '</div>';
-    }).join('');
-  }
-
-  var sec=function(title, content, addBtn){
-    return '<div style="margin-bottom:14px">'+
-      '<div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:5px;display:flex;align-items:center;justify-content:space-between">'+
-        '<span>'+title+'</span>'+addBtn+
-      '</div>'+content+
-    '</div>';
-  };
-
-  var html=
-    '<div class="mt" style="font-size:15px">✏️ 編集 — '+esc(p.title)+'</div>'+
-    '<div style="max-height:70vh;overflow-y:auto;padding-right:4px">'+
-      sec('📋 段取りチェックリスト',
-        ckRows()+
-        '<div style="display:flex;gap:5px;margin-top:6px">'+
-          '<input id="pd-ck-t" placeholder="タスクを追加..." style="flex:1;font-size:12px;padding:6px">'+
-          '<input type="date" id="pd-ck-d" style="font-size:11px;padding:6px;width:130px">'+
-          '<button class="btn bp bsm" onclick="_pdCkAdd('+id+');_pdEditRefresh('+id+')">＋</button>'+
-        '</div>','')+
-      sec('🔧 機器・商品',
-        (dl.equipment.length?'<div style="display:flex;gap:4px;font-size:10px;color:var(--text3);padding-bottom:2px;border-bottom:1px solid var(--border)"><span style="flex:2">品名</span><span style="flex:1">仕様</span><span style="width:50px;text-align:right">数量</span><span style="width:36px">単位</span><span style="width:66px;text-align:center">状態</span><span style="width:20px"></span></div>':'')+
-        eqRows()+
-        '<div style="display:flex;gap:4px;margin-top:6px">'+
-          '<input id="pd-eq-n" placeholder="機器名*" style="flex:2;font-size:12px;padding:6px">'+
-          '<input id="pd-eq-s" placeholder="仕様" style="flex:1;font-size:12px;padding:6px">'+
-          '<input id="pd-eq-q" type="number" placeholder="数量" style="width:50px;font-size:12px;padding:6px">'+
-          '<input id="pd-eq-u" placeholder="台" style="width:36px;font-size:12px;padding:6px">'+
-          '<button class="btn bp bsm" onclick="_pdEqAdd('+id+');_pdEditRefresh('+id+')">＋</button>'+
-        '</div>','')+
-      sec('📦 材料・部材',
-        (dl.materials.length?'<div style="display:flex;gap:4px;font-size:10px;color:var(--text3);padding-bottom:2px;border-bottom:1px solid var(--border)"><span style="flex:2">品名</span><span style="flex:1">規格</span><span style="width:50px;text-align:right">数量</span><span style="width:36px">単位</span><span style="width:66px;text-align:center">状態</span><span style="width:20px"></span></div>':'')+
-        mtRows()+
-        '<div style="display:flex;gap:4px;margin-top:6px">'+
-          '<input id="pd-mt-n" placeholder="材料名*" style="flex:2;font-size:12px;padding:6px">'+
-          '<input id="pd-mt-s" placeholder="規格" style="flex:1;font-size:12px;padding:6px">'+
-          '<input id="pd-mt-q" type="number" placeholder="数量" style="width:50px;font-size:12px;padding:6px">'+
-          '<input id="pd-mt-u" placeholder="m" style="width:36px;font-size:12px;padding:6px">'+
-          '<button class="btn bp bsm" onclick="_pdMtAdd('+id+');_pdEditRefresh('+id+')">＋</button>'+
-        '</div>','')+
-      sec('👷 人員',
-        (dl.staff.length?'<div style="display:flex;gap:4px;font-size:10px;color:var(--text3);padding-bottom:2px;border-bottom:1px solid var(--border)"><span style="flex:2">氏名</span><span style="flex:1">役割</span><span style="flex:1">電話</span><span style="width:130px">作業日</span><span style="width:50px">日数</span><span style="width:20px"></span></div>':'')+
-        stRows()+
-        '<div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap">'+
-          '<input id="pd-st-n" placeholder="氏名*" style="flex:2;min-width:80px;font-size:12px;padding:6px">'+
-          '<input id="pd-st-r" placeholder="役割" style="flex:1;min-width:70px;font-size:12px;padding:6px">'+
-          '<input id="pd-st-p" placeholder="電話" style="flex:1;min-width:90px;font-size:12px;padding:6px">'+
-          '<input type="date" id="pd-st-d" style="font-size:11px;padding:6px;width:130px">'+
-          '<input id="pd-st-dy" type="number" placeholder="日数" style="width:50px;font-size:12px;padding:6px">'+
-          '<button class="btn bp bsm" onclick="_pdStAdd('+id+');_pdEditRefresh('+id+')">＋</button>'+
-        '</div>','')+
-      sec('📅 工程',
-        (dl.schedule.length?'<div style="display:flex;gap:4px;font-size:10px;color:var(--text3);padding-bottom:2px;border-bottom:1px solid var(--border)"><span style="width:8px"></span><span style="width:100px">日程</span><span style="flex:1">作業内容</span><span style="width:75px">時間/日数</span><span style="width:58px">開始日</span><span style="width:46px">日数</span><span style="width:20px"></span></div>':'')+
-        scRows()+
-        '<div style="display:flex;gap:4px;margin-top:6px;flex-wrap:wrap">'+
-          '<input id="pd-sc-d" placeholder="日程（1日目等）" style="width:110px;font-size:12px;padding:6px">'+
-          '<input id="pd-sc-w" placeholder="作業内容*" style="flex:1;min-width:100px;font-size:12px;padding:6px">'+
-          '<input id="pd-sc-h" placeholder="時間/日数" style="width:75px;font-size:12px;padding:6px">'+
-          '<input id="pd-sc-s" type="number" placeholder="開始日" min="1" style="width:58px;font-size:12px;padding:6px">'+
-          '<input id="pd-sc-n" type="number" placeholder="日数" min="1" style="width:46px;font-size:12px;padding:6px">'+
-          '<button class="btn bp bsm" onclick="_pdScAdd('+id+');_pdEditRefresh('+id+')">＋</button>'+
-        '</div>','')+
-    '</div>'+
-    '<div class="mf" style="margin-top:12px">'+
-      '<button class="btn bs" onclick="_pdView('+id+')">← 戻る</button>'+
-      '<button class="btn bg bsm" onclick="printProjSheet('+id+')">🖨️ 印刷</button>'+
-      '<button class="btn bp" onclick="_pdSave('+id+')" style="margin-left:auto">💾 保存して閉じる</button>'+
-    '</div>';
-
-  mo(html, true);
-}
-
-function _pdSave(id){
-  save();
-  toast('保存しました ✅');
-  _pdView(id); // 閲覧モードに戻る
-}
-
-// --- チェックリスト ---
-function _pdCkTog(pid,i,v){const p=D.projects.find(p=>p.id===pid);if(p&&p.detail){p.detail.checklist[i].done=v;save();}}
-function _pdCkAdd(pid){
-  const p=D.projects.find(p=>p.id===pid);if(!p||!p.detail)return;
-  const t=document.getElementById('pd-ck-t')?.value||'';
-  if(!t){toast('タスクを入力してください','er');return;}
-  p.detail.checklist.push({text:t,done:false,due:document.getElementById('pd-ck-d')?.value||''});
-  save();
-}
-function _pdCkDel(pid,i){const p=D.projects.find(p=>p.id===pid);if(p&&p.detail){p.detail.checklist.splice(i,1);save();}}
-
-// --- 機器 ---
-function _pdCkUpd(pid,i,v){const p=D.projects.find(p=>p.id===pid);if(p&&p.detail)p.detail.checklist[i].text=v;}
-function _pdCkDue(pid,i,v){const p=D.projects.find(p=>p.id===pid);if(p&&p.detail){p.detail.checklist[i].due=v;save();}}
-function _pdEqAdd(pid){
-  const p=D.projects.find(p=>p.id===pid);if(!p||!p.detail)return;
-  const n=document.getElementById('pd-eq-n')?.value||'';
-  if(!n){toast('機器名を入力してください','er');return;}
-  p.detail.equipment.push({name:n,spec:document.getElementById('pd-eq-s')?.value||'',qty:document.getElementById('pd-eq-q')?.value||'1',unit:document.getElementById('pd-eq-u')?.value||'台',status:'未発注'});
-  save();
-}
-function _pdEqUpd(pid,i){
-  const p=D.projects.find(p=>p.id===pid);if(!p||!p.detail)return;
-  const it=p.detail.equipment[i];if(!it)return;
-  it.name=document.getElementById('eq-n-'+i)?.value||it.name;
-  it.spec=document.getElementById('eq-s-'+i)?.value||'';
-  it.qty=document.getElementById('eq-q-'+i)?.value||it.qty;
-  it.unit=document.getElementById('eq-u-'+i)?.value||it.unit;
-}
-function _pdEqSt(pid,i,v){const p=D.projects.find(p=>p.id===pid);if(p&&p.detail){p.detail.equipment[i].status=v;save();}}
-function _pdEqDel(pid,i){const p=D.projects.find(p=>p.id===pid);if(p&&p.detail){p.detail.equipment.splice(i,1);save();}}
-
-// --- 材料 ---
-function _pdMtAdd(pid){
-  const p=D.projects.find(p=>p.id===pid);if(!p||!p.detail)return;
-  const n=document.getElementById('pd-mt-n')?.value||'';
-  if(!n){toast('材料名を入力してください','er');return;}
-  p.detail.materials.push({name:n,spec:document.getElementById('pd-mt-s')?.value||'',qty:document.getElementById('pd-mt-q')?.value||'1',unit:document.getElementById('pd-mt-u')?.value||'m',status:'未発注'});
-  save();
-}
-function _pdMtUpd(pid,i){
-  const p=D.projects.find(p=>p.id===pid);if(!p||!p.detail)return;
-  const it=p.detail.materials[i];if(!it)return;
-  it.name=document.getElementById('mt-n-'+i)?.value||it.name;
-  it.spec=document.getElementById('mt-s-'+i)?.value||'';
-  it.qty=document.getElementById('mt-q-'+i)?.value||it.qty;
-  it.unit=document.getElementById('mt-u-'+i)?.value||it.unit;
-}
-function _pdMtSt(pid,i,v){const p=D.projects.find(p=>p.id===pid);if(p&&p.detail){p.detail.materials[i].status=v;save();}}
-function _pdMtDel(pid,i){const p=D.projects.find(p=>p.id===pid);if(p&&p.detail){p.detail.materials.splice(i,1);save();}}
-
-// --- 人員 ---
-function _pdStAdd(pid){
-  const p=D.projects.find(p=>p.id===pid);if(!p||!p.detail)return;
-  const n=document.getElementById('pd-st-n')?.value||'';
-  if(!n){toast('氏名を入力してください','er');return;}
-  p.detail.staff.push({name:n,role:document.getElementById('pd-st-r')?.value||'',phone:document.getElementById('pd-st-p')?.value||'',date:document.getElementById('pd-st-d')?.value||'',days:document.getElementById('pd-st-dy')?.value||''});
-  save();
-}
-function _pdStUpd(pid,i){
-  const p=D.projects.find(p=>p.id===pid);if(!p||!p.detail)return;
-  const it=p.detail.staff[i];if(!it)return;
-  it.name=document.getElementById('st-n-'+i)?.value||it.name;
-  it.role=document.getElementById('st-r-'+i)?.value||'';
-  it.phone=document.getElementById('st-p-'+i)?.value||'';
-  it.date=document.getElementById('st-d-'+i)?.value||'';
-  it.days=document.getElementById('st-dy-'+i)?.value||'';
-}
-function _pdStDel(pid,i){const p=D.projects.find(p=>p.id===pid);if(p&&p.detail){p.detail.staff.splice(i,1);save();}}
-
-// --- 工程 ---
-function _pdScAdd(pid){
-  const p=D.projects.find(p=>p.id===pid);if(!p||!p.detail)return;
-  const w=document.getElementById('pd-sc-w')?.value||'';
-  if(!w){toast('作業内容を入力してください','er');return;}
-  const colors=['var(--accent)','var(--blue)','var(--accent2)','var(--purple)','var(--green)'];
-  p.detail.schedule.push({
-    day:document.getElementById('pd-sc-d')?.value||'',work:w,
-    hours:document.getElementById('pd-sc-h')?.value||'',
-    startDay:parseInt(document.getElementById('pd-sc-s')?.value)||p.detail.schedule.length+1,
-    days:parseInt(document.getElementById('pd-sc-n')?.value)||1,
-    color:colors[p.detail.schedule.length%colors.length]
-  });
-  save();
-}
-function _pdScUpd(pid,i){
-  const p=D.projects.find(p=>p.id===pid);if(!p||!p.detail)return;
-  const it=p.detail.schedule[i];if(!it)return;
-  it.day=document.getElementById('sc-d-'+i)?.value||it.day;
-  it.work=document.getElementById('sc-w-'+i)?.value||it.work;
-  it.hours=document.getElementById('sc-h-'+i)?.value||'';
-  it.startDay=parseInt(document.getElementById('sc-s-'+i)?.value)||it.startDay;
-  it.days=parseInt(document.getElementById('sc-n-'+i)?.value)||it.days;
-}
-function _pdScDel(pid,i){const p=D.projects.find(p=>p.id===pid);if(p&&p.detail){p.detail.schedule.splice(i,1);save();}}
-
-
-// ============================================================
-// AI ユーティリティ（設定のAPIキーを使って呼び出す）
-// ============================================================
-async function _aiCall(prompt, maxTokens){
-  maxTokens = maxTokens||1000;
-  const cfg = D.cfg||{};
-  const type = cfg.aiType||'none';
-  const key = cfg.aiKey||'';
-  if(type==='none'||!key){
-    toast('設定でAIを設定してください','er');
-    return null;
-  }
-  try{
-    if(type==='claude'){
-      const res=await fetch('https://api.anthropic.com/v1/messages',{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})
-      });
-      const d=await res.json();
-      return d.content?.[0]?.text||null;
-    } else if(type==='chatgpt'){
-      const res=await fetch('https://api.openai.com/v1/chat/completions',{
-        method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
-        body:JSON.stringify({model:'gpt-4o-mini',max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})
-      });
-      const d=await res.json();
-      return d.choices?.[0]?.message?.content||null;
-    } else if(type==='gemini'){
-      const res=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+key,{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})
-      });
-      const d=await res.json();
-      return d.candidates?.[0]?.content?.parts?.[0]?.text||null;
-    }
-  }catch(e){
-    toast('AI呼び出しエラー: '+e.message,'er');
-    return null;
-  }
-}
-
-
-// ============================================================
-// 案件指示書 印刷
-// ============================================================
-function _pdEditRefresh(id){ _pdEdit(id); }
-
-function printProjSheet(id){
-  const p=D.projects.find(p=>p.id===id);if(!p)return;
-  const cust=p.cid?D.customers.find(c=>c.id===p.cid):null;
-  const cfg=D.cfg||{};
-  const dl=p.detail||{checklist:[],equipment:[],materials:[],staff:[],schedule:[]};
-  const now=new Date();
-  const dateStr=now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日';
-  const sd=p.sd||''; const ed=p.ed||'';
-  const days=sd&&ed?Math.floor((new Date(ed)-new Date(sd))/(1000*60*60*24))+1:null;
-
-  // チェックリスト
-  const checkHtml=(dl.checklist||[]).map(function(it){
-    return '<tr><td style="width:18px"><input type="checkbox" '+(it.done?'checked':'')+' style="accent-color:#4a7c5f"></td>'+
-      '<td style="padding:3px 6px">'+esc(it.text)+'</td>'+
-      '<td style="width:80px;color:#888;font-size:9pt">'+esc(it.due||'')+'</td></tr>';
-  }).join('')||'<tr><td colspan="3" style="color:#999;font-size:9pt;padding:4px">なし</td></tr>';
-
-  // 機器
-  const equipHtml=(dl.equipment||[]).map(function(it){
-    var sc=it.status==='入荷済'?'#2d7a2d':it.status==='発注済'?'#1a5fa8':'#c04040';
-    return '<tr><td style="padding:3px 4px">'+esc(it.name)+'</td>'+
-      '<td style="padding:3px 4px;color:#666;font-size:9pt">'+esc(it.spec||'')+'</td>'+
-      '<td style="padding:3px 4px;text-align:right">'+esc(String(it.qty||''))+'</td>'+
-      '<td style="padding:3px 4px">'+esc(it.unit||'')+'</td>'+
-      '<td style="padding:3px 4px;color:'+sc+';font-weight:700;font-size:9pt">'+esc(it.status||'')+'</td></tr>';
-  }).join('')||'<tr><td colspan="5" style="color:#999;font-size:9pt;padding:4px">なし</td></tr>';
-
-  // 材料
-  const matHtml=(dl.materials||[]).map(function(it){
-    var sc=it.status==='入荷済'?'#2d7a2d':it.status==='発注済'?'#1a5fa8':'#c04040';
-    return '<tr><td style="padding:3px 4px">'+esc(it.name)+'</td>'+
-      '<td style="padding:3px 4px;color:#666;font-size:9pt">'+esc(it.spec||'')+'</td>'+
-      '<td style="padding:3px 4px;text-align:right">'+esc(String(it.qty||''))+'</td>'+
-      '<td style="padding:3px 4px">'+esc(it.unit||'')+'</td>'+
-      '<td style="padding:3px 4px;color:'+sc+';font-weight:700;font-size:9pt">'+esc(it.status||'')+'</td></tr>';
-  }).join('')||'<tr><td colspan="5" style="color:#999;font-size:9pt;padding:4px">なし</td></tr>';
-
-  // 人員
-  const staffHtml=(dl.staff||[]).map(function(it){
-    return '<tr><td style="padding:3px 4px;font-weight:600">'+esc(it.name||'')+'</td>'+
-      '<td style="padding:3px 4px;color:#666">'+esc(it.role||'')+'</td>'+
-      '<td style="padding:3px 4px">'+esc(it.phone||'')+'</td>'+
-      '<td style="padding:3px 4px;color:#444">'+esc(it.date||'')+'</td>'+
-      '<td style="padding:3px 4px;text-align:right">'+esc(it.days?it.days+'日':'')+'</td></tr>';
-  }).join('')||'<tr><td colspan="5" style="color:#999;font-size:9pt;padding:4px">なし</td></tr>';
-
-  // 工程
-  const totalDays=sd&&ed?Math.floor((new Date(ed)-new Date(sd))/(1000*60*60*24))+1:null;
-  const schedHtml=(dl.schedule||[]).map(function(it,i){
-    var color=it.color||'#4a7c5f';
-    var ganttBar='';
-    if(totalDays){
-      var left=it.startDay?Math.max(0,((it.startDay-1)/totalDays)*100):0;
-      var width=it.days?Math.min(100-left,(it.days/totalDays)*100):Math.max(1,100/totalDays);
-      ganttBar='<div style="width:100%;background:#eee;border-radius:2px;height:12px;position:relative">'+
-        '<div style="position:absolute;left:'+left+'%;width:'+Math.max(width,2)+'%;background:'+color+';height:12px;border-radius:2px;min-width:3px"></div></div>';
-    }
-    return '<tr><td style="padding:3px 4px;font-weight:700;color:'+color+'">'+esc(it.day||'')+'</td>'+
-      '<td style="padding:3px 4px">'+esc(it.work||'')+'</td>'+
-      '<td style="padding:3px 4px;color:#666;font-size:9pt;white-space:nowrap">'+esc(it.hours||'')+'</td>'+
-      '<td style="padding:3px 4px;width:120px">'+ganttBar+'</td></tr>';
-  }).join('')||'<tr><td colspan="4" style="color:#999;font-size:9pt;padding:4px">なし</td></tr>';
-
-  // ロゴ
-  const logoHtml=cfg.logoData?'<img src="'+cfg.logoData+'" style="max-height:40px;max-width:80px;object-fit:contain;margin-right:8px">':'';
-
-  const html='<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">'+
-    '<style>'+
-    '@page{size:A4 portrait;margin:10mm 12mm}'+
-    '*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+
-    'body{font-family:"MS Gothic","Hiragino Kaku Gothic ProN",sans-serif;color:#222;font-size:10pt;line-height:1.5}'+
-    'h2{font-size:11pt;font-weight:700;background:#4a7c5f;color:#fff;padding:4px 8px;margin-bottom:4px}'+
-    'table{width:100%;border-collapse:collapse;font-size:9.5pt}'+
-    'th{background:#e8e8e8;padding:4px 6px;text-align:left;font-size:9pt;border-bottom:1px solid #ccc}'+
-    'tr:nth-child(even){background:#f9f9f9}'+
-    '.section{margin-bottom:10px;border:1px solid #ddd;border-radius:3px;overflow:hidden}'+
-    '.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}'+
-    '.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}'+
-    '@media print{button{display:none}}'+
-    '</style></head><body>'+
-
-    // ヘッダー
-    '<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #4a7c5f;padding-bottom:8px;margin-bottom:12px">'+
-      '<div style="flex:1">'+
-        '<div style="font-size:8pt;color:#888;margin-bottom:2px">案件指示書 / 発行日: '+dateStr+'</div>'+
-        '<div style="font-size:18pt;font-weight:900;color:#222;line-height:1.2">'+esc(p.title)+'</div>'+
-        '<div style="margin-top:4px;display:flex;gap:12px;font-size:9.5pt;color:#444">'+
-          (cust?'<span>👥 '+esc(cust.name)+'</span>':'')+
-          '<span>📌 '+esc(p.phase||'')+'</span>'+
-          (sd?'<span>📅 '+sd+(ed?' 〜 '+ed:''+(days?' ('+days+'日間)':''))+'</span>':'')+
-          (p.amount?'<span>💴 '+fmt(p.amount)+'</span>':'')+
-        '</div>'+
-      '</div>'+
-      '<div style="text-align:right;flex-shrink:0;padding-left:12px">'+
-        logoHtml+
-        '<div style="font-size:11pt;font-weight:700">'+esc(cfg.companyName||'セイノデンキ')+'</div>'+
-        '<div style="font-size:8.5pt;color:#666">'+esc(cfg.companyNameFull||'')+'</div>'+
-        '<div style="font-size:8.5pt;color:#666">'+esc(cfg.tel||'')+'</div>'+
-      '</div>'+
-    '</div>'+
-
-    // 段取り + 人員 (2列)
-    '<div class="grid2" style="margin-bottom:10px">'+
-      '<div class="section">'+
-        '<h2>📋 段取りチェックリスト</h2>'+
-        '<table><tbody>'+checkHtml+'</tbody></table>'+
-      '</div>'+
-      '<div class="section">'+
-        '<h2>👷 人員</h2>'+
-        '<table><thead><tr><th>氏名</th><th>役割</th><th>連絡先</th><th>日程</th><th>日数</th></tr></thead>'+
-        '<tbody>'+staffHtml+'</tbody></table>'+
-      '</div>'+
-    '</div>'+
-
-    // 機器 + 材料 (2列)
-    '<div class="grid2" style="margin-bottom:10px">'+
-      '<div class="section">'+
-        '<h2>🔧 機器・商品</h2>'+
-        '<table><thead><tr><th>品名</th><th>仕様</th><th>数量</th><th>単位</th><th>状態</th></tr></thead>'+
-        '<tbody>'+equipHtml+'</tbody></table>'+
-      '</div>'+
-      '<div class="section">'+
-        '<h2>📦 材料・部材</h2>'+
-        '<table><thead><tr><th>品名</th><th>規格</th><th>数量</th><th>単位</th><th>状態</th></tr></thead>'+
-        '<tbody>'+matHtml+'</tbody></table>'+
-      '</div>'+
-    '</div>'+
-
-    // 工程
-    '<div class="section" style="margin-bottom:10px">'+
-      '<h2>📅 工程</h2>'+
-      '<table><thead><tr><th>日程</th><th>作業内容</th><th>時間/日数</th><th style="width:130px">ガント</th></tr></thead>'+
-      '<tbody>'+schedHtml+'</tbody></table>'+
-    '</div>'+
-
-    // メモ欄
-    '<div class="section">'+
-      '<h2>📝 メモ・備考</h2>'+
-      '<div style="min-height:60px;padding:8px;font-size:9.5pt;white-space:pre-wrap">'+esc(p.memo||'')+'</div>'+
-    '</div>'+
-
-    // 署名欄
-    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px">'+
-      ['承認','確認','担当'].map(function(l){
-        return '<div style="border:1px solid #ccc;border-radius:3px;padding:6px;min-height:50px;font-size:9pt;color:#888">'+l+'</div>';
-      }).join('')+
-    '</div>'+
-
-    '<button onclick="window.print()" style="margin-top:12px;padding:8px 20px;background:#4a7c5f;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11pt">🖨️ 印刷する</button>'+
-    '<script>window.onload=function(){}<\/script>'+
-    '</body></html>';
-
-  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
-  const url=URL.createObjectURL(blob);
-  const pw=window.open(url,'_blank');
-  if(!pw){const a=document.createElement('a');a.href=url;a.target='_blank';a.click();}
-  setTimeout(function(){URL.revokeObjectURL(url);},60000);
-}
-
-
-// ============================================================
-// アラートエンジン
-// ============================================================
-function _getAlerts(){
-  const today=new Date();today.setHours(0,0,0,0);
-  const days=parseInt(D.cfg?.alertDays||14);
-  const alerts=[];
-  const add=function(type,label,date,cid,custName,detail){
-    if(!date)return;
-    const d=new Date(date);d.setHours(0,0,0,0);
-    const diff=Math.floor((d-today)/(1000*60*60*24));
-    if(diff<=days) alerts.push({type,label,date,diff,cid,custName,detail,urgent:diff<=3,overdue:diff<0});
-  };
-  D.customers.forEach(function(c){
-    (c.equipment||[]).forEach(function(eq){
-      if(eq.warrantyDate)add('equip',c.name+'｜'+eq.name+' 保証期限',eq.warrantyDate,c.id,c.name,'保証期限');
-      if(eq.nextCheck)add('equip',c.name+'｜'+eq.name+' 点検予定',eq.nextCheck,c.id,c.name,'次回点検');
-    });
-    const ct=c.contracts||{};
-    (ct.warranty||[]).forEach(function(it){if(it.expire)add('contract',c.name+'｜保証期限 '+it.title,it.expire,c.id,c.name,'保証');});
-    (ct.maintenance||[]).forEach(function(it){if(it.renew)add('contract',c.name+'｜保守契約更新 '+it.title,it.renew,c.id,c.name,'保守契約');});
-    (ct.aircleaning||[]).forEach(function(it){if(it.next)add('contract',c.name+'｜エアクリ予定 '+it.title,it.next,c.id,c.name,'エアクリ');});
-    (ct.inspection||[]).forEach(function(it){if(it.next)add('contract',c.name+'｜点検予定 '+it.title,it.next,c.id,c.name,'点検契約');});
-    (ct.lease||[]).forEach(function(it){if(it.end)add('contract',c.name+'｜リース終了 '+it.title,it.end,c.id,c.name,'リース');});
-  });
-  D.projects.forEach(function(p){
-    if(p.ed&&p.status!=='完了'&&p.status!=='中止'){
-      const c=p.cid?D.customers.find(c=>c.id===p.cid):null;
-      add('project',(c?c.name:'案件')+'｜'+p.title+' 終了日',p.ed,p.cid,c?.name||'','案件終了');
-    }
-  });
-  return alerts.sort(function(a,b){return a.date.localeCompare(b.date);});
-}
-function _alertCount(){return _getAlerts().filter(function(a){return !a.overdue||a.diff>=-7;}).length;}
-function _alertDates(){
-  const alerts=_getAlerts(),dates={};
-  alerts.forEach(function(a){
-    if(!dates[a.date])dates[a.date]={count:0,urgent:false};
-    dates[a.date].count++;
-    if(a.urgent||a.diff<=0)dates[a.date].urgent=true;
-  });
-  return dates;
-}
-function _checkAlerts(){
-  if(D.cfg?.alertPopup===false)return;
-  const alerts=_getAlerts().filter(function(a){return a.diff>=0&&a.diff<=3;});
-  if(!alerts.length)return;
-  const html=alerts.slice(0,5).map(function(a){
-    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">'+
-      '<span style="font-size:18px">'+(a.diff===0?'🔴':a.diff<=3?'🟠':'🟡')+'</span>'+
-      '<div style="flex:1"><div style="font-size:12px;font-weight:700">'+esc(a.label)+'</div>'+
-      '<div style="font-size:11px;color:var(--text3)">'+(a.diff===0?'今日':'あと'+a.diff+'日')+' — '+a.date+'</div></div></div>';
-  }).join('');
-  const ov=document.createElement('div');ov.className='cov';ov.id='alert-pop';
-  ov.innerHTML='<div class="cb" style="max-width:420px">'+
-    '<div style="font-size:22px;margin-bottom:8px">🔔</div>'+
-    '<div style="font-size:15px;font-weight:700;margin-bottom:12px">アラート通知 ('+alerts.length+'件)</div>'+
-    '<div style="max-height:300px;overflow-y:auto">'+html+'</div>'+
-    (alerts.length>5?'<div style="font-size:11px;color:var(--text3);margin-top:6px">他 '+(alerts.length-5)+'件...</div>':'')+
-    '<div style="display:flex;gap:7px;justify-content:center;margin-top:14px">'+
-    '<button class="btn bs" onclick="document.getElementById(\'alert-pop\')?.remove()">閉じる</button>'+
-    '<button class="btn bp" onclick="document.getElementById(\'alert-pop\')?.remove();nav(\'dashboard\')">ダッシュボードで確認</button>'+
-    '</div></div>';
-  document.body.appendChild(ov);
-}
-
-function showAllAlerts(){
-  const alerts=_getAlerts();
-  if(!alerts.length){toast('アラートはありません');return;}
-  const html=alerts.map(function(a){
-    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">'+
-      '<span style="font-size:18px">'+(a.overdue?'🔴':a.diff===0?'🔴':a.diff<=3?'🟠':'🟡')+'</span>'+
-      '<div style="flex:1">'+
-        '<div style="font-size:13px;font-weight:700">'+esc(a.label)+'</div>'+
-        '<div style="font-size:11px;color:var(--text3)">'+(a.overdue?'期限切れ '+Math.abs(a.diff)+'日経過':a.diff===0?'今日':'あと'+a.diff+'日')+' — '+a.date+'</div>'+
-      '</div></div>';
-  }).join('');
-  const existing=document.getElementById('mo-ov');
-  if(existing){existing.querySelector('.mo,.mo-lg').innerHTML='<div class="mt">🔔 アラート一覧 ('+alerts.length+'件)</div><div style="max-height:60vh;overflow-y:auto">'+html+'</div><div class="mf"><button class="btn bs" onclick="cmo()">閉じる</button></div>';}
-  else mo('<div class="mt">🔔 アラート一覧 ('+alerts.length+'件)</div><div style="max-height:60vh;overflow-y:auto">'+html+'</div><div class="mf"><button class="btn bs" onclick="cmo()">閉じる</button></div>',false);
-}
-
-
-// ============================================================
-// 顧客詳細タブ関数
-// ============================================================
-function dtHistory(pjs,qts){
-  var items=[
-    ...pjs.map(function(p){return{type:'project',date:p.ed||p.sd||p.created||'',
-      label:'⚡ '+p.title,sub:p.phase+' / '+(p.amount?'¥'+Number(p.amount).toLocaleString('ja-JP'):'¥0'),
-      badge:bdg(p.phase),action:'showProjDetail('+p.id+')'};
-    }),
-    ...qts.map(function(q){return{type:'quote',date:q.date||q.created||'',
-      label:(q.isInvoice?'📄':'📋')+' '+q.title,
-      sub:q.qn+' / ¥'+Number(q.amount+(q.tax||0)).toLocaleString('ja-JP'),
-      badge:bdg(q.status),action:'showQuoteMo('+q.id+')'};
-    })
-  ].filter(function(i){return i.date;}).sort(function(a,b){return b.date.localeCompare(a.date);});
-  if(!items.length)return'<div class="emp"><div style="font-size:30px">📅</div><div>履歴がありません</div></div>';
-  var html='<div>';
-  items.forEach(function(it,i){
-    html+='<div style="display:flex;gap:12px;padding:10px 4px;border-bottom:1px solid var(--border);cursor:pointer" onclick="'+it.action+'">'+
-      '<div style="flex-shrink:0;width:52px;text-align:center">'+
-        '<div style="font-size:10px;color:var(--text3)">'+it.date.slice(0,7).replace('-','/')+'</div>'+
-        '<div style="font-size:13px;font-weight:900">'+it.date.slice(8,10)+'日</div>'+
-      '</div>'+
-      '<div style="flex:1">'+
-        '<div style="font-size:13px;font-weight:700;margin-bottom:2px">'+esc(it.label)+'</div>'+
-        '<div style="font-size:11px;color:var(--text3);margin-bottom:3px">'+esc(it.sub)+'</div>'+
-        it.badge+
-      '</div>'+
-      '<div style="color:var(--text3);align-self:center">›</div>'+
-    '</div>';
-  });
-  html+='</div>';
-  return html;
-}
-
-function dtReports(pjs){
-  var reps=pjs.filter(function(p){return p.report&&(p.report.memo||p.report.impression);});
-  if(!reps.length)return'<div class="emp"><div style="font-size:30px">📝</div><div>レポートがありません</div></div>';
-  return'<div>'+reps.map(function(p){
-    return'<div style="padding:10px;border-bottom:1px solid var(--border);cursor:pointer" onclick="showReportMo('+p.id+')">'+
-      '<div style="font-size:13px;font-weight:700;margin-bottom:4px">'+esc(p.title)+'</div>'+
-      (p.report.memo?'<div style="font-size:12px;color:var(--text2);margin-bottom:3px">📝 '+esc(p.report.memo.slice(0,60))+(p.report.memo.length>60?'...':'')+'</div>':'')+
-      (p.report.impression?'<div style="font-size:12px;color:var(--text2)">💬 '+esc(p.report.impression.slice(0,60))+(p.report.impression.length>60?'...':'')+'</div>':'')+
-    '</div>';
-  }).join('')+'</div>';
-}
-
-function dtEquip(c){
-  if(!c)return'';
-  if(!c.equipment)c.equipment=[];
-  if(!c.equipment.length)return'<div class="emp"><div style="font-size:30px">🔧</div><div>保有機器が登録されていません</div></div>'+
-    '<div style="margin-top:10px;text-align:center"><button class="btn bp" onclick="showEquipMo('+c.id+',-1)">＋ 機器を追加</button></div>';
-  return'<div><div style="margin-bottom:8px;display:flex;justify-content:flex-end">'+
-    '<button class="btn bp bsm" onclick="showEquipMo('+c.id+',-1)">＋ 機器を追加</button></div>'+
-    c.equipment.map(function(eq,i){
-      var sc=eq.warrantyDate&&new Date(eq.warrantyDate)<new Date()?'var(--red)':'var(--green)';
-      return'<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:7px">'+
-        '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">'+
-          '<div><div style="font-size:14px;font-weight:700">'+esc(eq.name||'')+'</div>'+
-          '<div style="font-size:11px;color:var(--text3)">'+esc(eq.maker||'')+' '+esc(eq.model||'')+'</div></div>'+
-          '<div style="display:flex;gap:4px">'+
-            '<button class="btn bs bsm" onclick="showEquipMo('+c.id+','+i+')">✏️</button>'+
-            '<button class="btn bd bsm" onclick="delEquip('+c.id+','+i+')">🗑</button>'+
-          '</div>'+
-        '</div>'+
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px 10px;font-size:11px">'+
-          (eq.location?'<div><span style="color:var(--text3)">設置場所</span> '+esc(eq.location)+'</div>':'')+
-          (eq.installDate?'<div><span style="color:var(--text3)">設置日</span> '+eq.installDate+'</div>':'')+
-          (eq.purchaseDate?'<div><span style="color:var(--text3)">購入日</span> '+eq.purchaseDate+'</div>':'')+
-          (eq.warrantyDate?'<div><span style="color:'+sc+'">保証期限</span> <span style="font-weight:700;color:'+sc+'">'+eq.warrantyDate+'</span></div>':'')+
-          (eq.nextCheck?'<div><span style="color:var(--accent)">次回点検</span> <span style="font-weight:700">'+eq.nextCheck+'</span></div>':'')+
-        '</div>'+
-        (eq.memo?'<div style="margin-top:5px;font-size:11px;color:var(--text3);padding:4px 7px;background:var(--bg2);border-radius:4px">'+esc(eq.memo)+'</div>':'')+
-      '</div>';
-    }).join('')+'</div>';
-}
-
-function showEquipMo(cid,idx){
-  const c=D.customers.find(c=>c.id===cid);if(!c)return;
-  if(!c.equipment)c.equipment=[];
-  const eq=idx>=0?c.equipment[idx]:{};
-  mo('<div class="mt">'+(idx>=0?'🔧 機器を編集':'🔧 機器を追加')+'</div>'+
-    '<div class="fg">'+
-      '<div class="fr" style="grid-column:1/-1"><label class="fl">機器名 *</label><input id="eq-name" value="'+esc(eq.name||'')+'" placeholder="エアコン・分電盤など"></div>'+
-      '<div class="fr"><label class="fl">メーカー</label><input id="eq-maker" value="'+esc(eq.maker||'')+'"></div>'+
-      '<div class="fr"><label class="fl">型番</label><input id="eq-model" value="'+esc(eq.model||'')+'"></div>'+
-      '<div class="fr"><label class="fl">設置場所</label><input id="eq-loc" value="'+esc(eq.location||'')+'" placeholder="リビング・事務所など"></div>'+
-      '<div class="fr"><label class="fl">購入日</label><input type="date" id="eq-pdate" value="'+(eq.purchaseDate||'')+'"></div>'+
-      '<div class="fr"><label class="fl">設置日</label><input type="date" id="eq-idate" value="'+(eq.installDate||'')+'"></div>'+
-      '<div class="fr"><label class="fl">保証期限</label><input type="date" id="eq-wdate" value="'+(eq.warrantyDate||'')+'"></div>'+
-      '<div class="fr"><label class="fl">次回点検予定</label><input type="date" id="eq-ncheck" value="'+(eq.nextCheck||'')+'"></div>'+
-      '<div class="fr" style="grid-column:1/-1"><label class="fl">備考</label><textarea id="eq-memo" rows="2">'+esc(eq.memo||'')+'</textarea></div>'+
-    '</div>'+
-    '<div class="mf"><button class="btn bs" onclick="cmo()">キャンセル</button><button class="btn bp" onclick="saveEquip('+cid+','+idx+')">💾 保存</button></div>');
-}
-function saveEquip(cid,idx){
-  const c=D.customers.find(c=>c.id===cid);if(!c)return;
-  if(!c.equipment)c.equipment=[];
-  const n=document.getElementById('eq-name')?.value||'';
-  if(!n){toast('機器名を入力してください','er');return;}
-  const eq={name:n,maker:document.getElementById('eq-maker')?.value||'',model:document.getElementById('eq-model')?.value||'',
-    location:document.getElementById('eq-loc')?.value||'',purchaseDate:document.getElementById('eq-pdate')?.value||'',
-    installDate:document.getElementById('eq-idate')?.value||'',warrantyDate:document.getElementById('eq-wdate')?.value||'',
-    nextCheck:document.getElementById('eq-ncheck')?.value||'',memo:document.getElementById('eq-memo')?.value||''};
-  if(idx>=0)c.equipment[idx]=eq;else c.equipment.push(eq);
-  save();cmo();toast(idx>=0?'機器情報を更新しました':'機器を登録しました');
-  document.getElementById('dt-body').innerHTML=dtEquip(c);
-}
-function delEquip(cid,idx){
-  const c=D.customers.find(c=>c.id===cid);if(!c)return;
-  if(!confirm('この機器を削除しますか？'))return;
-  c.equipment.splice(idx,1);save();toast('機器を削除しました');
-  document.getElementById('dt-body').innerHTML=dtEquip(c);
-}
-
-function dtContract(c){
-  if(!c)return'';
-  if(!c.contracts)c.contracts={warranty:[],maintenance:[],aircleaning:[],inspection:[],lease:[]};
-  const ct=c.contracts;
-  const TABS=[
-    {key:'warranty',label:'🛡 保証'},
-    {key:'maintenance',label:'🔧 保守契約'},
-    {key:'aircleaning',label:'❄️ エアクリ'},
-    {key:'inspection',label:'🔍 点検契約'},
-    {key:'lease',label:'💴 リース'},
-  ];
-  var tabHtml='<div style="display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap">';
-  TABS.forEach(function(t,i){
-    tabHtml+='<button class="tbtn'+(i===0?' on':'')+'" id="cst-'+t.key+'" onclick="swContractTab(\''+t.key+'\','+c.id+')" style="font-size:11px;padding:4px 8px">'+t.label+'</button>';
-  });
-  tabHtml+='</div><div id="ct-body">'+renderContractTab('warranty',c)+'</div>';
-  return tabHtml;
-}
-
-function swContractTab(key,cid){
-  document.querySelectorAll('[id^="cst-"]').forEach(function(b){b.classList.remove('on');});
-  document.getElementById('cst-'+key)?.classList.add('on');
-  const c=D.customers.find(c=>c.id===cid);
-  document.getElementById('ct-body').innerHTML=renderContractTab(key,c);
-}
-
-function renderContractTab(key,c){
-  if(!c.contracts)c.contracts={warranty:[],maintenance:[],aircleaning:[],inspection:[],lease:[]};
-  const items=c.contracts[key]||[];
-  const FIELDS={
-    warranty:[{id:'title',label:'製品名',ph:'エアコン'},{id:'expire',label:'保証期限',type:'date'},{id:'no',label:'保証書番号'},{id:'shop',label:'販売店'},{id:'memo',label:'備考',ta:true}],
-    maintenance:[{id:'title',label:'契約内容',ph:'保守点検'},{id:'period',label:'期間'},{id:'fee',label:'金額'},{id:'renew',label:'更新日',type:'date'},{id:'person',label:'担当者'},{id:'memo',label:'備考',ta:true}],
-    aircleaning:[{id:'title',label:'対象機器'},{id:'freq',label:'頻度',ph:'年2回'},{id:'next',label:'次回予定',type:'date'},{id:'last',label:'前回実施',type:'date'},{id:'fee',label:'金額'},{id:'memo',label:'備考',ta:true}],
-    inspection:[{id:'title',label:'点検内容'},{id:'cycle',label:'周期',ph:'年1回'},{id:'next',label:'次回予定',type:'date'},{id:'last',label:'前回実施',type:'date'},{id:'fee',label:'金額'},{id:'memo',label:'備考',ta:true}],
-    lease:[{id:'title',label:'機器名'},{id:'company',label:'リース会社'},{id:'fee',label:'月額'},{id:'start',label:'開始日',type:'date'},{id:'end',label:'終了日',type:'date'},{id:'memo',label:'備考',ta:true}],
-  };
-  const fields=FIELDS[key]||[];
-  var html='<div style="display:flex;justify-content:flex-end;margin-bottom:6px">'+
-    '<button class="btn bp bsm" onclick="showContractMo(\''+key+'\','+c.id+',-1)">＋ 追加</button></div>';
-  if(!items.length){html+='<div class="emp" style="padding:20px"><div>データがありません</div></div>';return html;}
-  items.forEach(function(item,i){
-    html+='<div style="background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:10px 12px;margin-bottom:7px">'+
-      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px">'+
-        '<div style="font-size:13px;font-weight:700">'+esc(item.title||'')+'</div>'+
-        '<div style="display:flex;gap:4px">'+
-          '<button class="btn bs bsm" onclick="showContractMo(\''+key+'\','+c.id+','+i+')">✏️</button>'+
-          '<button class="btn bd bsm" onclick="delContract(\''+key+'\','+c.id+','+i+')">🗑</button>'+
-        '</div>'+
-      '</div>'+
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px 10px;font-size:11px">'+
-        fields.filter(function(f){return !f.ta&&f.id!=='title'&&item[f.id];}).map(function(f){
-          return'<div><span style="color:var(--text3)">'+f.label+'</span> '+esc(String(item[f.id]||''))+'</div>';
-        }).join('')+
-      '</div>'+
-      (item.memo?'<div style="margin-top:4px;font-size:11px;color:var(--text3)">'+esc(item.memo)+'</div>':'')+
-    '</div>';
-  });
-  return html;
-}
-
-function showContractMo(key,cid,idx){
-  const c=D.customers.find(c=>c.id===cid);if(!c)return;
-  if(!c.contracts)c.contracts={warranty:[],maintenance:[],aircleaning:[],inspection:[],lease:[]};
-  const item=idx>=0?(c.contracts[key][idx]||{}):{};
-  const FIELDS={
-    warranty:[{id:'title',label:'製品名',ph:'エアコン'},{id:'expire',label:'保証期限',type:'date'},{id:'no',label:'保証書番号'},{id:'shop',label:'販売店'},{id:'memo',label:'備考',ta:true}],
-    maintenance:[{id:'title',label:'契約内容',ph:'保守点検'},{id:'period',label:'期間'},{id:'fee',label:'金額'},{id:'renew',label:'更新日',type:'date'},{id:'person',label:'担当者'},{id:'memo',label:'備考',ta:true}],
-    aircleaning:[{id:'title',label:'対象機器'},{id:'freq',label:'頻度',ph:'年2回'},{id:'next',label:'次回予定',type:'date'},{id:'last',label:'前回実施',type:'date'},{id:'fee',label:'金額'},{id:'memo',label:'備考',ta:true}],
-    inspection:[{id:'title',label:'点検内容'},{id:'cycle',label:'周期',ph:'年1回'},{id:'next',label:'次回予定',type:'date'},{id:'last',label:'前回実施',type:'date'},{id:'fee',label:'金額'},{id:'memo',label:'備考',ta:true}],
-    lease:[{id:'title',label:'機器名'},{id:'company',label:'リース会社'},{id:'fee',label:'月額'},{id:'start',label:'開始日',type:'date'},{id:'end',label:'終了日',type:'date'},{id:'memo',label:'備考',ta:true}],
-  };
-  const fields=FIELDS[key]||[];
-  var html='<div class="mt">📄 '+(idx>=0?'編集':'追加')+'</div><div class="fg">';
-  fields.forEach(function(f){
-    if(f.ta){html+='<div class="fr" style="grid-column:1/-1"><label class="fl">'+f.label+'</label><textarea id="ct-'+f.id+'" rows="2">'+esc(item[f.id]||'')+'</textarea></div>';}
-    else{html+='<div class="fr"><label class="fl">'+f.label+'</label><input '+(f.type?'type="'+f.type+'" ':'')+' id="ct-'+f.id+'" value="'+esc(item[f.id]||'')+'"'+(f.ph?' placeholder="'+f.ph+'"':'')+' ></div>';}
-  });
-  html+='</div><div class="mf"><button class="btn bs" onclick="cmo()">キャンセル</button><button class="btn bp" onclick="saveContract(\''+key+'\','+cid+','+idx+')">💾 保存</button></div>';
-  mo(html);
-}
-function saveContract(key,cid,idx){
-  const c=D.customers.find(c=>c.id===cid);if(!c)return;
-  if(!c.contracts)c.contracts={warranty:[],maintenance:[],aircleaning:[],inspection:[],lease:[]};
-  const ids=['title','expire','no','shop','period','fee','renew','person','freq','next','last','cycle','company','start','end','memo'];
-  const obj={};
-  ids.forEach(function(id){const el=document.getElementById('ct-'+id);if(el)obj[id]=el.value||'';});
-  if(!obj.title){toast('必須項目を入力してください','er');return;}
-  if(idx>=0)c.contracts[key][idx]=obj;else c.contracts[key].push(obj);
-  save();cmo();toast('保存しました');
-  document.getElementById('dt-body').innerHTML=dtContract(c);
-  setTimeout(function(){swContractTab(key,cid);},50);
-}
-function delContract(key,cid,idx){
-  const c=D.customers.find(c=>c.id===cid);if(!c)return;
-  if(!confirm('削除しますか？'))return;
-  c.contracts[key].splice(idx,1);save();
-  document.getElementById('dt-body').innerHTML=dtContract(c);
-}
-
-// ============================================================
-// カレンダー日付タップ
-// ============================================================
-function _calDayTap(ds){
-  // PC: 日表示に切り替え
-  if(window.innerWidth>768){
-    const d=new Date(ds);
-    calY=d.getFullYear();calM=d.getMonth();calD=d.getDate();
-    calV='day';buildPage();
-    return;
-  }
-  // スマホ: スケジュール追加モーダル
-  showSchedMo(null,ds);
-}
-
-// ============================================================
-// STAFF（準備中）
-// ============================================================
-function pgStaff(){
-  document.getElementById('ct').innerHTML=
-    '<div style="text-align:center;padding:60px 20px">'+
-      '<div style="font-size:60px;margin-bottom:16px">👷</div>'+
-      '<div style="font-size:20px;font-weight:900;margin-bottom:8px">スタッフ・協力会社管理</div>'+
-      '<div style="font-size:14px;color:var(--text3);margin-bottom:24px">この機能は現在開発中です</div>'+
-      '<div style="background:var(--bg3);border-radius:var(--radius);padding:16px;max-width:320px;margin:0 auto;text-align:left;font-size:13px;color:var(--text2)">'+
-        '<div style="font-weight:700;margin-bottom:8px;color:var(--text)">実装予定の機能：</div>'+
-        '<div style="margin-bottom:5px">✅ スタッフ・協力会社業者の登録</div>'+
-        '<div style="margin-bottom:5px">✅ 頭文字カードで視覚管理</div>'+
-        '<div style="margin-bottom:5px">✅ 案件への人員アサイン</div>'+
-        '<div style="margin-bottom:5px">✅ スタッフ別スケジュール表示</div>'+
-        '<div>✅ 稼働時間・工数集計</div>'+
-      '</div>'+
-    '</div>';
-}
-
-// ============================================================
-// STOCK（準備中）
-// ============================================================
-function pgStock(){
-  document.getElementById('ct').innerHTML=
-    '<div style="text-align:center;padding:60px 20px">'+
-      '<div style="font-size:60px;margin-bottom:16px">📦</div>'+
-      '<div style="font-size:20px;font-weight:900;margin-bottom:8px">在庫管理</div>'+
-      '<div style="font-size:14px;color:var(--text3);margin-bottom:24px">この機能は現在開発中です</div>'+
-      '<div style="background:var(--bg3);border-radius:var(--radius);padding:16px;max-width:320px;margin:0 auto;text-align:left;font-size:13px;color:var(--text2)">'+
-        '<div style="font-weight:700;margin-bottom:8px;color:var(--text)">実装予定の機能：</div>'+
-        '<div style="margin-bottom:5px">✅ 品目登録（電線・部材など）</div>'+
-        '<div style="margin-bottom:5px">✅ 入出庫管理</div>'+
-        '<div style="margin-bottom:5px">✅ 発注点アラート</div>'+
-        '<div style="margin-bottom:5px">✅ 案件材料と連動した自動引落</div>'+
-        '<div>✅ 発注書PDF印刷</div>'+
-      '</div>'+
-    '</div>';
-}
-
-// ============================================================
-// SETTINGS
-// ============================================================
-function pgSettings(){
-  if(!D.cfg) D.cfg={};
-  const c=D.cfg;
-  document.getElementById('ct').innerHTML=`
-  <div style="max-width:600px">
-    <div class="card" style="margin-bottom:12px">
-      <div class="ct">🏢 会社情報</div>
-      <div class="fg">
-        <div class="fr" style="grid-column:1/-1"><label class="fl">会社名（略称）</label><input id="cfg-cn" value="${esc(c.companyName||'セイノデンキ')}"></div>
-        <div class="fr" style="grid-column:1/-1"><label class="fl">会社名（正式）</label><input id="cfg-cnf" value="${esc(c.companyNameFull||'清野電気商会')}"></div>
-        <div class="fr"><label class="fl">電話番号</label><input id="cfg-tel" value="${esc(c.tel||'')}"></div>
-        <div class="fr"><label class="fl">FAX</label><input id="cfg-fax" value="${esc(c.fax||'')}"></div>
-        <div class="fr" style="grid-column:1/-1"><label class="fl">住所</label><input id="cfg-addr" value="${esc(c.address||'')}"></div>
-        <div class="fr" style="grid-column:1/-1"><label class="fl">担当者名</label><input id="cfg-rep" value="${esc(c.rep||'')}"></div>
-      </div>
-    </div>
-    <div class="card" style="margin-bottom:12px">
-      <div class="ct">🤖 AI設定</div>
-      <div class="fg">
-        <div class="fr"><label class="fl">使用するAI</label>
-          <select id="cfg-ai-type">
-            ${[['none','使用しない'],['claude','Claude (Anthropic)'],['chatgpt','ChatGPT (OpenAI)'],['gemini','Gemini (Google)']].map(a=>`<option value="${a[0]}" ${(c.aiType||'none')===a[0]?'selected':''}>${a[1]}</option>`).join('')}
-          </select>
-        </div>
-        <div class="fr"><label class="fl">APIキー</label><input id="cfg-ai-key" type="password" value="${esc(c.aiKey||'')}" placeholder="APIキーを入力..."></div>
-      </div>
-    </div>
-    <div class="card" style="margin-bottom:12px">
-      <div class="ct">🔔 アラート設定</div>
-      <div class="fg">
-        <div class="fr">
-          <label class="fl">何日前から通知するか</label>
-          <div style="display:flex;align-items:center;gap:8px">
-            <input type="number" id="cfg-alert-days" value="${c.alertDays||14}" min="1" max="90" style="width:80px">
-            <span>日前</span>
-          </div>
-        </div>
-        <div class="fr">
-          <label class="fl">起動時ポップアップ</label>
-          <div style="display:flex;gap:12px;margin-top:4px">
-            <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="cfg-popup" value="1" ${c.alertPopup!==false?'checked':''}> 表示する</label>
-            <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="cfg-popup" value="0" ${c.alertPopup===false?'checked':''}> 表示しない</label>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="card" style="margin-bottom:12px">
-      <div class="ct">🎨 テーマカラー</div>
-      <div class="fr">
-        <label class="fl">アクセントカラー</label>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          ${['#4a7c5f','#2563eb','#7c3aed','#dc2626','#d97706','#0891b2'].map(col=>
-            `<div onclick="document.querySelectorAll('.cc2').forEach(e=>e.style.outline='none');this.style.outline='3px solid var(--text)';document.getElementById('cfg-color').value='${col}'"
-              class="cc2" style="width:28px;height:28px;background:${col};border-radius:50%;cursor:pointer;outline:${(c.accentColor||'#4a7c5f')===col?'3px solid var(--text)':'none'}"></div>`
-          ).join('')}
-          <input type="color" id="cfg-color" value="${c.accentColor||'#4a7c5f'}" style="width:28px;height:28px;padding:0;border:none;cursor:pointer;border-radius:50%">
-        </div>
-      </div>
-    </div>
-    <div class="mf" style="border-top:none;padding-top:0">
-      <button class="btn bp" onclick="saveCfg()">💾 設定を保存</button>
-    </div>
-  </div>`;
-}
-
-function saveCfg(){
-  if(!D.cfg) D.cfg={};
-  D.cfg.companyName    = document.getElementById('cfg-cn')?.value||'セイノデンキ';
-  D.cfg.companyNameFull= document.getElementById('cfg-cnf')?.value||'';
-  D.cfg.tel            = document.getElementById('cfg-tel')?.value||'';
-  D.cfg.fax            = document.getElementById('cfg-fax')?.value||'';
-  D.cfg.address        = document.getElementById('cfg-addr')?.value||'';
-  D.cfg.rep            = document.getElementById('cfg-rep')?.value||'';
-  D.cfg.aiType         = document.getElementById('cfg-ai-type')?.value||'none';
-  D.cfg.aiKey          = document.getElementById('cfg-ai-key')?.value||'';
-  D.cfg.alertDays      = parseInt(document.getElementById('cfg-alert-days')?.value)||14;
-  D.cfg.alertPopup     = document.querySelector('input[name="cfg-popup"]:checked')?.value!=='0';
-  D.cfg.accentColor    = document.getElementById('cfg-color')?.value||'#4a7c5f';
-  save();
-  applyCfg();
-  toast('設定を保存しました');
+  mo(html,true);
 }
 
 // ============================================================
 // INIT
 // ============================================================
 seed();
-// アクセントカラーを適用
-(function applyCfg(){
-  if(!D||!D.cfg)return;
-  const c=D.cfg;
-  if(c.accentColor && document.documentElement){
-    document.documentElement.style.setProperty('--accent', c.accentColor);
-  }
-})();
+(function applyCfg(){if(!D||!D.cfg)return;const c=D.cfg;if(c.accentColor&&document.documentElement)document.documentElement.style.setProperty('--accent',c.accentColor);})();
 nav('dashboard');
-setTimeout(_checkAlerts, 1000);
-
-// ============================================================
-// MOBILE SIDEBAR TOGGLE
-// ============================================================
-async function _aiCall(prompt, maxTokens){
-  maxTokens = maxTokens||1000;
-  const cfg = D.cfg||{};
-  const type = cfg.aiType||'none';
-  const key = cfg.aiKey||'';
-  if(type==='none'||!key){
-    toast('設定でAIを設定してください','er');
-    return null;
-  }
-  try{
-    if(type==='claude'){
-      const res=await fetch('https://api.anthropic.com/v1/messages',{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})
-      });
-      const d=await res.json();
-      return d.content?.[0]?.text||null;
-    } else if(type==='chatgpt'){
-      const res=await fetch('https://api.openai.com/v1/chat/completions',{
-        method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
-        body:JSON.stringify({model:'gpt-4o-mini',max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})
-      });
-      const d=await res.json();
-      return d.choices?.[0]?.message?.content||null;
-    } else if(type==='gemini'){
-      const res=await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key='+key,{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})
-      });
-      const d=await res.json();
-      return d.candidates?.[0]?.content?.parts?.[0]?.text||null;
-    }
-  }catch(e){
-    toast('AI呼び出しエラー: '+e.message,'er');
-    return null;
-  }
-}
-
-
-// ============================================================
-// 案件指示書 印刷
-// ============================================================
-function showAllAlerts(){
-  const alerts=_getAlerts();
-  if(!alerts.length){toast('アラートはありません');return;}
-  const html=alerts.map(function(a){
-    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">'+
-      '<span style="font-size:18px">'+(a.overdue?'🔴':a.diff===0?'🔴':a.diff<=3?'🟠':'🟡')+'</span>'+
-      '<div style="flex:1">'+
-        '<div style="font-size:13px;font-weight:700">'+esc(a.label)+'</div>'+
-        '<div style="font-size:11px;color:var(--text3)">'+(a.overdue?'期限切れ '+Math.abs(a.diff)+'日経過':a.diff===0?'今日':'あと'+a.diff+'日')+' — '+a.date+'</div>'+
-      '</div></div>';
-  }).join('');
-  const existing=document.getElementById('mo-ov');
-  if(existing){existing.querySelector('.mo,.mo-lg').innerHTML='<div class="mt">🔔 アラート一覧 ('+alerts.length+'件)</div><div style="max-height:60vh;overflow-y:auto">'+html+'</div><div class="mf"><button class="btn bs" onclick="cmo()">閉じる</button></div>';}
-  else mo('<div class="mt">🔔 アラート一覧 ('+alerts.length+'件)</div><div style="max-height:60vh;overflow-y:auto">'+html+'</div><div class="mf"><button class="btn bs" onclick="cmo()">閉じる</button></div>',false);
-}
-
-
-// ============================================================
-// 顧客詳細タブ関数
-// ============================================================
-function dtHistory(pjs,qts){
-  var items=[
-    ...pjs.map(function(p){return{type:'project',date:p.ed||p.sd||p.created||'',
-      label:'⚡ '+p.title,sub:p.phase+' / '+(p.amount?'¥'+Number(p.amount).toLocaleString('ja-JP'):'¥0'),
-      badge:bdg(p.phase),action:'showProjDetail('+p.id+')'};
-    }),
-    ...qts.map(function(q){return{type:'quote',date:q.date||q.created||'',
-      label:(q.isInvoice?'📄':'📋')+' '+q.title,
-      sub:q.qn+' / ¥'+Number(q.amount+(q.tax||0)).toLocaleString('ja-JP'),
-      badge:bdg(q.status),action:'showQuoteMo('+q.id+')'};
-    })
-  ].filter(function(i){return i.date;}).sort(function(a,b){return b.date.localeCompare(a.date);});
-  if(!items.length)return'<div class="emp"><div style="font-size:30px">📅</div><div>履歴がありません</div></div>';
-  var html='<div>';
-  items.forEach(function(it,i){
-    html+='<div style="display:flex;gap:12px;padding:10px 4px;border-bottom:1px solid var(--border);cursor:pointer" onclick="'+it.action+'">'+
-      '<div style="flex-shrink:0;width:52px;text-align:center">'+
-        '<div style="font-size:10px;color:var(--text3)">'+it.date.slice(0,7).replace('-','/')+'</div>'+
-        '<div style="font-size:13px;font-weight:900">'+it.date.slice(8,10)+'日</div>'+
-      '</div>'+
-      '<div style="flex:1">'+
-        '<div style="font-size:13px;font-weight:700;margin-bottom:2px">'+esc(it.label)+'</div>'+
-        '<div style="font-size:11px;color:var(--text3);margin-bottom:3px">'+esc(it.sub)+'</div>'+
-        it.badge+
-      '</div>'+
-      '<div style="color:var(--text3);align-self:center">›</div>'+
-    '</div>';
-  });
-  html+='</div>';
-  return html;
-}
-
-function dtReports(pjs){
-  var reps=pjs.filter(function(p){return p.report&&(p.report.memo||p.report.impression);});
-  if(!reps.length)return'<div class="emp"><div style="font-size:30px">📝</div><div>レポートがありません</div></div>';
-  return'<div>'+reps.map(function(p){
-    return'<div style="padding:10px;border-bottom:1px solid var(--border);cursor:pointer" onclick="showReportMo('+p.id+')">'+
-      '<div style="font-size:13px;font-weight:700;margin-bottom:4px">'+esc(p.title)+'</div>'+
-      (p.report.memo?'<div style="font-size:12px;color:var(--text2);margin-bottom:3px">📝 '+esc(p.report.memo.slice(0,60))+(p.report.memo.length>60?'...':'')+'</div>':'')+
-      (p.report.impression?'<div style="font-size:12px;color:var(--text2)">💬 '+esc(p.report.impression.slice(0,60))+(p.report.impression.length>60?'...':'')+'</div>':'')+
-    '</div>';
-  }).join('')+'</div>';
-}
-
-function dtEquip(c){
-  if(!c)return'';
-  if(!c.equipment)c.equipment=[];
-  if(!c.equipment.length)return'<div class="emp"><div style="font-size:30px">🔧</div><div>保有機器が登録されていません</div></div>'+
-    '<div style="margin-top:10px;text-align:center"><button class="btn bp" onclick="showEquipMo('+c.id+',-1)">＋ 機器を追加</button></div>';
-  return'<div><div style="margin-bottom:8px;display:flex;justify-content:flex-end">'+
-    '<button class="btn bp bsm" onclick="showEquipMo('+c.id+',-1)">＋ 機器を追加</button></div>'+
-    c.equipment.map(function(eq,i){
-      var sc=eq.warrantyDate&&new Date(eq.warrantyDate)<new Date()?'var(--red)':'var(--green)';
-      return'<div style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:7px">'+
-        '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">'+
-          '<div><div style="font-size:14px;font-weight:700">'+esc(eq.name||'')+'</div>'+
-          '<div style="font-size:11px;color:var(--text3)">'+esc(eq.maker||'')+' '+esc(eq.model||'')+'</div></div>'+
-          '<div style="display:flex;gap:4px">'+
-            '<button class="btn bs bsm" onclick="showEquipMo('+c.id+','+i+')">✏️</button>'+
-            '<button class="btn bd bsm" onclick="delEquip('+c.id+','+i+')">🗑</button>'+
-          '</div>'+
-        '</div>'+
-        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px 10px;font-size:11px">'+
-          (eq.location?'<div><span style="color:var(--text3)">設置場所</span> '+esc(eq.location)+'</div>':'')+
-          (eq.installDate?'<div><span style="color:var(--text3)">設置日</span> '+eq.installDate+'</div>':'')+
-          (eq.purchaseDate?'<div><span style="color:var(--text3)">購入日</span> '+eq.purchaseDate+'</div>':'')+
-          (eq.warrantyDate?'<div><span style="color:'+sc+'">保証期限</span> <span style="font-weight:700;color:'+sc+'">'+eq.warrantyDate+'</span></div>':'')+
-          (eq.nextCheck?'<div><span style="color:var(--accent)">次回点検</span> <span style="font-weight:700">'+eq.nextCheck+'</span></div>':'')+
-        '</div>'+
-        (eq.memo?'<div style="margin-top:5px;font-size:11px;color:var(--text3);padding:4px 7px;background:var(--bg2);border-radius:4px">'+esc(eq.memo)+'</div>':'')+
-      '</div>';
-    }).join('')+'</div>';
-}
-
-function showEquipMo(cid,idx){
-  const c=D.customers.find(c=>c.id===cid);if(!c)return;
-  if(!c.equipment)c.equipment=[];
-  const eq=idx>=0?c.equipment[idx]:{};
-  mo('<div class="mt">'+(idx>=0?'🔧 機器を編集':'🔧 機器を追加')+'</div>'+
-    '<div class="fg">'+
-      '<div class="fr" style="grid-column:1/-1"><label class="fl">機器名 *</label><input id="eq-name" value="'+esc(eq.name||'')+'" placeholder="エアコン・分電盤など"></div>'+
-      '<div class="fr"><label class="fl">メーカー</label><input id="eq-maker" value="'+esc(eq.maker||'')+'"></div>'+
-      '<div class="fr"><label class="fl">型番</label><input id="eq-model" value="'+esc(eq.model||'')+'"></div>'+
-      '<div class="fr"><label class="fl">設置場所</label><input id="eq-loc" value="'+esc(eq.location||'')+'" placeholder="リビング・事務所など"></div>'+
-      '<div class="fr"><label class="fl">購入日</label><input type="date" id="eq-pdate" value="'+(eq.purchaseDate||'')+'"></div>'+
-      '<div class="fr"><label class="fl">設置日</label><input type="date" id="eq-idate" value="'+(eq.installDate||'')+'"></div>'+
-      '<div class="fr"><label class="fl">保証期限</label><input type="date" id="eq-wdate" value="'+(eq.warrantyDate||'')+'"></div>'+
-      '<div class="fr"><label class="fl">次回点検予定</label><input type="date" id="eq-ncheck" value="'+(eq.nextCheck||'')+'"></div>'+
-      '<div class="fr" style="grid-column:1/-1"><label class="fl">備考</label><textarea id="eq-memo" rows="2">'+esc(eq.memo||'')+'</textarea></div>'+
-    '</div>'+
-    '<div class="mf"><button class="btn bs" onclick="cmo()">キャンセル</button><button class="btn bp" onclick="saveEquip('+cid+','+idx+')">💾 保存</button></div>');
-}
-function saveEquip(cid,idx){
-  const c=D.customers.find(c=>c.id===cid);if(!c)return;
-  if(!c.equipment)c.equipment=[];
-  const n=document.getElementById('eq-name')?.value||'';
-  if(!n){toast('機器名を入力してください','er');return;}
-  const eq={name:n,maker:document.getElementById('eq-maker')?.value||'',model:document.getElementById('eq-model')?.value||'',
-    location:document.getElementById('eq-loc')?.value||'',purchaseDate:document.getElementById('eq-pdate')?.value||'',
-    installDate:document.getElementById('eq-idate')?.value||'',warrantyDate:document.getElementById('eq-wdate')?.value||'',
-    nextCheck:document.getElementById('eq-ncheck')?.value||'',memo:document.getElementById('eq-memo')?.value||''};
-  if(idx>=0)c.equipment[idx]=eq;else c.equipment.push(eq);
-  save();cmo();toast(idx>=0?'機器情報を更新しました':'機器を登録しました');
-  document.getElementById('dt-body').innerHTML=dtEquip(c);
-}
-function delEquip(cid,idx){
-  const c=D.customers.find(c=>c.id===cid);if(!c)return;
-  if(!confirm('この機器を削除しますか？'))return;
-  c.equipment.splice(idx,1);save();toast('機器を削除しました');
-  document.getElementById('dt-body').innerHTML=dtEquip(c);
-}
-
-function dtContract(c){
-  if(!c)return'';
-  if(!c.contracts)c.contracts={warranty:[],maintenance:[],aircleaning:[],inspection:[],lease:[]};
-  const ct=c.contracts;
-  const TABS=[
-    {key:'warranty',label:'🛡 保証'},
-    {key:'maintenance',label:'🔧 保守契約'},
-    {key:'aircleaning',label:'❄️ エアクリ'},
-    {key:'inspection',label:'🔍 点検契約'},
-    {key:'lease',label:'💴 リース'},
-  ];
-  var tabHtml='<div style="display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap">';
-  TABS.forEach(function(t,i){
-    tabHtml+='<button class="tbtn'+(i===0?' on':'')+'" id="cst-'+t.key+'" onclick="swContractTab(\''+t.key+'\','+c.id+')" style="font-size:11px;padding:4px 8px">'+t.label+'</button>';
-  });
-  tabHtml+='</div><div id="ct-body">'+renderContractTab('warranty',c)+'</div>';
-  return tabHtml;
-}
-
-function swContractTab(key,cid){
-  document.querySelectorAll('[id^="cst-"]').forEach(function(b){b.classList.remove('on');});
-  document.getElementById('cst-'+key)?.classList.add('on');
-  const c=D.customers.find(c=>c.id===cid);
-  document.getElementById('ct-body').innerHTML=renderContractTab(key,c);
-}
-
-function renderContractTab(key,c){
-  if(!c.contracts)c.contracts={warranty:[],maintenance:[],aircleaning:[],inspection:[],lease:[]};
-  const items=c.contracts[key]||[];
-  const FIELDS={
-    warranty:[{id:'title',label:'製品名',ph:'エアコン'},{id:'expire',label:'保証期限',type:'date'},{id:'no',label:'保証書番号'},{id:'shop',label:'販売店'},{id:'memo',label:'備考',ta:true}],
-    maintenance:[{id:'title',label:'契約内容',ph:'保守点検'},{id:'period',label:'期間'},{id:'fee',label:'金額'},{id:'renew',label:'更新日',type:'date'},{id:'person',label:'担当者'},{id:'memo',label:'備考',ta:true}],
-    aircleaning:[{id:'title',label:'対象機器'},{id:'freq',label:'頻度',ph:'年2回'},{id:'next',label:'次回予定',type:'date'},{id:'last',label:'前回実施',type:'date'},{id:'fee',label:'金額'},{id:'memo',label:'備考',ta:true}],
-    inspection:[{id:'title',label:'点検内容'},{id:'cycle',label:'周期',ph:'年1回'},{id:'next',label:'次回予定',type:'date'},{id:'last',label:'前回実施',type:'date'},{id:'fee',label:'金額'},{id:'memo',label:'備考',ta:true}],
-    lease:[{id:'title',label:'機器名'},{id:'company',label:'リース会社'},{id:'fee',label:'月額'},{id:'start',label:'開始日',type:'date'},{id:'end',label:'終了日',type:'date'},{id:'memo',label:'備考',ta:true}],
-  };
-  const fields=FIELDS[key]||[];
-  var html='<div style="display:flex;justify-content:flex-end;margin-bottom:6px">'+
-    '<button class="btn bp bsm" onclick="showContractMo(\''+key+'\','+c.id+',-1)">＋ 追加</button></div>';
-  if(!items.length){html+='<div class="emp" style="padding:20px"><div>データがありません</div></div>';return html;}
-  items.forEach(function(item,i){
-    html+='<div style="background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:10px 12px;margin-bottom:7px">'+
-      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:5px">'+
-        '<div style="font-size:13px;font-weight:700">'+esc(item.title||'')+'</div>'+
-        '<div style="display:flex;gap:4px">'+
-          '<button class="btn bs bsm" onclick="showContractMo(\''+key+'\','+c.id+','+i+')">✏️</button>'+
-          '<button class="btn bd bsm" onclick="delContract(\''+key+'\','+c.id+','+i+')">🗑</button>'+
-        '</div>'+
-      '</div>'+
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:3px 10px;font-size:11px">'+
-        fields.filter(function(f){return !f.ta&&f.id!=='title'&&item[f.id];}).map(function(f){
-          return'<div><span style="color:var(--text3)">'+f.label+'</span> '+esc(String(item[f.id]||''))+'</div>';
-        }).join('')+
-      '</div>'+
-      (item.memo?'<div style="margin-top:4px;font-size:11px;color:var(--text3)">'+esc(item.memo)+'</div>':'')+
-    '</div>';
-  });
-  return html;
-}
-
-function showContractMo(key,cid,idx){
-  const c=D.customers.find(c=>c.id===cid);if(!c)return;
-  if(!c.contracts)c.contracts={warranty:[],maintenance:[],aircleaning:[],inspection:[],lease:[]};
-  const item=idx>=0?(c.contracts[key][idx]||{}):{};
-  const FIELDS={
-    warranty:[{id:'title',label:'製品名',ph:'エアコン'},{id:'expire',label:'保証期限',type:'date'},{id:'no',label:'保証書番号'},{id:'shop',label:'販売店'},{id:'memo',label:'備考',ta:true}],
-    maintenance:[{id:'title',label:'契約内容',ph:'保守点検'},{id:'period',label:'期間'},{id:'fee',label:'金額'},{id:'renew',label:'更新日',type:'date'},{id:'person',label:'担当者'},{id:'memo',label:'備考',ta:true}],
-    aircleaning:[{id:'title',label:'対象機器'},{id:'freq',label:'頻度',ph:'年2回'},{id:'next',label:'次回予定',type:'date'},{id:'last',label:'前回実施',type:'date'},{id:'fee',label:'金額'},{id:'memo',label:'備考',ta:true}],
-    inspection:[{id:'title',label:'点検内容'},{id:'cycle',label:'周期',ph:'年1回'},{id:'next',label:'次回予定',type:'date'},{id:'last',label:'前回実施',type:'date'},{id:'fee',label:'金額'},{id:'memo',label:'備考',ta:true}],
-    lease:[{id:'title',label:'機器名'},{id:'company',label:'リース会社'},{id:'fee',label:'月額'},{id:'start',label:'開始日',type:'date'},{id:'end',label:'終了日',type:'date'},{id:'memo',label:'備考',ta:true}],
-  };
-  const fields=FIELDS[key]||[];
-  var html='<div class="mt">📄 '+(idx>=0?'編集':'追加')+'</div><div class="fg">';
-  fields.forEach(function(f){
-    if(f.ta){html+='<div class="fr" style="grid-column:1/-1"><label class="fl">'+f.label+'</label><textarea id="ct-'+f.id+'" rows="2">'+esc(item[f.id]||'')+'</textarea></div>';}
-    else{html+='<div class="fr"><label class="fl">'+f.label+'</label><input '+(f.type?'type="'+f.type+'" ':'')+' id="ct-'+f.id+'" value="'+esc(item[f.id]||'')+'"'+(f.ph?' placeholder="'+f.ph+'"':'')+' ></div>';}
-  });
-  html+='</div><div class="mf"><button class="btn bs" onclick="cmo()">キャンセル</button><button class="btn bp" onclick="saveContract(\''+key+'\','+cid+','+idx+')">💾 保存</button></div>';
-  mo(html);
-}
-function saveContract(key,cid,idx){
-  const c=D.customers.find(c=>c.id===cid);if(!c)return;
-  if(!c.contracts)c.contracts={warranty:[],maintenance:[],aircleaning:[],inspection:[],lease:[]};
-  const ids=['title','expire','no','shop','period','fee','renew','person','freq','next','last','cycle','company','start','end','memo'];
-  const obj={};
-  ids.forEach(function(id){const el=document.getElementById('ct-'+id);if(el)obj[id]=el.value||'';});
-  if(!obj.title){toast('必須項目を入力してください','er');return;}
-  if(idx>=0)c.contracts[key][idx]=obj;else c.contracts[key].push(obj);
-  save();cmo();toast('保存しました');
-  document.getElementById('dt-body').innerHTML=dtContract(c);
-  setTimeout(function(){swContractTab(key,cid);},50);
-}
-function delContract(key,cid,idx){
-  const c=D.customers.find(c=>c.id===cid);if(!c)return;
-  if(!confirm('削除しますか？'))return;
-  c.contracts[key].splice(idx,1);save();
-  document.getElementById('dt-body').innerHTML=dtContract(c);
-}
-
-// ============================================================
-// カレンダー日付タップ
-// ============================================================
-function _calDayTap(ds){
-  // PC: 日表示に切り替え
-  if(window.innerWidth>768){
-    const d=new Date(ds);
-    calY=d.getFullYear();calM=d.getMonth();calD=d.getDate();
-    calV='day';buildPage();
-    return;
-  }
-  // スマホ: スケジュール追加モーダル
-  showSchedMo(null,ds);
-}
-
-// ============================================================
-// STAFF（準備中）
-// ============================================================
-function pgStaff(){
-  document.getElementById('ct').innerHTML=
-    '<div style="text-align:center;padding:60px 20px">'+
-      '<div style="font-size:60px;margin-bottom:16px">👷</div>'+
-      '<div style="font-size:20px;font-weight:900;margin-bottom:8px">スタッフ・協力会社管理</div>'+
-      '<div style="font-size:14px;color:var(--text3);margin-bottom:24px">この機能は現在開発中です</div>'+
-      '<div style="background:var(--bg3);border-radius:var(--radius);padding:16px;max-width:320px;margin:0 auto;text-align:left;font-size:13px;color:var(--text2)">'+
-        '<div style="font-weight:700;margin-bottom:8px;color:var(--text)">実装予定の機能：</div>'+
-        '<div style="margin-bottom:5px">✅ スタッフ・協力会社業者の登録</div>'+
-        '<div style="margin-bottom:5px">✅ 頭文字カードで視覚管理</div>'+
-        '<div style="margin-bottom:5px">✅ 案件への人員アサイン</div>'+
-        '<div style="margin-bottom:5px">✅ スタッフ別スケジュール表示</div>'+
-        '<div>✅ 稼働時間・工数集計</div>'+
-      '</div>'+
-    '</div>';
-}
-
-// ============================================================
-// STOCK（準備中）
-// ============================================================
-function pgStock(){
-  document.getElementById('ct').innerHTML=
-    '<div style="text-align:center;padding:60px 20px">'+
-      '<div style="font-size:60px;margin-bottom:16px">📦</div>'+
-      '<div style="font-size:20px;font-weight:900;margin-bottom:8px">在庫管理</div>'+
-      '<div style="font-size:14px;color:var(--text3);margin-bottom:24px">この機能は現在開発中です</div>'+
-      '<div style="background:var(--bg3);border-radius:var(--radius);padding:16px;max-width:320px;margin:0 auto;text-align:left;font-size:13px;color:var(--text2)">'+
-        '<div style="font-weight:700;margin-bottom:8px;color:var(--text)">実装予定の機能：</div>'+
-        '<div style="margin-bottom:5px">✅ 品目登録（電線・部材など）</div>'+
-        '<div style="margin-bottom:5px">✅ 入出庫管理</div>'+
-        '<div style="margin-bottom:5px">✅ 発注点アラート</div>'+
-        '<div style="margin-bottom:5px">✅ 案件材料と連動した自動引落</div>'+
-        '<div>✅ 発注書PDF印刷</div>'+
-      '</div>'+
-    '</div>';
-}
-
-// ============================================================
-// SETTINGS
-// ============================================================
-function pgSettings(){
-  if(!D.cfg) D.cfg={};
-  const c=D.cfg;
-  document.getElementById('ct').innerHTML=`
-  <div style="max-width:600px">
-    <div class="card" style="margin-bottom:12px">
-      <div class="ct">🏢 会社情報</div>
-      <div class="fg">
-        <div class="fr" style="grid-column:1/-1"><label class="fl">会社名（略称）</label><input id="cfg-cn" value="${esc(c.companyName||'セイノデンキ')}"></div>
-        <div class="fr" style="grid-column:1/-1"><label class="fl">会社名（正式）</label><input id="cfg-cnf" value="${esc(c.companyNameFull||'清野電気商会')}"></div>
-        <div class="fr"><label class="fl">電話番号</label><input id="cfg-tel" value="${esc(c.tel||'')}"></div>
-        <div class="fr"><label class="fl">FAX</label><input id="cfg-fax" value="${esc(c.fax||'')}"></div>
-        <div class="fr" style="grid-column:1/-1"><label class="fl">住所</label><input id="cfg-addr" value="${esc(c.address||'')}"></div>
-        <div class="fr" style="grid-column:1/-1"><label class="fl">担当者名</label><input id="cfg-rep" value="${esc(c.rep||'')}"></div>
-      </div>
-    </div>
-    <div class="card" style="margin-bottom:12px">
-      <div class="ct">🤖 AI設定</div>
-      <div class="fg">
-        <div class="fr"><label class="fl">使用するAI</label>
-          <select id="cfg-ai-type">
-            ${[['none','使用しない'],['claude','Claude (Anthropic)'],['chatgpt','ChatGPT (OpenAI)'],['gemini','Gemini (Google)']].map(a=>`<option value="${a[0]}" ${(c.aiType||'none')===a[0]?'selected':''}>${a[1]}</option>`).join('')}
-          </select>
-        </div>
-        <div class="fr"><label class="fl">APIキー</label><input id="cfg-ai-key" type="password" value="${esc(c.aiKey||'')}" placeholder="APIキーを入力..."></div>
-      </div>
-    </div>
-    <div class="card" style="margin-bottom:12px">
-      <div class="ct">🔔 アラート設定</div>
-      <div class="fg">
-        <div class="fr">
-          <label class="fl">何日前から通知するか</label>
-          <div style="display:flex;align-items:center;gap:8px">
-            <input type="number" id="cfg-alert-days" value="${c.alertDays||14}" min="1" max="90" style="width:80px">
-            <span>日前</span>
-          </div>
-        </div>
-        <div class="fr">
-          <label class="fl">起動時ポップアップ</label>
-          <div style="display:flex;gap:12px;margin-top:4px">
-            <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="cfg-popup" value="1" ${c.alertPopup!==false?'checked':''}> 表示する</label>
-            <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="cfg-popup" value="0" ${c.alertPopup===false?'checked':''}> 表示しない</label>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="card" style="margin-bottom:12px">
-      <div class="ct">🎨 テーマカラー</div>
-      <div class="fr">
-        <label class="fl">アクセントカラー</label>
-        <div style="display:flex;gap:8px;flex-wrap:wrap">
-          ${['#4a7c5f','#2563eb','#7c3aed','#dc2626','#d97706','#0891b2'].map(col=>
-            `<div onclick="document.querySelectorAll('.cc2').forEach(e=>e.style.outline='none');this.style.outline='3px solid var(--text)';document.getElementById('cfg-color').value='${col}'"
-              class="cc2" style="width:28px;height:28px;background:${col};border-radius:50%;cursor:pointer;outline:${(c.accentColor||'#4a7c5f')===col?'3px solid var(--text)':'none'}"></div>`
-          ).join('')}
-          <input type="color" id="cfg-color" value="${c.accentColor||'#4a7c5f'}" style="width:28px;height:28px;padding:0;border:none;cursor:pointer;border-radius:50%">
-        </div>
-      </div>
-    </div>
-    <div class="mf" style="border-top:none;padding-top:0">
-      <button class="btn bp" onclick="saveCfg()">💾 設定を保存</button>
-    </div>
-  </div>`;
-}
-
-function saveCfg(){
-  if(!D.cfg) D.cfg={};
-  D.cfg.companyName    = document.getElementById('cfg-cn')?.value||'セイノデンキ';
-  D.cfg.companyNameFull= document.getElementById('cfg-cnf')?.value||'';
-  D.cfg.tel            = document.getElementById('cfg-tel')?.value||'';
-  D.cfg.fax            = document.getElementById('cfg-fax')?.value||'';
-  D.cfg.address        = document.getElementById('cfg-addr')?.value||'';
-  D.cfg.rep            = document.getElementById('cfg-rep')?.value||'';
-  D.cfg.aiType         = document.getElementById('cfg-ai-type')?.value||'none';
-  D.cfg.aiKey          = document.getElementById('cfg-ai-key')?.value||'';
-  D.cfg.alertDays      = parseInt(document.getElementById('cfg-alert-days')?.value)||14;
-  D.cfg.alertPopup     = document.querySelector('input[name="cfg-popup"]:checked')?.value!=='0';
-  D.cfg.accentColor    = document.getElementById('cfg-color')?.value||'#4a7c5f';
-  save();
-  applyCfg();
-  toast('設定を保存しました');
-}
-
-// ============================================================
-// INIT
-// ============================================================
-seed();
-// アクセントカラーを適用
-(function applyCfg(){
-  if(!D||!D.cfg)return;
-  const c=D.cfg;
-  if(c.accentColor && document.documentElement){
-    document.documentElement.style.setProperty('--accent', c.accentColor);
-  }
-})();
-nav('dashboard');
+setTimeout(_checkAlerts,1000);
 </script>
+
 <!-- Fonts load async - UI already works with system fonts above -->
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
 </body>
