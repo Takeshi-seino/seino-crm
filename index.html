@@ -1648,185 +1648,105 @@ function _saveQP(id){
   save();cmo();setTimeout(()=>printQ(sid),80);buildPage();
 }
 
-// PDF DOWNLOAD - 見積書
-function downloadQuotePdf(id){
+function printQ(id){
   const q=D.quotes.find(q=>q.id===id);if(!q)return;
-  const{jsPDF}=window.jspdf;
-  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
-
-  // 日本語フォントが使えないため、文字をcanvasで描画する方法を使う
-  // → 代わりにHTMLを新しいウィンドウで開いて印刷ダイアログでPDF保存を促す
-  // jsPDFは日本語フォント埋め込みが複雑なため、printQ を改良する方針に変更
-
-  // 印刷ウィンドウを開いて自動的にPDF保存ダイアログを表示
-  // ユーザーに「PDFとして保存」を選んでもらう
-  const pw=_buildQuotePrintHtml(id);
-  if(pw){
-    // 印刷ダイアログが出た後にウィンドウを閉じる
-    pw.addEventListener('afterprint',function(){pw.close();});
-  }
-}
-
-// 請求書PDFダウンロード
-function downloadInvoicePdf(id){
-  const q=D.quotes.find(q=>q.id===id);if(!q)return;
-  _buildInvoicePrintHtml(id);
-}
-
-// 見積書HTMLを別ウィンドウで生成して印刷
-function _buildQuotePrintHtml(id){
-  const q=D.quotes.find(q=>q.id===id);if(!q)return null;
   const its=q.items||[];const sub=q.amount||0;const tax=q.tax||0;const tot=sub+tax;
   const tr=q.taxRate||10;const tl=tr>0?`内消費税（${tr}%）`:'消費税（非課税）';
   const toNm=q.toName||(q.cid?cname(q.cid):'');
   const dt=q.date?new Date(q.date):new Date();
   const ds=dt.getFullYear()+'年'+(dt.getMonth()+1)+'月'+dt.getDate()+'日';
-  const cfg=D.cfg||{};
-  const companyName=cfg.companyNameFull||cfg.companyName||'セイノデンキ';
-  const irows=its.map(it=>{const a=(parseFloat(it.qty)||0)*(parseFloat(it.price)||0);
-    return`<tr><td style="white-space:pre-wrap">${esc(it.name)}</td><td style="text-align:right">${it.qty}</td><td style="text-align:center">${esc(it.unit)}</td><td style="text-align:right">¥${fmtN(parseFloat(it.price)||0)}</td><td style="text-align:right">¥${fmtN(a)}</td><td style="font-size:8pt;color:#666">${esc(it.note)}</td></tr>`;}).join('');
+  const irows=its.map(it=>{const a=(parseFloat(it.qty)||0)*(parseFloat(it.price)||0);return`<tr><td style="white-space:pre-wrap">${esc(it.name)}</td><td style="text-align:right">${it.qty}</td><td style="text-align:center">${esc(it.unit)}</td><td style="text-align:right">¥${fmtN(parseFloat(it.price)||0)}</td><td style="text-align:right">¥${fmtN(a)}</td><td style="font-size:8pt;color:#666">${esc(it.note)}</td></tr>`;}).join('');
   const er=Array(Math.max(0,8-its.length)).fill('<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td></tr>').join('');
-  const pw=window.open('','_blank','width=900,height=700');
-  if(!pw)return null;
-  pw.document.write(_quoteHtml({q,irows,er,sub,tax,tot,tr,tl,toNm,ds,companyName,cfg,type:'見積書'}));
+  const pw=window.open('','_blank');
+  pw.document.write(`<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>@page{size:A4;margin:10mm 12mm}*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}body{font-family:'Noto Serif JP',serif;color:#111;font-size:10pt;line-height:1.5}
+  .ob{border:2px solid #222}.tb{background:#222;color:#fff;text-align:center;font-size:16pt;font-weight:700;letter-spacing:.15em;padding:6px 0;font-family:'Noto Sans JP',sans-serif}
+  .bd{padding:8px 10px 12px}.gb{background:#222;color:#fff;display:flex;justify-content:space-between;align-items:center;padding:7px 12px;margin-bottom:8px}
+  .hd{display:grid;grid-template-columns:1fr 1fr;margin-bottom:8px}.lf{padding-right:10px;border-right:1px solid #ccc}
+  .tn{font-size:13pt;font-weight:700;border-bottom:2px solid #222;padding-bottom:3px;margin-bottom:6px}
+  .sj{font-size:9.5pt;font-weight:700;padding:4px 7px;background:#f8f8f8;border-left:3px solid #222;margin-top:4px}
+  .db{padding-left:12px;font-size:8.5pt}.db table{width:100%;border-collapse:collapse}.db td{padding:2px 3px}
+  .cb{text-align:right;border:1px solid #ccc;padding:7px 9px;margin-top:6px;background:#fafafa;font-size:8.5pt}
+  .nt{font-size:9pt;color:#444;text-align:center;padding:3px 0;border-bottom:1px solid #ddd;margin-bottom:6px}
+  .qt{width:100%;border-collapse:collapse;font-size:9pt;margin-bottom:6px}
+  .qt th{background:#222;color:#fff;padding:4px 6px;text-align:center;font-size:8.5pt;border:1px solid #333}
+  .qt td{border:1px solid #aaa;padding:4px 6px;vertical-align:middle}.qt tbody tr:nth-child(even){background:#f9f9f9}
+  .sw{display:flex;justify-content:flex-end;margin-bottom:6px}.st{border-collapse:collapse;min-width:230px}
+  .st td{padding:3px 8px;font-size:9.5pt;border:1px solid #bbb}.st td:first-child{text-align:center;background:#f0f0f0;font-weight:700;width:84px}.st td:last-child{text-align:right;font-weight:700;min-width:110px}
+  .gr td{background:#222;color:#fff!important;border-color:#222!important}
+  .cd{border:1px solid #ccc;padding:6px 8px;font-size:8.5pt;color:#444;background:#fafafa}
+  .cd table{width:100%;border-collapse:collapse}.cd td{padding:2px 5px;border-bottom:1px solid #e0e0e0}.cd td:first-child{width:80px;background:#f0f0f0;text-align:center;font-weight:700;color:#555}
+  .sr{display:flex;justify-content:flex-end;gap:10px;margin-top:8px}
+  .sb{width:50px;height:50px;border:1.5px solid #888;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;font-size:7pt;color:#666}
+  .mb{margin-top:6px;padding:6px 8px;border:1px solid #ccc;background:#fafafa;font-size:8.5pt;color:#444;white-space:pre-wrap}
+  </style></head><body>
+  <div class="ob"><div class="tb">御　見　積　書</div><div class="bd">
+  <div class="gb"><div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:11pt;font-weight:700">合計金額</span><span style="font-size:9pt;color:#ccc">No. ${esc(q.qn)}</span></div><span style="font-size:15pt;font-weight:900;font-family:'Noto Sans JP',sans-serif">¥${fmtN(tot)}&nbsp;<span style="font-size:9pt;font-weight:400">（税込）</span></span></div>
+  <div class="hd"><div class="lf"><div style="font-size:8.5pt;color:#555;margin-bottom:2px">御見積先</div><div class="tn">${esc(toNm)}<span style="font-size:11pt;font-weight:400;margin-left:4px">様</span></div>${q.subject?`<div class="sj">件名：${esc(q.subject)}</div>`:''}</div>
+  <div class="db"><table><tr><td style="color:#555;width:58px">発行日</td><td style="font-weight:700">${ds}</td></tr><tr><td style="color:#555">有効期限</td><td>${esc(q.validity||'')}</td></tr><tr><td style="color:#555">担当者</td><td>${esc(q.cp||'')}</td></tr></table>
+  <div class="cb"><div style="font-size:13pt;font-weight:900;font-family:'Noto Sans JP',sans-serif">セイノデンキ</div><div style="font-size:9pt;color:#444">清野電気商会</div><div style="font-size:8pt;color:#555;line-height:1.7">〒981-0215<br>宮城県宮城郡松島町高城字町１５５－２</div><div style="font-size:8pt;color:#555">TEL.022-354-3011&nbsp;FAX.022-354-3095</div><div style="font-size:9pt;font-weight:700;margin-top:2px">代表　清野　剛</div></div></div></div>
+  <div class="nt">下記の通り御見積り申し上げます。</div>
+  <table class="qt"><thead><tr><th style="min-width:140px;text-align:left">品番・品名</th><th style="width:46px">数量</th><th style="width:44px">単位</th><th style="width:88px">単価</th><th style="width:98px">金額</th><th style="width:78px">備考</th></tr></thead><tbody>${irows}${er}</tbody></table>
+  <div class="sw"><table class="st"><tr><td>小　計</td><td>¥${fmtN(sub)}</td></tr><tr><td>${tl}</td><td>¥${fmtN(tax)}</td></tr><tr class="gr"><td>合計金額</td><td>¥${fmtN(tot)}</td></tr></table></div>
+  <div class="cd"><table><tr><td>受渡場所</td><td>${esc(q.deliveryPlace||'')}</td><td style="width:80px;background:#f0f0f0;text-align:center;font-weight:700;color:#555">納入期日</td><td>${esc(q.deliveryDate||'')}</td></tr><tr><td>取引方法</td><td>${esc(q.payment||'')}</td><td style="background:#f0f0f0;text-align:center;font-weight:700;color:#555">有効期限</td><td>${esc(q.validity||'')}</td></tr></table></div>
+  ${q.memo?`<div class="mb"><span style="font-size:8pt;color:#888;font-weight:700">備考</span><br>${esc(q.memo)}</div>`:''}
+  <div class="sr"><div class="sb">承認</div><div class="sb">確認</div><div class="sb">担当</div></div>
+  </div></div><scr\ipt>window.onload=()=>window.print();<\/scr\ipt></body></html>`);
   pw.document.close();
-  return pw;
 }
 
-// 請求書HTMLを別ウィンドウで生成
+// 請求書PDF（見積書をベースに請求書として出力）
 function _buildInvoicePrintHtml(id){
   const q=D.quotes.find(q=>q.id===id);if(!q)return;
   const its=q.items||[];const sub=q.amount||0;const tax=q.tax||0;const tot=sub+tax;
   const tr=q.taxRate||10;const tl=tr>0?`内消費税（${tr}%）`:'消費税（非課税）';
   const toNm=q.toName||(q.cid?cname(q.cid):'');
-  const cfg=D.cfg||{};
-  const companyName=cfg.companyNameFull||cfg.companyName||'セイノデンキ';
   const now=new Date();
   const ds=now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日';
   const irows=its.map(it=>{const a=(parseFloat(it.qty)||0)*(parseFloat(it.price)||0);
     return`<tr><td style="white-space:pre-wrap">${esc(it.name)}</td><td style="text-align:right">${it.qty}</td><td style="text-align:center">${esc(it.unit)}</td><td style="text-align:right">¥${fmtN(parseFloat(it.price)||0)}</td><td style="text-align:right">¥${fmtN(a)}</td><td style="font-size:8pt;color:#666">${esc(it.note)}</td></tr>`;}).join('');
   const er=Array(Math.max(0,8-its.length)).fill('<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td></tr>').join('');
-  const pw=window.open('','_blank','width=900,height=700');
-  if(!pw)return;
-  pw.document.write(_quoteHtml({q,irows,er,sub,tax,tot,tr,tl,toNm,ds,companyName,cfg,type:'請求書'}));
+  const pw=window.open('','_blank');
+  pw.document.write(`<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>@page{size:A4;margin:10mm 12mm}*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}body{font-family:'Noto Serif JP',serif;color:#111;font-size:10pt;line-height:1.5}
+  .ob{border:2px solid #222}.tb{background:#222;color:#fff;text-align:center;font-size:16pt;font-weight:700;letter-spacing:.15em;padding:6px 0;font-family:'Noto Sans JP',sans-serif}
+  .bd{padding:8px 10px 12px}.gb{background:#222;color:#fff;display:flex;justify-content:space-between;align-items:center;padding:7px 12px;margin-bottom:8px}
+  .hd{display:grid;grid-template-columns:1fr 1fr;margin-bottom:8px}.lf{padding-right:10px;border-right:1px solid #ccc}
+  .tn{font-size:13pt;font-weight:700;border-bottom:2px solid #222;padding-bottom:3px;margin-bottom:6px}
+  .sj{font-size:9.5pt;font-weight:700;padding:4px 7px;background:#f8f8f8;border-left:3px solid #222;margin-top:4px}
+  .db{padding-left:12px;font-size:8.5pt}.db table{width:100%;border-collapse:collapse}.db td{padding:2px 3px}
+  .cb{text-align:right;border:1px solid #ccc;padding:7px 9px;margin-top:6px;background:#fafafa;font-size:8.5pt}
+  .nt{font-size:9pt;color:#444;text-align:center;padding:3px 0;border-bottom:1px solid #ddd;margin-bottom:6px}
+  .qt{width:100%;border-collapse:collapse;font-size:9pt;margin-bottom:6px}
+  .qt th{background:#222;color:#fff;padding:4px 6px;text-align:center;font-size:8.5pt;border:1px solid #333}
+  .qt td{border:1px solid #aaa;padding:4px 6px;vertical-align:middle}.qt tbody tr:nth-child(even){background:#f9f9f9}
+  .sw{display:flex;justify-content:flex-end;margin-bottom:6px}.st{border-collapse:collapse;min-width:230px}
+  .st td{padding:3px 8px;font-size:9.5pt;border:1px solid #bbb}.st td:first-child{text-align:center;background:#f0f0f0;font-weight:700;width:84px}.st td:last-child{text-align:right;font-weight:700;min-width:110px}
+  .gr td{background:#222;color:#fff!important;border-color:#222!important}
+  .cd{border:1px solid #ccc;padding:6px 8px;font-size:8.5pt;color:#444;background:#fafafa}
+  .cd table{width:100%;border-collapse:collapse}.cd td{padding:2px 5px;border-bottom:1px solid #e0e0e0}.cd td:first-child{width:80px;background:#f0f0f0;text-align:center;font-weight:700;color:#555}
+  .sr{display:flex;justify-content:flex-end;gap:10px;margin-top:8px}
+  .sb{width:50px;height:50px;border:1.5px solid #888;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;font-size:7pt;color:#666}
+  .mb{margin-top:6px;padding:6px 8px;border:1px solid #ccc;background:#fafafa;font-size:8.5pt;color:#444;white-space:pre-wrap}
+  </style></head><body>
+  <div class="ob"><div class="tb">御　請　求　書</div><div class="bd">
+  <div class="gb"><div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:11pt;font-weight:700">合計金額</span><span style="font-size:9pt;color:#ccc">No. ${q.qn}</span></div><span style="font-size:15pt;font-weight:900;font-family:'Noto Sans JP',sans-serif">¥${fmtN(tot)}&nbsp;<span style="font-size:9pt;font-weight:400">（税込）</span></span></div>
+  <div class="hd"><div class="lf"><div style="font-size:8.5pt;color:#555;margin-bottom:2px">御請求先</div><div class="tn">${esc(toNm)}<span style="font-size:11pt;font-weight:400;margin-left:4px">様</span></div>${q.subject?`<div class="sj">件名：${esc(q.subject)}</div>`:''}</div>
+  <div class="db"><table><tr><td style="color:#555;width:58px">請求日</td><td style="font-weight:700">${ds}</td></tr><tr><td style="color:#555">担当者</td><td>${esc(q.cp||'')}</td></tr></table>
+  <div class="cb"><div style="font-size:13pt;font-weight:900;font-family:'Noto Sans JP',sans-serif">セイノデンキ</div><div style="font-size:9pt;color:#444">清野電気商会</div><div style="font-size:8pt;color:#555;line-height:1.7">〒981-0215<br>宮城県宮城郡松島町高城字町155-2</div><div style="font-size:8pt;color:#555">TEL.022-354-3011&nbsp;FAX.022-354-3095</div><div style="font-size:9pt;font-weight:700;margin-top:2px">代表　清野　刻</div></div></div></div>
+  <div class="nt">下記の通り御請求申し上げます。</div>
+  <table class="qt"><thead><tr><th style="min-width:140px;text-align:left">品番・品名</th><th style="width:46px">数量</th><th style="width:44px">単位</th><th style="width:88px">単価</th><th style="width:98px">金額</th><th style="width:78px">備考</th></tr></thead><tbody>${irows}${er}</tbody></table>
+  <div class="sw"><table class="st"><tr><td>小　計</td><td>¥${fmtN(sub)}</td></tr><tr><td>${tl}</td><td>¥${fmtN(tax)}</td></tr><tr class="gr"><td>合計金額</td><td>¥${fmtN(tot)}</td></tr></table></div>
+  <div class="cd"><table><tr><td>受渡場所</td><td>${esc(q.deliveryPlace||'')}</td><td style="width:80px;background:#f0f0f0;text-align:center;font-weight:700;color:#555">納入期日</td><td>${esc(q.deliveryDate||'')}</td></tr><tr><td>取引方法</td><td>${esc(q.payment||'')}</td><td style="background:#f0f0f0;text-align:center;font-weight:700;color:#555">有効期限</td><td>${esc(q.validity||'')}</td></tr></table></div>
+  ${q.memo?`<div class="mb"><span style="font-size:8pt;color:#888;font-weight:700">備考</span><br>${esc(q.memo)}</div>`:''}
+  <div class="sr"><div class="sb">承認</div><div class="sb">確認</div><div class="sb">担当</div></div>
+  </div></div><scr\ipt>window.onload=()=>window.print();<\/scr\ipt></body></html>`);
   pw.document.close();
 }
 
-// 見積書・請求書共通HTMLテンプレート
-function _quoteHtml({q,irows,er,sub,tax,tot,tr,tl,toNm,ds,companyName,cfg,type}){
-  const invoiceNo=type==='請求書'?'I-'+q.qn.slice(2):q.qn;
-  return`<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">
-  <style>
-    @page{size:A4;margin:10mm 12mm}
-    *{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-    body{font-family:'Hiragino Kaku Gothic ProN','Hiragino Sans','Meiryo','Yu Gothic',sans-serif;color:#111;font-size:10pt;line-height:1.5}
-    .ob{border:2px solid #222}
-    .tb{background:#222;color:#fff;text-align:center;font-size:16pt;font-weight:700;letter-spacing:.15em;padding:6px 0}
-    .bd{padding:8px 10px 12px}
-    .gb{background:#222;color:#fff;display:flex;justify-content:space-between;align-items:center;padding:7px 12px;margin-bottom:8px}
-    .hd{display:grid;grid-template-columns:1fr 1fr;margin-bottom:8px}
-    .lf{padding-right:10px;border-right:1px solid #ccc}
-    .tn{font-size:13pt;font-weight:700;border-bottom:2px solid #222;padding-bottom:3px;margin-bottom:6px}
-    .sj{font-size:9.5pt;font-weight:700;padding:4px 7px;background:#f8f8f8;border-left:3px solid #222;margin-top:4px}
-    .db{padding-left:12px;font-size:8.5pt}
-    .db table{width:100%;border-collapse:collapse}
-    .db td{padding:2px 3px}
-    .cb{text-align:right;border:1px solid #ccc;padding:7px 9px;margin-top:6px;background:#fafafa;font-size:8.5pt}
-    .nt{font-size:9pt;color:#444;text-align:center;padding:3px 0;border-bottom:1px solid #ddd;margin-bottom:6px}
-    .qt{width:100%;border-collapse:collapse;font-size:9pt;margin-bottom:6px}
-    .qt th{background:#222;color:#fff;padding:4px 6px;text-align:center;font-size:8.5pt;border:1px solid #333}
-    .qt td{border:1px solid #aaa;padding:4px 6px;vertical-align:middle}
-    .qt tbody tr:nth-child(even){background:#f9f9f9}
-    .sw{display:flex;justify-content:flex-end;margin-bottom:6px}
-    .st{border-collapse:collapse;min-width:230px}
-    .st td{padding:3px 8px;font-size:9.5pt;border:1px solid #bbb}
-    .st td:first-child{text-align:center;background:#f0f0f0;font-weight:700;width:84px}
-    .st td:last-child{text-align:right;font-weight:700;min-width:110px}
-    .gr td{background:#222;color:#fff!important;border-color:#222!important}
-    .cd{border:1px solid #ccc;padding:6px 8px;font-size:8.5pt;color:#444;background:#fafafa;margin-bottom:6px}
-    .cd table{width:100%;border-collapse:collapse}
-    .cd td{padding:2px 5px;border-bottom:1px solid #e0e0e0}
-    .cd td:first-child{width:80px;background:#f0f0f0;text-align:center;font-weight:700;color:#555}
-    .sr{display:flex;justify-content:flex-end;gap:10px;margin-top:8px}
-    .sb{width:50px;height:50px;border:1.5px solid #888;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;font-size:7pt;color:#666}
-    .mb{padding:6px 8px;border:1px solid #ccc;background:#fafafa;font-size:8.5pt;color:#444;white-space:pre-wrap;margin-bottom:6px}
-    .pdf-btn{position:fixed;top:10px;right:10px;background:#4a7c5f;color:#fff;border:none;padding:10px 20px;border-radius:6px;font-size:13px;cursor:pointer;font-family:inherit;font-weight:700;box-shadow:0 2px 8px rgba(0,0,0,.2);z-index:999}
-    .pdf-btn:hover{background:#3d6b50}
-    @media print{.pdf-btn{display:none}}
-  </style>
-  </head><body>
-  <button class="pdf-btn" onclick="window.print()">📄 PDFとして保存</button>
-  <div class="ob">
-    <div class="tb">御　　${type==='請求書'?'請　求　書':'見　積　書'}</div>
-    <div class="bd">
-      <div class="gb">
-        <div style="display:flex;align-items:baseline;gap:10px">
-          <span style="font-size:11pt;font-weight:700">合計金額</span>
-          <span style="font-size:9pt;color:#ccc">No. ${invoiceNo}</span>
-        </div>
-        <span style="font-size:15pt;font-weight:900">¥${fmtN(tot)}&nbsp;<span style="font-size:9pt;font-weight:400">（税込）</span></span>
-      </div>
-      <div class="hd">
-        <div class="lf">
-          <div style="font-size:8.5pt;color:#555;margin-bottom:2px">御${type==='請求書'?'請求':'見積'}先</div>
-          <div class="tn">${esc(toNm)}<span style="font-size:11pt;font-weight:400;margin-left:4px">様</span></div>
-          ${q.subject?`<div class="sj">件名：${esc(q.subject)}</div>`:''}
-        </div>
-        <div class="db">
-          <table>
-            <tr><td style="color:#555;width:58px">${type==='請求書'?'請求日':'発行日'}</td><td style="font-weight:700">${ds}</td></tr>
-            ${type==='見積書'?`<tr><td style="color:#555">有効期限</td><td>${esc(q.validity||'')}</td></tr>`:''}
-            <tr><td style="color:#555">担当者</td><td>${esc(q.cp||cfg.rep||'')}</td></tr>
-          </table>
-          <div class="cb">
-            <div style="font-size:13pt;font-weight:900">${esc(companyName)}</div>
-            ${cfg.companyNameFull&&cfg.companyName?`<div style="font-size:9pt;color:#444">${esc(cfg.companyName)}</div>`:''}
-            ${cfg.address?`<div style="font-size:8pt;color:#555;line-height:1.7">${esc(cfg.address)}</div>`:''}
-            ${cfg.tel?`<div style="font-size:8pt;color:#555">TEL.${esc(cfg.tel)}${cfg.fax?' FAX.'+esc(cfg.fax):''}</div>`:''}
-            ${cfg.rep?`<div style="font-size:9pt;font-weight:700;margin-top:2px">担当　${esc(cfg.rep)}</div>`:''}
-          </div>
-        </div>
-      </div>
-      <div class="nt">下記の通り御${type==='請求書'?'請求':'見積り'}申し上げます。</div>
-      <table class="qt">
-        <thead><tr><th style="min-width:140px;text-align:left">品番・品名</th><th style="width:46px">数量</th><th style="width:44px">単位</th><th style="width:88px">単価</th><th style="width:98px">金額</th><th style="width:78px">備考</th></tr></thead>
-        <tbody>${irows}${er}</tbody>
-      </table>
-      <div class="sw">
-        <table class="st">
-          <tr><td>小　計</td><td>¥${fmtN(sub)}</td></tr>
-          <tr><td>${tl}</td><td>¥${fmtN(tax)}</td></tr>
-          <tr class="gr"><td>合計金額</td><td>¥${fmtN(tot)}</td></tr>
-        </table>
-      </div>
-      ${(q.deliveryPlace||q.deliveryDate||q.payment||q.validity)?`
-      <div class="cd">
-        <table>
-          ${q.deliveryPlace?`<tr><td>受渡場所</td><td>${esc(q.deliveryPlace)}</td><td style="width:80px;background:#f0f0f0;text-align:center;font-weight:700;color:#555">納入期日</td><td>${esc(q.deliveryDate||'')}</td></tr>`:''}
-          ${q.payment?`<tr><td>取引方法</td><td colspan="3">${esc(q.payment)}</td></tr>`:''}
-        </table>
-      </div>`:''}
-      ${q.memo?`<div class="mb"><span style="font-size:8pt;color:#888;font-weight:700">備考</span><br>${esc(q.memo)}</div>`:''}
-      <div class="sr">
-        <div class="sb">承認</div>
-        <div class="sb">確認</div>
-        <div class="sb">担当</div>
-      </div>
-    </div>
-  </div>
-  <script>
-    // 開いたら自動的に印刷ダイアログを表示
-    window.onload=function(){
-      setTimeout(function(){window.print();},500);
-    };
-  </script>
-  </body></html>`;
-}
+// _buildQuotePrintHtml（PDFボタン用 → printQ に委譲）
+function _buildQuotePrintHtml(id){ printQ(id); }
 
-// PRINT QUOTE（既存の印刷関数を _buildQuotePrintHtml に委譲）
-function printQ(id){
-  _buildQuotePrintHtml(id);
-}
 
 // DELETE CONFIRM
 function delCon(type,id){
