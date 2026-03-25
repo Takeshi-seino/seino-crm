@@ -1664,130 +1664,70 @@ function printQ(id){
   const ds=dt.getFullYear()+'年'+(dt.getMonth()+1)+'月'+dt.getDate()+'日';
   const cfg=D.cfg||{};
   const irows=its.map(it=>{const a=(parseFloat(it.qty)||0)*(parseFloat(it.price)||0);
-    return`<tr><td style="white-space:pre-wrap">${esc(it.name)}</td><td style="text-align:right">${it.qty}</td><td style="text-align:center">${esc(it.unit)}</td><td style="text-align:right">¥${fmtN(parseFloat(it.price)||0)}</td><td style="text-align:right">¥${fmtN(a)}</td><td style="font-size:8pt;color:#666">${esc(it.note||'')}</td></tr>`;}).join('');
+    return`<tr><td style="white-space:pre-wrap">${esc(it.name)}</td><td style="text-align:right">${it.qty}</td><td style="text-align:center">${esc(it.unit||'')}</td><td style="text-align:right">¥${fmtN(parseFloat(it.price)||0)}</td><td style="text-align:right">¥${fmtN(a)}</td><td style="font-size:7.5pt;color:#666">${esc(it.note||'')}</td></tr>`;
+  }).join('');
   const er=Array(Math.max(0,8-its.length)).fill('<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td></tr>').join('');
-  const pw=window.open('','_blank');
-  if(!pw)return;
-  pw.document.write(`<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
-  <style>
-    @page{size:A4 portrait;margin:10mm 10mm 10mm}
-    *{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-    body{font-family:'Noto Serif JP',serif;color:#111;font-size:9pt;line-height:1.5}
-    h1{text-align:center;font-size:22pt;font-weight:700;letter-spacing:.5em;font-family:'Noto Sans JP',sans-serif;margin-bottom:6px;padding-bottom:4px;border-bottom:3px solid #111}
-    .meta{display:flex;justify-content:space-between;font-size:9pt;color:#444;margin-bottom:12px}
-    .amt-box{text-align:right;margin-bottom:14px}
-    .amt-box .lbl{font-size:9pt;color:#555}
-    .amt-box .big{font-size:26pt;font-weight:900;font-family:'Noto Sans JP',sans-serif;color:#111}
-    .amt-box .tax{font-size:9pt;color:#555;margin-left:8px}
-    .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-bottom:14px;border:1px solid #ccc}
-    .info-l{padding:10px 12px;border-right:1px solid #ccc}
-    .info-r{padding:10px 12px;font-size:8.5pt}
-    .to-lbl{font-size:8pt;color:#555;margin-bottom:2px}
-    .to-name{font-size:15pt;font-weight:700;border-bottom:2px solid #111;padding-bottom:3px;margin-bottom:6px;font-family:'Noto Serif JP',serif}
-    .subject{font-size:9.5pt;font-weight:700;padding:3px 8px;background:#f5f5f5;border-left:3px solid #333;margin-bottom:5px}
-    .msg{font-size:9pt;color:#444}
-    .company-box{border:1px solid #ccc;padding:8px 10px;background:#fafafa;margin-top:6px}
-    .company-name{font-size:13pt;font-weight:900;font-family:'Noto Sans JP',sans-serif}
-    .company-sub{font-size:9pt;color:#444}
-    .company-info{font-size:8pt;color:#555;line-height:1.7;margin-top:2px}
-    .reg-no{font-size:7.5pt;color:#777;margin-top:3px}
-    table.items{width:100%;border-collapse:collapse;font-size:9pt;margin-bottom:10px}
-    table.items th{background:#333;color:#fff;padding:5px 6px;text-align:center;font-weight:700;border:1px solid #444;font-family:'Noto Sans JP',sans-serif;font-size:8.5pt}
-    table.items td{border:1px solid #bbb;padding:4px 6px;vertical-align:middle}
-    table.items tbody tr:nth-child(even){background:#f9f9f9}
-    .total-wrap{display:flex;justify-content:flex-end;margin-bottom:10px}
-    table.total{border-collapse:collapse;min-width:240px}
-    table.total td{padding:4px 10px;font-size:10pt;border:1px solid #bbb}
-    table.total td:first-child{text-align:center;background:#f0f0f0;font-weight:700;width:120px}
-    table.total td:last-child{text-align:right;font-weight:700;min-width:110px}
-    .total-row td{background:#333;color:#fff!important;border-color:#333!important;font-size:11pt}
-    .terms{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid #bbb;margin-bottom:10px;font-size:9pt}
-    .term-cell{padding:5px 8px;border-right:1px solid #bbb}
-    .term-cell:last-child{border-right:none}
-    .term-lbl{font-size:8pt;color:#555;font-weight:700;margin-bottom:1px}
-    .memo-box{border:1px solid #bbb;padding:6px 8px;font-size:9pt;color:#444;min-height:40px;margin-bottom:10px;white-space:pre-wrap}
-    .stamp-row{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
-    .stamp{width:54px;height:54px;border:1.5px solid #888;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;font-size:7pt;color:#777;font-family:'Noto Sans JP',sans-serif}
-    .logo-row{display:flex;align-items:center;gap:8px;margin-bottom:4px}
-    .logo-svg{flex-shrink:0}
-    @media print{body{font-size:9.5pt}.no-print{display:none!important}}
-  </style></head><body>
-  <h1>見　積　書</h1>
-  <div class="meta">
-    <span>No.&nbsp;&nbsp;${esc(q.qn)}&nbsp;&nbsp;&nbsp;発行日：&nbsp;&nbsp;${ds}</span>
-  </div>
-  <div class="amt-box">
-    <div class="lbl">合計金額（税込）</div>
-    <span class="big">¥${fmtN(tot)}</span>
-    <span class="tax">（うち消費税 ¥${fmtN(tax)}）</span>
-  </div>
-  <div class="info-grid">
-    <div class="info-l">
-      <div class="to-lbl">御見積先</div>
-      <div class="to-name">${esc(toNm)}&nbsp;様</div>
-      ${q.subject?`<div class="subject">件名：${esc(q.subject)}</div>`:''}
-      <div class="msg">下記の通り御見積り申し上げます。</div>
+  const logoHtml=cfg.logoData?`<img src="${cfg.logoData}" style="height:30px;width:30px;object-fit:contain;margin-right:5px">`:'<svg width="26" height="26" viewBox="0 0 36 36"><rect width="36" height="36" rx="8" fill="#4a7c5f"/><rect x="10" y="20" width="16" height="11" rx="1" fill="white"/><polygon points="18,7 7,20 29,20" fill="white"/><rect x="15" y="24" width="6" height="7" rx="1" fill="#4a7c5f"/></svg>';
+  const pw=window.open('','_blank');if(!pw)return;
+  pw.document.write(
+    '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">'+
+    '<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">'+
+    '<style>@page{size:A4 portrait;margin:10mm}*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}body{font-family:"Noto Serif JP","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;color:#111;font-size:9pt;line-height:1.5}h1{text-align:center;font-size:20pt;font-weight:700;letter-spacing:.5em;margin-bottom:4px;padding-bottom:4px;border-bottom:2px solid #111}.sub{text-align:right;font-size:8pt;color:#444;margin-bottom:10px}.amt-wrap{text-align:right;margin-bottom:12px}.amt-val{font-size:22pt;font-weight:900}.amt-tax{font-size:8pt;color:#555;margin-left:6px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-bottom:10px;border:1px solid #ccc}.grid2-l{padding:8px 10px;border-right:1px solid #ccc}.grid2-r{padding:8px 10px;font-size:8pt}.to-name{font-size:13pt;font-weight:700;border-bottom:1.5px solid #111;padding-bottom:2px;margin-bottom:4px}.subject{font-size:9pt;font-weight:700;padding:2px 6px;background:#f5f5f5;border-left:3px solid #333;margin-bottom:3px}.co-box{border:1px solid #ccc;padding:6px 8px;background:#fafafa;margin-top:4px}.co-name{font-size:11pt;font-weight:900}.co-info{font-size:7.5pt;color:#555;line-height:1.6;margin-top:2px}.meta-row{display:grid;grid-template-columns:70px 1fr;gap:2px 4px;margin-bottom:4px;font-size:8pt}.meta-lbl{color:#666;font-weight:700}table.items{width:100%;border-collapse:collapse;font-size:8.5pt;margin-bottom:8px}table.items th{background:#333;color:#fff;padding:4px 5px;text-align:center;font-weight:700;border:1px solid #444}table.items td{border:1px solid #bbb;padding:3px 5px;vertical-align:middle}table.items tbody tr:nth-child(even){background:#f9f9f9}.total-wrap{display:flex;justify-content:flex-end;margin-bottom:8px}table.total{border-collapse:collapse;min-width:220px}table.total td{padding:3px 8px;font-size:9pt;border:1px solid #bbb}table.total td:first-child{text-align:center;background:#f0f0f0;font-weight:700;width:110px}table.total td:last-child{text-align:right;font-weight:700;min-width:100px}.total-final td{background:#333;color:#fff!important;border-color:#333!important;font-size:10pt}.terms{display:grid;grid-template-columns:1fr 1fr;border:1px solid #bbb;margin-bottom:8px;font-size:8.5pt}.term-cell{padding:4px 7px;border-right:1px solid #bbb}.term-lbl{font-size:7.5pt;color:#666;font-weight:700}.memo-box{border:1px solid #bbb;padding:5px 7px;font-size:8.5pt;min-height:28px;margin-bottom:8px;white-space:pre-wrap}.stamp-row{display:flex;justify-content:flex-end;gap:6px;margin-top:4px}.stamp{width:48px;height:48px;border:1.5px solid #888;display:flex;align-items:flex-end;justify-content:center;padding-bottom:2px;font-size:7pt;color:#777}@media print{.no-print{display:none!important}}</style></head><body>'+
+    '<div class="no-print" style="text-align:center;padding:8px;background:#f0f0f0;border-bottom:1px solid #ccc">'+
+      '<button onclick="window.print()" style="background:#333;color:#fff;border:none;padding:7px 20px;font-size:12px;border-radius:4px;cursor:pointer;font-weight:700">🖨️ 印刷する（PDFも可）</button>'+
+    '</div>'+
+    '<div style="padding:6mm 8mm">'+
+    `<h1>見　積　書</h1>
+    <div class="sub">No. ${esc(q.qn)}&nbsp;&nbsp;&nbsp;発行日：&nbsp;${ds}</div>
+    <div class="amt-wrap"><div style="font-size:8pt;color:#555">合計金額（税込）</div>
+      <span class="amt-val">¥${fmtN(tot)}</span><span class="amt-tax">（うち消費税 ¥${fmtN(tax)}）</span>
     </div>
-    <div class="info-r">
-      <div style="display:grid;grid-template-columns:80px 1fr;gap:2px 6px;margin-bottom:6px;font-size:8.5pt">
-        <span style="color:#555;font-weight:700">有効期限</span><span>${esc(q.validity||'')}</span>
-        <span style="color:#555;font-weight:700">担当者</span><span>${esc(q.cp||cfg.rep||'')}</span>
+    <div class="grid2">
+      <div class="grid2-l">
+        <div style="font-size:7.5pt;color:#666;margin-bottom:2px">御見積先</div>
+        <div class="to-name">${esc(toNm)}&nbsp;様</div>
+        ${q.subject?`<div class="subject">件名：${esc(q.subject)}</div>`:''}
+        <div class="msg">下記の通り御見積り申し上げます。</div>
       </div>
-      <div class="company-box">
-        <div class="logo-row">
-          <svg class="logo-svg" width="28" height="28" viewBox="0 0 36 36" fill="none">
-            <rect width="36" height="36" rx="8" fill="#4a7c5f"/>
-            <rect x="10" y="20" width="16" height="11" rx="1" fill="white" opacity=".95"/>
-            <polygon points="18,7 7,20 29,20" fill="white"/>
-            <rect x="15" y="24" width="6" height="7" rx="1" fill="#4a7c5f"/>
-            <polygon points="21,9 17,17 20,17 16,25 23,15 20,15" fill="#a8d8a8" opacity=".9"/>
-          </svg>
-          <div>
-            <span class="company-name">${esc(cfg.companyName||'セイノデンキ')}</span>
-            ${cfg.companyNameFull?`<span class="company-sub">&nbsp;${esc(cfg.companyNameFull)}</span>`:''}
+      <div class="grid2-r">
+        <div class="meta-row">
+          <span class="meta-lbl">発行日</span><span>${ds}</span>
+          <span class="meta-lbl">有効期限</span><span>${esc(q.validity||'')}</span>
+          <span class="meta-lbl">担当者</span><span>${esc(q.cp||cfg.rep||'')}</span>
+        </div>
+        <div class="co-box">
+          <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">
+            ${logoHtml}
+            <div><div class="co-name">${esc(cfg.companyName||'セイノデンキ')}</div>
+            ${cfg.companyNameFull?`<div style="font-size:8pt;color:#555">${esc(cfg.companyNameFull)}</div>`:''}
+            </div>
+          </div>
+          <div class="co-info">
+            ${cfg.address?esc(cfg.address)+'<br>':''}
+            ${cfg.tel?'TEL.'+esc(cfg.tel)+(cfg.fax?'&nbsp;FAX.'+esc(cfg.fax):''):''}
+            ${cfg.rep?'<br>担当&nbsp;'+esc(cfg.rep):''}
           </div>
         </div>
-        <div class="company-info">
-          ${cfg.address?esc(cfg.address)+'<br>':''}
-          ${cfg.tel?'TEL.'+esc(cfg.tel)+(cfg.fax?'&nbsp;&nbsp;FAX.'+esc(cfg.fax):'')+'<br>':''}
-          ${cfg.rep?'代表&nbsp;&nbsp;'+esc(cfg.rep):''}
-        </div>
-        ${cfg.regNo?`<div class="reg-no">登録番号 ${esc(cfg.regNo)}</div>`:''}
       </div>
     </div>
-  </div>
-  <table class="items">
-    <thead><tr>
-      <th style="min-width:140px;text-align:left;padding-left:8px">品番・品&nbsp;名</th>
-      <th style="width:48px">数量</th>
-      <th style="width:44px">単位</th>
-      <th style="width:92px">単&nbsp;価</th>
-      <th style="width:100px">金&nbsp;額</th>
-      <th style="width:80px">備&nbsp;考</th>
-    </tr></thead>
-    <tbody>${irows}${er}</tbody>
-  </table>
-  <div class="total-wrap">
-    <table class="total">
+    <table class="items">
+      <thead><tr><th style="min-width:120px;text-align:left;padding-left:6px">品番・品名</th><th style="width:40px">数量</th><th style="width:36px">単位</th><th style="width:80px">単価</th><th style="width:88px">金額</th><th style="width:60px">備考</th></tr></thead>
+      <tbody>${irows}${er}</tbody>
+    </table>
+    <div class="total-wrap"><table class="total">
       <tr><td>小&nbsp;&nbsp;計</td><td>¥${fmtN(sub)}</td></tr>
       <tr><td>${tl}</td><td>¥${fmtN(tax)}</td></tr>
-      <tr class="total-row"><td>合計金額</td><td>¥${fmtN(tot)}</td></tr>
-    </table>
-  </div>
-  <div class="terms">
-    <div class="term-cell"><div class="term-lbl">お支払期限</div>${esc(q.payDate||'')}</div>
-    <div class="term-cell"><div class="term-lbl">取引方法</div>${esc(q.payment||'')}</div>
-  </div>
-  <div style="font-size:8.5pt;color:#555;font-weight:700;margin-bottom:2px">備&nbsp;考</div>
-  <div class="memo-box">${q.memo?esc(q.memo):''}</div>
-  <div class="stamp-row">
-    <div class="stamp">承認</div>
-    <div class="stamp">確認</div>
-    <div class="stamp">担当</div>
-  </div>
-  <div style="text-align:center;margin:16px 0 8px;padding-top:10px;border-top:1px dashed #ccc"><button onclick="window.print();return false;" style="background:#333;color:#fff;border:none;padding:10px 32px;font-size:14px;font-family:inherit;border-radius:6px;cursor:pointer;font-weight:700">&#128424;&#65039; &#21360;&#21051;&#12377;&#12427;</button></div>
-  </body></html>`);
+      <tr class="total-final"><td>合計金額</td><td>¥${fmtN(tot)}</td></tr>
+    </table></div>
+    <div class="terms">
+      <div class="term-cell"><div class="term-lbl">お支払期限</div>${esc(q.payDate||'')}</div>
+      <div class="term-cell"><div class="term-lbl">取引方法</div>${esc(q.payment||'')}</div>
+    </div>
+    <div style="font-size:8pt;color:#555;font-weight:700;margin-bottom:2px">備考</div>
+    <div class="memo-box">${q.memo?esc(q.memo):''}</div>
+    <div class="stamp-row"><div class="stamp">承認</div><div class="stamp">確認</div><div class="stamp">担当</div></div>` +
+    '</div></body></html>'
+  );
   pw.document.close();
 }
 
@@ -1797,52 +1737,74 @@ function _buildInvoicePrintHtml(id){
   const its=q.items||[];const sub=q.amount||0;const tax=q.tax||0;const tot=sub+tax;
   const tr=q.taxRate||10;const tl=tr>0?`内消費税（${tr}%）`:'消費税（非課税）';
   const toNm=q.toName||(q.cid?cname(q.cid):'');
-  const dt=new Date();
-  const ds=dt.getFullYear()+'年'+(dt.getMonth()+1)+'月'+dt.getDate()+'日';
-  const irows=its.map(it=>{const a=(parseFloat(it.qty)||0)*(parseFloat(it.price)||0);return`<tr><td style="white-space:pre-wrap">${esc(it.name)}</td><td style="text-align:right">${it.qty}</td><td style="text-align:center">${esc(it.unit)}</td><td style="text-align:right">¥${fmtN(parseFloat(it.price)||0)}</td><td style="text-align:right">¥${fmtN(a)}</td><td style="font-size:8pt;color:#666">${esc(it.note)}</td></tr>`;}).join('');
+  const now=new Date();const ds=now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日';
+  const cfg=D.cfg||{};
+  const irows=its.map(it=>{const a=(parseFloat(it.qty)||0)*(parseFloat(it.price)||0);
+    return`<tr><td style="white-space:pre-wrap">${esc(it.name)}</td><td style="text-align:right">${it.qty}</td><td style="text-align:center">${esc(it.unit||'')}</td><td style="text-align:right">¥${fmtN(parseFloat(it.price)||0)}</td><td style="text-align:right">¥${fmtN(a)}</td><td style="font-size:7.5pt;color:#666">${esc(it.note||'')}</td></tr>`;
+  }).join('');
   const er=Array(Math.max(0,8-its.length)).fill('<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td></tr>').join('');
-  const pw=window.open('','_blank');
-  pw.document.write(`<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
-  <style>@page{size:A4 portrait;margin:10mm 10mm}*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}body{font-family:'Noto Serif JP',serif;color:#111;font-size:10pt;line-height:1.5}
-  .ob{border:2px solid #222}.tb{background:#222;color:#fff;text-align:center;font-size:16pt;font-weight:700;letter-spacing:.15em;padding:6px 0;font-family:'Noto Sans JP',sans-serif}
-  .bd{padding:8px 10px 12px}.gb{background:#222;color:#fff;display:flex;justify-content:space-between;align-items:center;padding:7px 12px;margin-bottom:8px}
-  .hd{display:grid;grid-template-columns:1fr 1fr;margin-bottom:8px}.lf{padding-right:10px;border-right:1px solid #ccc}
-  .tn{font-size:13pt;font-weight:700;border-bottom:2px solid #222;padding-bottom:3px;margin-bottom:6px}
-  .sj{font-size:9.5pt;font-weight:700;padding:4px 7px;background:#f8f8f8;border-left:3px solid #222;margin-top:4px}
-  .db{padding-left:12px;font-size:8.5pt}.db table{width:100%;border-collapse:collapse}.db td{padding:2px 3px}
-  .cb{text-align:right;border:1px solid #ccc;padding:7px 9px;margin-top:6px;background:#fafafa;font-size:8.5pt}
-  .nt{font-size:9pt;color:#444;text-align:center;padding:3px 0;border-bottom:1px solid #ddd;margin-bottom:6px}
-  .qt{width:100%;border-collapse:collapse;font-size:9pt;margin-bottom:6px}
-  .qt th{background:#222;color:#fff;padding:4px 6px;text-align:center;font-size:8.5pt;border:1px solid #333}
-  .qt td{border:1px solid #aaa;padding:4px 6px;vertical-align:middle}.qt tbody tr:nth-child(even){background:#f9f9f9}
-  .sw{display:flex;justify-content:flex-end;margin-bottom:6px}.st{border-collapse:collapse;min-width:230px}
-  .st td{padding:3px 8px;font-size:9.5pt;border:1px solid #bbb}.st td:first-child{text-align:center;background:#f0f0f0;font-weight:700;width:84px}.st td:last-child{text-align:right;font-weight:700;min-width:110px}
-  .gr td{background:#222;color:#fff!important;border-color:#222!important}
-  .cd{border:1px solid #ccc;padding:6px 8px;font-size:8.5pt;color:#444;background:#fafafa}
-  .cd table{width:100%;border-collapse:collapse}.cd td{padding:2px 5px;border-bottom:1px solid #e0e0e0}.cd td:first-child{width:80px;background:#f0f0f0;text-align:center;font-weight:700;color:#555}
-  .sr{display:flex;justify-content:flex-end;gap:10px;margin-top:8px}
-  .sb{width:50px;height:50px;border:1.5px solid #888;display:flex;align-items:flex-end;justify-content:center;padding-bottom:3px;font-size:7pt;color:#666}
-  .mb{margin-top:6px;padding:6px 8px;border:1px solid #ccc;background:#fafafa;font-size:8.5pt;color:#444;white-space:pre-wrap}
-  </style></head><body>
-  <div class="ob"><div class="tb">御　請　求　書</div><div class="bd">
-  <div class="gb"><div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:11pt;font-weight:700">合計金額</span><span style="font-size:9pt;color:#ccc">No. ${esc(q.qn)}</span></div><span style="font-size:15pt;font-weight:900;font-family:'Noto Sans JP',sans-serif">¥${fmtN(tot)}&nbsp;<span style="font-size:9pt;font-weight:400">（税込）</span></span></div>
-  <div class="hd"><div class="lf"><div style="font-size:8.5pt;color:#555;margin-bottom:2px">御請求先</div><div class="tn">${esc(toNm)}<span style="font-size:11pt;font-weight:400;margin-left:4px">様</span></div>${q.subject?`<div class="sj">件名：${esc(q.subject)}</div>`:''}</div>
-  <div class="db"><table><tr><td style="color:#555;width:58px">請求日</td><td style="font-weight:700">${ds}</td></tr><tr><td style="color:#555">担当者</td><td>${esc(q.cp||'')}</td></tr></table>
-  <div class="cb"><div style="font-size:13pt;font-weight:900;font-family:'Noto Sans JP',sans-serif">セイノデンキ</div><div style="font-size:9pt;color:#444">清野電気商会</div><div style="font-size:8pt;color:#555;line-height:1.7">〒981-0215<br>宮城県宮城郡松島町高城字町１５５－２</div><div style="font-size:8pt;color:#555">TEL.022-354-3011&nbsp;FAX.022-354-3095</div><div style="font-size:9pt;font-weight:700;margin-top:2px">代表　清野　剛</div></div></div></div>
-  <div class="nt">下記の通り御請求申し上げます。</div>
-  <table class="qt"><thead><tr><th style="min-width:140px;text-align:left">品番・品名</th><th style="width:46px">数量</th><th style="width:44px">単位</th><th style="width:88px">単価</th><th style="width:98px">金額</th><th style="width:78px">備考</th></tr></thead><tbody>${irows}${er}</tbody></table>
-  <div class="sw"><table class="st"><tr><td>小　計</td><td>¥${fmtN(sub)}</td></tr><tr><td>${tl}</td><td>¥${fmtN(tax)}</td></tr><tr class="gr"><td>合計金額</td><td>¥${fmtN(tot)}</td></tr></table></div>
-  <div class="cd"><table><tr><td>受渡場所</td><td>${esc(q.deliveryPlace||'')}</td><td style="width:80px;background:#f0f0f0;text-align:center;font-weight:700;color:#555">納入期日</td><td>${esc(q.deliveryDate||'')}</td></tr><tr><td>取引方法</td><td>${esc(q.payment||'')}</td><td style="background:#f0f0f0;text-align:center;font-weight:700;color:#555">有効期限</td><td>${esc(q.validity||'')}</td></tr></table></div>
-  ${q.memo?`<div class="mb"><span style="font-size:8pt;color:#888;font-weight:700">備考</span><br>${esc(q.memo)}</div>`:''}
-  <div class="sr"><div class="sb">承認</div><div class="sb">確認</div><div class="sb">担当</div></div>
-  <div style="text-align:center;margin:16px 0 8px;padding-top:10px;border-top:1px dashed #ccc"><button onclick="window.print();return false;" style="background:#333;color:#fff;border:none;padding:10px 32px;font-size:14px;font-family:inherit;border-radius:6px;cursor:pointer;font-weight:700">&#128424; 印刷する</button></div>
-  </div></div><scr'+'ipt>window.onload=()=>window.print();<\/scr'+'ipt></body></html>`);
+  const logoHtml=cfg.logoData?`<img src="${cfg.logoData}" style="height:30px;width:30px;object-fit:contain;margin-right:5px">`:'<svg width="26" height="26" viewBox="0 0 36 36"><rect width="36" height="36" rx="8" fill="#4a7c5f"/><rect x="10" y="20" width="16" height="11" rx="1" fill="white"/><polygon points="18,7 7,20 29,20" fill="white"/><rect x="15" y="24" width="6" height="7" rx="1" fill="#4a7c5f"/></svg>';
+  const pw=window.open('','_blank');if(!pw)return;
+  pw.document.write(
+    '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">'+
+    '<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">'+
+    '<style>@page{size:A4 portrait;margin:10mm}*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}body{font-family:"Noto Serif JP","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;color:#111;font-size:9pt;line-height:1.5}h1{text-align:center;font-size:20pt;font-weight:700;letter-spacing:.5em;margin-bottom:4px;padding-bottom:4px;border-bottom:2px solid #111}.sub{text-align:right;font-size:8pt;color:#444;margin-bottom:10px}.amt-wrap{text-align:right;margin-bottom:12px}.amt-val{font-size:22pt;font-weight:900}.amt-tax{font-size:8pt;color:#555;margin-left:6px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-bottom:10px;border:1px solid #ccc}.grid2-l{padding:8px 10px;border-right:1px solid #ccc}.grid2-r{padding:8px 10px;font-size:8pt}.to-name{font-size:13pt;font-weight:700;border-bottom:1.5px solid #111;padding-bottom:2px;margin-bottom:4px}.subject{font-size:9pt;font-weight:700;padding:2px 6px;background:#f5f5f5;border-left:3px solid #333;margin-bottom:3px}.co-box{border:1px solid #ccc;padding:6px 8px;background:#fafafa;margin-top:4px}.co-name{font-size:11pt;font-weight:900}.co-info{font-size:7.5pt;color:#555;line-height:1.6;margin-top:2px}.meta-row{display:grid;grid-template-columns:70px 1fr;gap:2px 4px;margin-bottom:4px;font-size:8pt}.meta-lbl{color:#666;font-weight:700}table.items{width:100%;border-collapse:collapse;font-size:8.5pt;margin-bottom:8px}table.items th{background:#333;color:#fff;padding:4px 5px;text-align:center;font-weight:700;border:1px solid #444}table.items td{border:1px solid #bbb;padding:3px 5px;vertical-align:middle}table.items tbody tr:nth-child(even){background:#f9f9f9}.total-wrap{display:flex;justify-content:flex-end;margin-bottom:8px}table.total{border-collapse:collapse;min-width:220px}table.total td{padding:3px 8px;font-size:9pt;border:1px solid #bbb}table.total td:first-child{text-align:center;background:#f0f0f0;font-weight:700;width:110px}table.total td:last-child{text-align:right;font-weight:700;min-width:100px}.total-final td{background:#333;color:#fff!important;border-color:#333!important;font-size:10pt}.terms{display:grid;grid-template-columns:1fr 1fr;border:1px solid #bbb;margin-bottom:8px;font-size:8.5pt}.term-cell{padding:4px 7px;border-right:1px solid #bbb}.term-lbl{font-size:7.5pt;color:#666;font-weight:700}.memo-box{border:1px solid #bbb;padding:5px 7px;font-size:8.5pt;min-height:28px;margin-bottom:8px;white-space:pre-wrap}.stamp-row{display:flex;justify-content:flex-end;gap:6px;margin-top:4px}.stamp{width:48px;height:48px;border:1.5px solid #888;display:flex;align-items:flex-end;justify-content:center;padding-bottom:2px;font-size:7pt;color:#777}@media print{.no-print{display:none!important}}</style></head><body>'+
+    '<div class="no-print" style="text-align:center;padding:8px;background:#f0f0f0;border-bottom:1px solid #ccc">'+
+      '<button onclick="window.print()" style="background:#333;color:#fff;border:none;padding:7px 20px;font-size:12px;border-radius:4px;cursor:pointer;font-weight:700">🖨️ 印刷する（PDFも可）</button>'+
+    '</div>'+
+    '<div style="padding:6mm 8mm">'+
+    `<h1>御　請　求　書</h1>
+    <div class="sub">No. ${esc(q.qn)}&nbsp;&nbsp;&nbsp;請求日：&nbsp;${ds}</div>
+    <div class="amt-wrap"><div style="font-size:8pt;color:#555">合計金額（税込）</div>
+      <span class="amt-val">¥${fmtN(tot)}</span><span class="amt-tax">（うち消費税 ¥${fmtN(tax)}）</span>
+    </div>
+    <div class="grid2">
+      <div class="grid2-l">
+        <div style="font-size:7.5pt;color:#666;margin-bottom:2px">御請求先</div>
+        <div class="to-name">${esc(toNm)}&nbsp;様</div>
+        ${q.subject?`<div class="subject">件名：${esc(q.subject)}</div>`:''}
+        <div class="msg">下記の通り御請求申し上げます。</div>
+      </div>
+      <div class="grid2-r">
+        <div class="meta-row">
+          <span class="meta-lbl">請求日</span><span>${ds}</span>
+          <span class="meta-lbl">担当者</span><span>${esc(q.cp||cfg.rep||'')}</span>
+        </div>
+        <div class="co-box">
+          <div style="display:flex;align-items:center;gap:5px;margin-bottom:2px">
+            ${logoHtml}
+            <div><div class="co-name">${esc(cfg.companyName||'セイノデンキ')}</div>
+            ${cfg.companyNameFull?`<div style="font-size:8pt;color:#555">${esc(cfg.companyNameFull)}</div>`:''}
+            </div>
+          </div>
+          <div class="co-info">
+            ${cfg.address?esc(cfg.address)+'<br>':''}
+            ${cfg.tel?'TEL.'+esc(cfg.tel)+(cfg.fax?'&nbsp;FAX.'+esc(cfg.fax):''):''}
+            ${cfg.rep?'<br>担当&nbsp;'+esc(cfg.rep):''}
+          </div>
+        </div>
+      </div>
+    </div>
+    <table class="items">
+      <thead><tr><th style="min-width:120px;text-align:left;padding-left:6px">品番・品名</th><th style="width:40px">数量</th><th style="width:36px">単位</th><th style="width:80px">単価</th><th style="width:88px">金額</th><th style="width:60px">備考</th></tr></thead>
+      <tbody>${irows}${er}</tbody>
+    </table>
+    <div class="total-wrap"><table class="total">
+      <tr><td>小&nbsp;&nbsp;計</td><td>¥${fmtN(sub)}</td></tr>
+      <tr><td>${tl}</td><td>¥${fmtN(tax)}</td></tr>
+      <tr class="total-final"><td>合計金額</td><td>¥${fmtN(tot)}</td></tr>
+    </table></div>
+    <div class="terms">
+      <div class="term-cell"><div class="term-lbl">受渡場所</div>${esc(q.deliveryPlace||'')}</div>
+      <div class="term-cell"><div class="term-lbl">取引方法</div>${esc(q.payment||'')}</div>
+    </div>
+    <div style="font-size:8pt;color:#555;font-weight:700;margin-bottom:2px">備考</div>
+    <div class="memo-box">${q.memo?esc(q.memo):''}</div>
+    <div class="stamp-row"><div class="stamp">承認</div><div class="stamp">確認</div><div class="stamp">担当</div></div>` +
+    '</div></body></html>'
+  );
   pw.document.close();
 }
-
-// ============================================================
-// スマホ印刷プレビュー
-// ============================================================
 function _showPrintPreview(id,type){
   const q=D.quotes.find(q=>q.id===id);if(!q)return;
   const its=q.items||[];const sub=q.amount||0;const tax=q.tax||0;const tot=sub+tax;
@@ -2016,25 +1978,7 @@ function pgSettings(){
         <div class="fr"><label class="fl">APIキー</label><input id="cfg-ai-key" type="password" value="${esc(c.aiKey||'')}" placeholder="APIキーを入力..."></div>
       </div>
     </div>
-    <div class="card" style="margin-bottom:12px">
-      <div class="ct"> アラート設定</div>
-      <div class="fg">
-        <div class="fr">
-          <label class="fl">何日前から通知するか</label>
-          <div style="display:flex;align-items:center;gap:8px">
-            <input type="number" id="cfg-alert-days" value="${c.alertDays||14}" min="1" max="90" style="width:80px">
-            <span>日前</span>
-          </div>
-        </div>
-        <div class="fr">
-          <label class="fl">起動時ポップアップ</label>
-          <div style="display:flex;gap:12px;margin-top:4px">
-            <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="cfg-popup" value="1" ${c.alertPopup!==false?'checked':''}> 表示する</label>
-            <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="cfg-popup" value="0" ${c.alertPopup===false?'checked':''}> 表示しない</label>
-          </div>
-        </div>
-      </div>
-    </div>
+
     <div class="card" style="margin-bottom:12px">
       <div class="ct"> テーマカラー</div>
       <div class="fr">
