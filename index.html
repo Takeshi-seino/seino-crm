@@ -281,7 +281,7 @@ tbody tr:hover td{background:var(--bg3)}
     <button class="nb" data-page="projects"><span class="ni">⚡</span>案件・工事管理<span class="nbc" id="bc-p">0</span></button>
     <button class="nb" data-page="quotes"><span class="ni">📄</span>見積・請求管理<span class="nbc" id="bc-q">0</span></button>
     <button class="nb" data-page="schedule"><span class="ni">📅</span>スケジュール</button>
-    <button class="nb" data-page="staff"><span class="ni">👷</span>スタッフ・外注</button>
+    <button class="nb" data-page="staff"><span class="ni">👷</span>スタッフ・協力会社</button>
     <button class="nb" data-page="stock"><span class="ni">📦</span>在庫管理</button>
     <button class="nb" data-page="settings"><span class="ni">⚙️</span>設定</button>
     <div class="nsec" style="cursor:pointer;display:flex;justify-content:space-between" onclick="toggleDM()">
@@ -432,7 +432,7 @@ function nav(pg,cid){
     const btn=document.getElementById('mbt-'+p);
     if(btn){btn.style.color=p===pg?'var(--accent)':'#888';btn.style.fontWeight=p===pg?'700':'400';}
   });
-  document.getElementById('pg-title').textContent=detCid?'顧客詳細':{dashboard:'ダッシュボード',customers:'顧客管理',projects:'案件・工事管理',quotes:'見積・請求管理',schedule:'スケジュール',staff:'スタッフ・外注',stock:'在庫管理',settings:'設定'}[pg]||pg;
+  document.getElementById('pg-title').textContent=detCid?'顧客詳細':{dashboard:'ダッシュボード',customers:'顧客管理',projects:'案件・工事管理',quotes:'見積・請求管理',schedule:'スケジュール',staff:'スタッフ・協力会社',stock:'在庫管理',settings:'設定'}[pg]||pg;
   buildTopbar();
   buildPage();
 }
@@ -2700,11 +2700,11 @@ function pgStaff(){
   document.getElementById('ct').innerHTML=
     '<div style="text-align:center;padding:60px 20px">'+
       '<div style="font-size:60px;margin-bottom:16px">👷</div>'+
-      '<div style="font-size:20px;font-weight:900;margin-bottom:8px">スタッフ・外注管理</div>'+
+      '<div style="font-size:20px;font-weight:900;margin-bottom:8px">スタッフ・協力会社管理</div>'+
       '<div style="font-size:14px;color:var(--text3);margin-bottom:24px">この機能は現在開発中です</div>'+
       '<div style="background:var(--bg3);border-radius:var(--radius);padding:16px;max-width:320px;margin:0 auto;text-align:left;font-size:13px;color:var(--text2)">'+
         '<div style="font-weight:700;margin-bottom:8px;color:var(--text)">実装予定の機能：</div>'+
-        '<div style="margin-bottom:5px">✅ スタッフ・外注業者の登録</div>'+
+        '<div style="margin-bottom:5px">✅ スタッフ・協力会社業者の登録</div>'+
         '<div style="margin-bottom:5px">✅ 頭文字カードで視覚管理</div>'+
         '<div style="margin-bottom:5px">✅ 案件への人員アサイン</div>'+
         '<div style="margin-bottom:5px">✅ スタッフ別スケジュール表示</div>'+
@@ -3132,11 +3132,11 @@ function pgStaff(){
   document.getElementById('ct').innerHTML=
     '<div style="text-align:center;padding:60px 20px">'+
       '<div style="font-size:60px;margin-bottom:16px">👷</div>'+
-      '<div style="font-size:20px;font-weight:900;margin-bottom:8px">スタッフ・外注管理</div>'+
+      '<div style="font-size:20px;font-weight:900;margin-bottom:8px">スタッフ・協力会社管理</div>'+
       '<div style="font-size:14px;color:var(--text3);margin-bottom:24px">この機能は現在開発中です</div>'+
       '<div style="background:var(--bg3);border-radius:var(--radius);padding:16px;max-width:320px;margin:0 auto;text-align:left;font-size:13px;color:var(--text2)">'+
         '<div style="font-weight:700;margin-bottom:8px;color:var(--text)">実装予定の機能：</div>'+
-        '<div style="margin-bottom:5px">✅ スタッフ・外注業者の登録</div>'+
+        '<div style="margin-bottom:5px">✅ スタッフ・協力会社業者の登録</div>'+
         '<div style="margin-bottom:5px">✅ 頭文字カードで視覚管理</div>'+
         '<div style="margin-bottom:5px">✅ 案件への人員アサイン</div>'+
         '<div style="margin-bottom:5px">✅ スタッフ別スケジュール表示</div>'+
