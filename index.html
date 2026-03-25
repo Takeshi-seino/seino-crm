@@ -1656,7 +1656,6 @@ function _saveQP(id){
 
 function printQ(id){
   const q=D.quotes.find(q=>q.id===id);if(!q)return;
-  if(window.innerWidth<=768){_showPrintPreview(id,'quote');return;}
   const its=q.items||[];const sub=q.amount||0;const tax=q.tax||0;const tot=sub+tax;
   const tr=q.taxRate||10;const tl=tr>0?`内消費税（${tr}%）`:'消費税（非課税）';
   const toNm=q.toName||(q.cid?cname(q.cid):'');
@@ -1733,7 +1732,6 @@ function printQ(id){
 
 function _buildInvoicePrintHtml(id){
   const q=D.quotes.find(q=>q.id===id);if(!q)return;
-  if(window.innerWidth<=768){_showPrintPreview(id,'invoice');return;}
   const its=q.items||[];const sub=q.amount||0;const tax=q.tax||0;const tot=sub+tax;
   const tr=q.taxRate||10;const tl=tr>0?`内消費税（${tr}%）`:'消費税（非課税）';
   const toNm=q.toName||(q.cid?cname(q.cid):'');
