@@ -356,7 +356,7 @@ function save(){
   clearTimeout(_st);
   const el=document.getElementById('sv-time');
   if(el) el.textContent='保存待機中...';
-  _st=setTimeout(_flush,8000);
+  _st=setTimeout(_flush,1000);
 }
 function _flush(){
   if(!D)return;
@@ -1409,18 +1409,15 @@ function mo(html,lg){
     return;
   }
   const ov=document.createElement('div');ov.className='ov';ov.id='mo-ov';
-  ov.innerHTML=`<div class="mo${lg?' mo-lg':''}">${html}</div>`;
+  ov.innerHTML='<div class="mo'+(lg?' mo-lg':'')+'">'+html+'</div>';
   ov.addEventListener('click',e=>{if(e.target===ov)cmo();});
   document.body.appendChild(ov);
-  setTimeout(function(){
-    var btn=document.getElementById('mob-back-btn');
-    if(btn)btn.addEventListener('click',function(){document.getElementById('print-preview-ov')?.remove();});
-  },0);
-  document.getElementById('close-preview-btn').addEventListener('click',function(){
-    document.getElementById('print-preview-ov').remove();
-  });
 }
 function cmo(){document.getElementById('mo-ov')?.remove();}
+function toast(msg,type='ok'){
+  const el=document.createElement('div');el.className=`tst ts-${type}`;el.textContent=msg;
+  document.getElementById('toast').appendChild(el);setTimeout(()=>el.remove(),3200);
+}
 const gv=id=>document.getElementById(id)?.value||'';
 
 // CUSTOMER
@@ -1440,14 +1437,15 @@ function showCustMo(id){
     <div class="fr"><label class="fl">登録日</label><input type="date" id="f-cr" value="${c?.created||today()}"></div>
     <div class="fr"><label class="fl">メモ</label><input id="f-me" value="${esc(c?.memo||'')}"></div>
   </div>
-  <div class="mf"><button class="btn bs" onclick="cmo()">キャンセル</button><button class="btn bp" onclick="saveCust(${id||'null'})">💾 保存</button></div>`);
+  <div class="mf">${id?`<button class="btn bd" onclick="cmo();delCon('customer',${id})">🗑 削除</button>`:""}<button class="btn bs" onclick="cmo()">キャンセル</button><button class="btn bp" onclick="saveCust(${id||'null'})">💾 保存</button></div>`);
 }
 function saveCust(id){
   const nm=document.getElementById('f-nm').value.trim();if(!nm){toast('会社名を入力してください','er');return;}
   const obj={name:nm,cn:gv('f-cn'),contact:gv('f-ct'),phone:gv('f-ph'),email:gv('f-em'),address:gv('f-ad'),type:gv('f-ty'),status:gv('f-st'),memo:gv('f-me'),created:gv('f-cr')};
-  if(id){const i=D.customers.findIndex(c=>c.id===id);D.customers[i]={...D.customers[i],...obj};toast('顧客情報を更新しました');}
-  else{D.customers.push({...obj,id:nid()});toast('顧客を登録しました');}
-  save();cmo();buildPage();
+  const realId=(id&&id!=='null'&&id!==null)?id:null;
+  if(realId){const i=D.customers.findIndex(c=>c.id===realId);if(i>=0){D.customers[i]={...D.customers[i],...obj};toast('顧客情報を更新しました ✅');}else{D.customers.push({...obj,id:nid()});toast('顧客を登録しました ✅');}}
+  else{D.customers.push({...obj,id:nid()});toast('顧客を登録しました ✅');}
+  save();_flush();cmo();detCid=null;buildPage();
 }
 
 // PROJECT
@@ -1469,9 +1467,9 @@ function showProjMo(id,preCid){
 function saveProj(id){
   const ti=document.getElementById('f-ti').value.trim();if(!ti){toast('案件名を入力してください','er');return;}
   const obj={title:ti,cid:parseInt(gv('f-ci'))||null,status:gv('f-st'),phase:gv('f-ph'),amount:parseFloat(gv('f-am'))||0,sd:gv('f-sd'),ed:gv('f-ed'),memo:gv('f-me')};
-  if(id){const i=D.projects.findIndex(p=>p.id===id);D.projects[i]={...D.projects[i],...obj};toast('案件を更新しました');}
+  if(id&&id!=='null'){const i=D.projects.findIndex(p=>p.id===id);D.projects[i]={...D.projects[i],...obj};toast('案件を更新しました');}
   else{D.projects.push({...obj,id:nid(),created:today(),imgs:[]});toast('案件を登録しました');}
-  save();cmo();buildPage();
+  save();_flush();cmo();buildPage();
 }
 
 // IMAGES
@@ -1526,9 +1524,9 @@ function saveSched(id){
   const al=gv('sc-al')==='1';
   const col=document.querySelector('.cc[style*="3px solid"]')?.dataset.c||'#4a7c5f';
   const obj={title:ti,date:gv('sc-dt'),st:al?null:gv('sc-st'),et:al?null:gv('sc-et'),allDay:al,pid:parseInt(gv('sc-pi'))||null,color:col,memo:gv('sc-me')};
-  if(id){const i=D.schedules.findIndex(s=>s.id===id);D.schedules[i]={...D.schedules[i],...obj};toast('スケジュールを更新しました');}
+  if(id&&id!=='null'){const i=D.schedules.findIndex(s=>s.id===id);D.schedules[i]={...D.schedules[i],...obj};toast('スケジュールを更新しました');}
   else{D.schedules.push({...obj,id:nid()});toast('スケジュールを追加しました');}
-  save();cmo();buildPage();
+  save();_flush();cmo();buildPage();
 }
 
 // QUOTE EDITOR
@@ -1648,14 +1646,14 @@ function _collectQ(){
 function _saveQ(id){
   if(!gv('qe-ti')){toast('見積書名を入力してください','er');return;}
   const obj=_collectQ();
-  if(id){const i=D.quotes.findIndex(q=>q.id===id);D.quotes[i]={...D.quotes[i],...obj};toast('見積を更新しました');}
+  if(id&&id!=='null'){const i=D.quotes.findIndex(q=>q.id===id);D.quotes[i]={...D.quotes[i],...obj};toast('見積を更新しました');}
   else{D.quotes.push({...obj,id:nid(),created:today()});toast('見積を登録しました');}
-  save();cmo();buildPage();
+  save();_flush();cmo();buildPage();
 }
 function _saveQP(id){
   if(!gv('qe-ti')){toast('見積書名を入力してください','er');return;}
   const obj=_collectQ();let sid=id;
-  if(id){const i=D.quotes.findIndex(q=>q.id===id);D.quotes[i]={...D.quotes[i],...obj};}
+  if(id&&id!=='null'){const i=D.quotes.findIndex(q=>q.id===id);D.quotes[i]={...D.quotes[i],...obj};}
   else{const nq={...obj,id:nid(),created:today()};D.quotes.push(nq);sid=nq.id;}
   save();cmo();setTimeout(()=>printQ(sid),80);buildPage();
 }
@@ -2067,8 +2065,10 @@ function saveCfg(){
   D.cfg.alertPopup     = document.querySelector('input[name="cfg-popup"]:checked')?.value!=='0';
   D.cfg.accentColor    = document.getElementById('cfg-color')?.value||'#4a7c5f';
   save();
+  _flush();
   applyCfg();
-  toast('設定を保存しました');
+  toast('設定を保存しました ✅');
+  buildPage();
 }
 
 
@@ -2078,11 +2078,14 @@ function saveCfg(){
 function _uploadLogo(inp){
   const f=inp.files[0];if(!f)return;
   if(f.size>512*1024){toast('ロゴ画像は512KB以下にしてください','er');return;}
+  if(!D.cfg)D.cfg={};
   const r=new FileReader();r.onload=e=>{
     D.cfg.logoData=e.target.result;
     const prev=document.getElementById('logo-preview');
-    if(prev)prev.innerHTML=`<img src="${e.target.result}" style="width:100%;height:100%;object-fit:contain">`;
-    toast('ロゴ画像を設定しました');
+    if(prev)prev.innerHTML='<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:contain">';
+    save();_flush();
+    toast('ロゴ画像を設定しました ✅');
+    buildPage();
   };r.readAsDataURL(f);
 }
 
@@ -2540,6 +2543,20 @@ function dtReport(pjs){
     </div>`).join('') || '<div class="emp"><div>メモ付き案件なし</div></div>';
 }
 
+function _del(type,id){
+  document.getElementById('cov')?.remove();
+  if(type==='customer'){D.customers=D.customers.filter(c=>c.id!==id);D.projects=D.projects.filter(p=>p.cid!==id);D.quotes=D.quotes.filter(q=>q.cid!==id);toast('顧客を削除しました');if(detCid===id){detCid=null;page='customers';}}
+  else if(type==='project'){D.projects=D.projects.filter(p=>p.id!==id);toast('案件を削除しました');}
+  else if(type==='quote'){D.quotes=D.quotes.filter(q=>q.id!==id);toast('見積を削除しました');}
+  else if(type==='schedule'){D.schedules=D.schedules.filter(s=>s.id!==id);toast('スケジュールを削除しました');}
+  save();_flush();buildPage();
+}
+function delCon(type,id){
+  const lbl={customer:'顧客',project:'案件',quote:'見積',schedule:'スケジュール'};
+  const ov=document.createElement('div');ov.className='cov';ov.id='cov';
+  ov.innerHTML=`<div class="cb"><div style="font-size:34px;margin-bottom:9px">⚠️</div><div style="font-size:15px;font-weight:700;margin-bottom:6px">${lbl[type]}を削除しますか？</div><div style="font-size:13px;color:var(--text2);margin-bottom:18px">この操作は取り消せません。</div><div style="display:flex;gap:7px;justify-content:center"><button class="btn bs" onclick="document.getElementById('cov').remove()">キャンセル</button><button class="btn bd" onclick="_del('${type}',${id})">削除する</button></div></div>`;
+  document.body.appendChild(ov);
+}
 // ============================================================
 // NAV CLICK HANDLER
 // ============================================================
