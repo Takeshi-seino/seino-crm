@@ -78,7 +78,7 @@ textarea{resize:vertical}
 /* TABLE */
 table{width:100%;border-collapse:collapse}
 thead tr{background:var(--bg3)}
-th{padding:8px 11px;text-align:left;font-size:10px;color:var(--text3);font-weight:700;letter-spacing:.05em;border-bottom:1px solid var(--border)}
+th{padding:8px 11px;text-align:left;font-size:10px;color:var(--text3);font-weight:700;letter-spacing:.05em;border-bottom:1px solid var(--border);white-space:nowrap}
 td{padding:9px 11px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle}
 tbody tr:hover td{background:var(--bg3)}
 .tw{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow2)}
@@ -314,19 +314,10 @@ tbody tr:hover td{background:var(--bg3)}
 </div>
 <div id="toast"></div>
 
-<!-- スマホ用ボトムナビ -->
-<div id="mob-nav" style="display:none;position:fixed;bottom:4px;left:8px;right:8px;background:#fff;border:1px solid #ddd;border-radius:14px;z-index:9999;box-shadow:0 2px 12px rgba(0,0,0,.12);padding-bottom:env(safe-area-inset-bottom,0px)">
-  <div style="display:flex;flex-direction:row;height:52px;width:100%">
-    <button onclick="nav('dashboard')" id="mbt-dashboard" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border:none;background:none;cursor:pointer;color:#888;font-size:9px;font-family:inherit;gap:1px;min-width:0"><span style="font-size:18px">◈</span><span style="white-space:nowrap">ホーム</span></button>
-    <button onclick="nav('customers')" id="mbt-customers" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border:none;background:none;cursor:pointer;color:#888;font-size:9px;font-family:inherit;gap:1px;min-width:0"><span style="font-size:18px">👥</span><span style="white-space:nowrap">顧客</span></button>
-    <button onclick="nav('projects')" id="mbt-projects" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border:none;background:none;cursor:pointer;color:#888;font-size:9px;font-family:inherit;gap:1px;min-width:0"><span style="font-size:18px">⚡</span><span style="white-space:nowrap">案件</span></button>
-    <button onclick="nav('schedule')" id="mbt-schedule" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border:none;background:none;cursor:pointer;color:#888;font-size:9px;font-family:inherit;gap:1px;min-width:0"><span style="font-size:18px">📅</span><span style="white-space:nowrap">予定</span></button>
-    <button onclick="nav('quotes')" id="mbt-quotes" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border:none;background:none;cursor:pointer;color:#888;font-size:9px;font-family:inherit;gap:1px;min-width:0"><span style="font-size:18px">📋</span><span style="white-space:nowrap">見積</span></button>
-  </div>
-</div>
-
 <script>
 'use strict';
+// ============================================================
+// DATA — single in-memory object, f'use strict';
 // ============================================================
 // DATA — single in-memory object, flush to localStorage on debounce
 // ============================================================
@@ -395,9 +386,9 @@ function seed(){
   if(D.customers.length){_bc();return;}
   const td=today();
   D.customers=[
-    {id:1,cn:'C-0001',name:'田中建設株式会社',contact:'田中 一郎',phone:'03-1234-5678',email:'tanaka@tanaka-kensetsu.co.jp',address:'東京都新宿区西新宿1-1-1',type:'法人',status:'アクティブ',memo:'大口顧客',created:'2025-04-01'},
-    {id:2,cn:'C-0002',name:'山田 花子',contact:'山田 花子',phone:'090-9876-5432',email:'hanako@example.com',address:'神奈川県横浜市中区1-2-3',type:'個人',status:'アクティブ',memo:'',created:'2025-06-15'},
-    {id:3,cn:'C-0003',name:'鈴木商事株式会社',contact:'鈴木 次郎',phone:'06-2345-6789',email:'suzuki@suzuki-shoji.co.jp',address:'大阪府大阪市北区梅田2-3-4',type:'法人',status:'フォロー中',memo:'LED切替検討中',created:'2025-09-01'},
+    {id:1,cn:'C-0001',name:'田中建設株式会社',contact:'田中 一郎',phone:'03-1234-5678',email:'<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f084919e919b91b084919e919b91dd9b959e8395848385de939fde9a80">[email&#160;protected]</a>',address:'東京都新宿区西新宿1-1-1',type:'法人',status:'アクティブ',memo:'大口顧客',created:'2025-04-01'},
+    {id:2,cn:'C-0002',name:'山田 花子',contact:'山田 花子',phone:'090-9876-5432',email:'<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d0b8b1beb1bbbf90b5a8b1bda0bcb5feb3bfbd">[email&#160;protected]</a>',address:'神奈川県横浜市中区1-2-3',type:'個人',status:'アクティブ',memo:'',created:'2025-06-15'},
+    {id:3,cn:'C-0003',name:'鈴木商事株式会社',contact:'鈴木 次郎',phone:'06-2345-6789',email:'<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="8ffcfaf5fae4e6cffcfaf5fae4e6a2fce7e0e5e6a1ece0a1e5ff">[email&#160;protected]</a>',address:'大阪府大阪市北区梅田2-3-4',type:'法人',status:'フォロー中',memo:'LED切替検討中',created:'2025-09-01'},
   ];
   D.projects=[
     {id:10,cid:1,title:'オフィスビル電気設備更新工事',status:'進行中',phase:'施工中',amount:3500000,sd:'2026-03-01',ed:'2026-04-30',memo:'B1F〜5F全フロア',created:'2026-01-20',imgs:[]},
@@ -687,7 +678,7 @@ function pgCusts(){
     document.getElementById('ct').innerHTML=cards;
   } else {
     // PC: テーブル形式
-    document.getElementById('ct').innerHTML=`<div class="tw"><table>
+    document.getElementById('ct').innerHTML=`<div class="tw"><table style="min-width:700px">
     <thead><tr><th>顧客番号</th><th>会社名 / 氏名</th><th>担当者</th><th>電話番号</th><th>種別</th><th>ステータス</th><th>案件数</th><th style="width:120px"></th></tr></thead>
     <tbody>${list.length?list.map(c=>{const pc=D.projects.filter(p=>p.cid===c.id).length;return`<tr>
       <td style="font-size:11px;color:var(--accent);font-weight:700">${c.cn||'—'}</td>
@@ -1190,7 +1181,7 @@ function calWeek(){
     const evs=sc.map(function(s){
       const top=(function(t){const p=t.split(':').map(Number);return(p[0]*60+p[1])/60*SH2;})(s.st||'0:00');
       const ht=Math.max((function(st,et){return(function(t){const p=t.split(':').map(Number);return(p[0]*60+p[1])/60*SH2;})(et)-(function(t){const p=t.split(':').map(Number);return(p[0]*60+p[1])/60*SH2;})(st);})(s.st||'0:00',s.et||'0:00'),18);
-      return'<div style="position:absolute;left:1px;right:1px;top:'+top+'px;height:'+ht+'px;background:'+(s.color||'var(--accent)')+';border-radius:3px;padding:1px 3px;font-size:9px;font-weight:700;cursor:pointer;overflow:hidden;color:#fff;z-index:3" onclick="event.stopPropagation();showSchedMo('+s.id+',\''+ds+'\')">'+esc(s.title)+'<br><span style="font-size:8px;opacity:.85">'+s.st+'–'+s.et+'</span></div>';
+      return'<div style="position:absolute;left:1px;right:1px;top:'+top+'px;height:'+ht+'px;background:'+(s.color||'var(--accent)')+';border-radius:3px;padding:1px 3px;font-size:9px;font-weight:700;cursor:pointer;overflow:hidden;color:#fff;z-index:3" draggable=\"true\" ondragstart=\"event.stopPropagation();_calDragStart(event,'+s.id+')\" oncontextmenu=\"event.preventDefault();event.stopPropagation();_calCtxMenu(event,'+s.id+')\" onclick=\"event.stopPropagation();showSchedMo('+s.id+',\''+ds+'\')">'+esc(s.title)+'<br><span style="font-size:8px;opacity:.85">'+s.st+'–'+s.et+'</span></div>';
     }).join('');
     return'<div style="flex:1;border-right:1px solid var(--border);position:relative;cursor:pointer" onclick="clickCal(event,\''+ds+'\',this)">'+hlines+evs+'</div>';
   }).join('');
@@ -1375,7 +1366,7 @@ function pgQuotes(){
         '<div style="display:flex;justify-content:space-between;margin-top:3px"><span style="color:var(--text3)">税込合計</span><span class="amt" style="color:var(--green);font-size:16px">'+fmt(tot+totTax)+'</span></div>'+
       '</div>';
   } else {
-    document.getElementById('ct').innerHTML=`<div class="tw" style="margin-bottom:11px"><table>
+    document.getElementById('ct').innerHTML=`<div class="tw" style="margin-bottom:11px"><table style="min-width:820px">
     <thead><tr><th>見積番号</th><th>見積書名</th><th>顧客番号</th><th>顧客名</th><th>見積日</th><th>金額(税別)</th><th>税込合計</th><th>状態</th><th style="width:200px"></th></tr></thead>
     <tbody>${D.quotes.length?D.quotes.map(q=>`<tr>
       <td style="font-size:11px;color:var(--accent);font-weight:700">${q.qn}</td>
@@ -2553,7 +2544,5 @@ nav('dashboard');
 setTimeout(_checkAlerts,1000);
 </script>
 
-<!-- Fonts load async - UI already works with system fonts above -->
-<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
 </body>
 </html>
