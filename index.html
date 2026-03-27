@@ -334,7 +334,7 @@ tbody tr:hover td{background:var(--bg3)}
 // ============================================================
 // DATA — single in-memory object, flush to localStorage on debounce
 // ============================================================
-const K={c:'s5c',p:'s5p',q:'s5q',s:'s5s',id:'s5id'};
+const K={c:'s5c',p:'s5p',q:'s5q',s:'s5s',id:'s5id',st:'s5st'};
 let D=null; // THE single data object
 
 function initD(){
@@ -344,6 +344,7 @@ function initD(){
     projects:   JSON.parse(localStorage.getItem(K.p)||'[]'),
     quotes:     JSON.parse(localStorage.getItem(K.q)||'[]'),
     schedules:  JSON.parse(localStorage.getItem(K.s)||'[]'),
+    staff:      JSON.parse(localStorage.getItem('s5st')||'[]'),
     nextId:     parseInt(localStorage.getItem(K.id)||'1'),
     cfg:        JSON.parse(localStorage.getItem('s5cfg')||'{}'),
   };
@@ -365,6 +366,7 @@ function _flush(){
     localStorage.setItem(K.p,JSON.stringify(D.projects));
     localStorage.setItem(K.q,JSON.stringify(D.quotes));
     localStorage.setItem(K.s,JSON.stringify(D.schedules));
+    localStorage.setItem('s5st',JSON.stringify(D.staff||[]));
     localStorage.setItem(K.id,D.nextId);
     if(D.cfg) localStorage.setItem('s5cfg',JSON.stringify(D.cfg));
     const el=document.getElementById('sv-time');
@@ -786,7 +788,7 @@ function pgProjs(){
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px"><div style="font-size:18px">${PI[p.phase]||'⚡'}</div>${bdg(p.phase)}</div>
       <div style="font-size:13px;font-weight:700;margin-bottom:3px;line-height:1.35">${p.title}</div>
       <div style="font-size:11px;color:var(--text3);margin-bottom:7px">${cname(p.cid)}${cn(p.cid)?` <span style="font-size:10px;color:var(--accent)">(${cn(p.cid)})</span>`:''}</div>
-      ${p.memo?`<div style="font-size:11px;color:var(--text3);background:var(--bg3);border-radius:5px;padding:4px 7px;margin-bottom:6px">${p.memo}</div>`:''}
+      ${p.memo?`<div style="font-size:11px;color:var(--text3);background:var(--bg3);border-radius:5px;padding:4px 7px;margin-bottom:6px">${p.memo}</div>`:''}${(p.staffIds&&p.staffIds.length&&D.staff&&D.staff.length)?`<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:6px">${p.staffIds.map(sid=>{const st=D.staff.find(s=>s.id===sid);return st?`<span style="font-size:10px;padding:2px 6px;border-radius:4px;color:#fff;background:${st.color||'#4a7c5f'};">${st.type==='partner'?'🏢':'👤'}${esc(st.name)}</span>`:'';}).join('')}</div>`:''}
       ${p.imgs?.length?`<div class="ig" style="grid-template-columns:repeat(3,1fr);margin-bottom:6px">${p.imgs.slice(0,3).map(img=>`<div class="ith"><img src="${img.data}" alt=""></div>`).join('')}${p.imgs.length>3?`<div style="background:var(--bg3);border-radius:6px;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text3)">+${p.imgs.length-3}</div>`:''}</div>`:''}
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px"><div style="font-size:11px;color:var(--text3)">${fmtD(p.sd)}〜${fmtD(p.ed)}</div><div class="amt" style="font-size:13px">${fmt(p.amount)}</div></div>
       <div style="display:flex;gap:4px;margin-top:8px">
@@ -1205,12 +1207,13 @@ function calWeek(){
         '<div style="display:flex;flex-direction:column;width:'+(mob?'32':'50')+'px;flex-shrink:0;border-right:1px solid var(--border)">'+
           '<div style="height:'+(mob?'30':'44')+'px;border-bottom:1px solid var(--border);background:var(--bg3)"></div>'+
           '<div style="height:22px;border-bottom:1px solid var(--border);background:rgba(74,124,95,.03);font-size:9px;color:var(--text3);display:flex;align-items:center;justify-content:center">終日</div>'+
-          '<div style="overflow-y:hidden">'+tlabs+'</div>'+
+          '<div class="cal-tlabs" style="overflow-y:hidden">'+tlabs+'</div>'+
         '</div>'+
-        '<div style="flex:1;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column">'+
+        '<div style="flex:1;overflow-x:hidden;display:flex;flex-direction:column">'+
           '<div style="display:flex;border-bottom:1px solid var(--border);background:var(--bg3);height:'+(mob?'30':'44')+'px">'+hdrs+'</div>'+
           '<div style="display:flex;border-bottom:1px solid var(--border);background:rgba(74,124,95,.03)">'+adRow+'</div>'+
-          '<div style="display:flex;position:relative;flex:1">'+
+          '<div class="cal-scroll-body" style="flex:1;overflow-y:auto;position:relative;display:flex;flex-direction:column">'+
+            '<div style="display:flex;position:relative;flex:1">'+
             '<div style="display:flex;flex:1;position:relative">'+
               (isThisWk?'<div style="position:absolute;left:0;right:0;height:2px;background:var(--red);z-index:10;top:'+nowPx+'px"><div style="position:absolute;left:-4px;top:-4px;width:9px;height:9px;border-radius:50%;background:var(--red)"></div></div>':'')+
               dcols+
@@ -1218,9 +1221,19 @@ function calWeek(){
           '</div>'+
         '</div>'+
       '</div>'+
+      '</div>'+
     '</div>'+mtotBar();
 
   calY=days[3].getFullYear();calM=days[3].getMonth();
+  setTimeout(function(){
+    const scrollBody=document.querySelector('.cal-scroll-body');
+    const tlabsEl=document.querySelector('.cal-tlabs');
+    if(scrollBody&&tlabsEl){
+      scrollBody.addEventListener('scroll',function(){
+        tlabsEl.scrollTop=scrollBody.scrollTop;
+      });
+    }
+  },0);
   bindNav(
     function(){calWS=wkStart(new Date(calWS.getTime()-7*86400000));buildPage();},
     function(){calWS=wkStart(new Date());buildPage();},
@@ -1380,7 +1393,7 @@ function pgQuotes(){
       '</div>';
   } else {
     document.getElementById('ct').innerHTML=`<div class="tw" style="margin-bottom:11px"><table style="min-width:820px">
-    <thead><tr><th>見積番号</th><th>見積書名</th><th>顧客番号</th><th>顧客名</th><th>見積日</th><th>金額(税別)</th><th>税込合計</th><th>状態</th><th style="width:200px"></th></tr></thead>
+    <thead><tr><th style="width:90px">見積番号</th><th>見積書名</th><th style="width:80px">顧客番号</th><th style="width:120px">顧客名</th><th style="width:100px">見積日</th><th style="width:110px">金額(税別)</th><th style="width:110px">税込合計</th><th style="width:70px">状態</th><th style="width:180px"></th></tr></thead>
     <tbody>${D.quotes.length?D.quotes.map(q=>`<tr>
       <td style="font-size:11px;color:var(--accent);font-weight:700">${q.qn}</td>
       <td style="font-weight:600">${q.title}</td>
@@ -1461,12 +1474,17 @@ function showProjMo(id,preCid){
     <div class="fr"><label class="fl">開始日</label><input type="date" id="f-sd" value="${p?.sd||today()}"></div>
     <div class="fr"><label class="fl">終了予定日</label><input type="date" id="f-ed" value="${p?.ed||''}"></div>
     <div class="fr" style="grid-column:1/-1"><label class="fl">メモ</label><textarea id="f-me" rows="2">${esc(p?.memo||'')}</textarea></div>
+    <div class="fr" style="grid-column:1/-1"><label class="fl">担当スタッフ・協力会社</label>
+      <div style="max-height:100px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:6px;display:flex;flex-wrap:wrap;gap:4px">
+        ${(D.staff&&D.staff.length)?(D.staff.map(st=>`<label style="display:flex;align-items:center;gap:4px;padding:3px 8px;background:var(--bg3);border-radius:4px;font-size:12px;cursor:pointer;border-left:3px solid ${st.color||'#4a7c5f'}"><input type="checkbox" class="pj-staff-cb" value="${st.id}" ${(p?.staffIds||[]).includes(st.id)?"checked":""} style="accent-color:${st.color||'#4a7c5f'}">${esc(st.name)}<span style="font-size:10px;color:var(--text3);margin-left:2px">${st.type==="partner"?"[協]":"[社]"}</span></label>`).join("")):"<span style=\"font-size:12px;color:var(--text3)\">スタッフ未登録（スタッフ・協力会社メニューで登録）</span>"}
+      </div>
+    </div>
   </div>
   <div class="mf"><button class="btn bs" onclick="cmo()">キャンセル</button><button class="btn bp" onclick="saveProj(${id||'null'})">💾 保存</button></div>`);
 }
 function saveProj(id){
   const ti=document.getElementById('f-ti').value.trim();if(!ti){toast('案件名を入力してください','er');return;}
-  const obj={title:ti,cid:parseInt(gv('f-ci'))||null,status:gv('f-st'),phase:gv('f-ph'),amount:parseFloat(gv('f-am'))||0,sd:gv('f-sd'),ed:gv('f-ed'),memo:gv('f-me')};
+  const staffIds=[...document.querySelectorAll('.pj-staff-cb:checked')].map(cb=>parseInt(cb.value));const obj={title:ti,cid:parseInt(gv('f-ci'))||null,status:gv('f-st'),phase:gv('f-ph'),amount:parseFloat(gv('f-am'))||0,sd:gv('f-sd'),ed:gv('f-ed'),memo:gv('f-me'),staffIds:staffIds};
   if(id&&id!=='null'){const i=D.projects.findIndex(p=>p.id===id);D.projects[i]={...D.projects[i],...obj};toast('案件を更新しました');}
   else{D.projects.push({...obj,id:nid(),created:today(),imgs:[]});toast('案件を登録しました');}
   save();_flush();cmo();buildPage();
@@ -1500,7 +1518,7 @@ function viewImg(src,nm){const ov=document.createElement('div');ov.style.cssText
 // SCHEDULE
 function showSchedMo(id,ds,st,et,allDay){
   const s=id?D.schedules.find(s=>s.id===id):null;
-  const cols=['#4a7c5f','#4872a8','#c5724a','#6b5fa0','#3a8a8a','#c8922a','#b84040','#8b6f47'];
+  const cols=['#e74c3c','#e67e22','#f1c40f','#2ecc71','#1abc9c','#3498db','#2980b9','#9b59b6','#8e44ad','#e91e8c','#c0392b','#d35400','#27ae60','#16a085','#4a7c5f','#2c3e50','#7f8c8d','#8b6f47','#6b5fa0','#4872a8'];
   mo(`<div class="mt">${s?'スケジュール編集':'スケジュール追加'}</div>
   <div class="fr"><label class="fl">タイトル *</label><input id="sc-ti" value="${esc(s?.title||'')}"></div>
   <div class="fg">
@@ -1513,6 +1531,7 @@ function showSchedMo(id,ds,st,et,allDay){
   </div>
   <div class="fr"><label class="fl">関連案件（任意）</label><select id="sc-pi"><option value="">— 関連付けない —</option>${D.projects.map(p=>`<option value="${p.id}" ${s?.pid===p.id?'selected':''}>${p.title}</option>`).join('')}</select></div>
   <div class="fr"><label class="fl">カラー</label><div style="display:flex;gap:5px;flex-wrap:wrap">${cols.map(c=>`<div class="cc" data-c="${c}" onclick="document.querySelectorAll('.cc').forEach(e=>e.style.outline='none');this.style.outline='3px solid var(--text)'" style="width:22px;height:22px;background:${c};border-radius:50%;cursor:pointer;outline:${(s?.color||cols[0])===c?'3px solid var(--text)':'none'}"></div>`).join('')}</div></div>
+  <div class="fr" style="grid-column:1/-1"><label class="fl">参加スタッフ・協力会社</label><div style="max-height:100px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:6px;display:flex;flex-wrap:wrap;gap:4px">${(D.staff&&D.staff.length)?(D.staff.map(st=>`<label style="display:flex;align-items:center;gap:4px;padding:3px 8px;background:var(--bg3);border-radius:4px;font-size:12px;cursor:pointer;border-left:3px solid ${st.color||'#4a7c5f'}"><input type="checkbox" class="sc-staff-cb" value="${st.id}" ${(s?.staffIds||[]).includes(st.id)?"checked":""} style="accent-color:${st.color||'#4a7c5f'}">${esc(st.name)}<span style="font-size:10px;color:var(--text3);margin-left:2px">${st.type==="partner"?"[協]":"[社]"}</span></label>`).join("")):"<span style=\"font-size:12px;color:var(--text3)\">スタッフ未登録</span>"}</div></div>
   <div class="fr"><label class="fl">メモ</label><textarea id="sc-me" rows="2">${esc(s?.memo||'')}</textarea></div>
   <div class="mf">${s?`<button class="btn bd" onclick="delCon('schedule',${s.id})">🗑 削除</button>`:''}
     <button class="btn bs" onclick="cmo()">キャンセル</button>
@@ -1523,7 +1542,7 @@ function saveSched(id){
   const ti=document.getElementById('sc-ti').value.trim();if(!ti){toast('タイトルを入力してください','er');return;}
   const al=gv('sc-al')==='1';
   const col=document.querySelector('.cc[style*="3px solid"]')?.dataset.c||'#4a7c5f';
-  const obj={title:ti,date:gv('sc-dt'),st:al?null:gv('sc-st'),et:al?null:gv('sc-et'),allDay:al,pid:parseInt(gv('sc-pi'))||null,color:col,memo:gv('sc-me')};
+  const staffIds=[...document.querySelectorAll('.sc-staff-cb:checked')].map(cb=>parseInt(cb.value));const obj={title:ti,date:gv('sc-dt'),st:al?null:gv('sc-st'),et:al?null:gv('sc-et'),allDay:al,pid:parseInt(gv('sc-pi'))||null,color:col,memo:gv('sc-me'),staffIds:staffIds};
   if(id&&id!=='null'){const i=D.schedules.findIndex(s=>s.id===id);D.schedules[i]={...D.schedules[i],...obj};toast('スケジュールを更新しました');}
   else{D.schedules.push({...obj,id:nid()});toast('スケジュールを追加しました');}
   save();_flush();cmo();buildPage();
@@ -1875,17 +1894,42 @@ function _buildQuotePrintHtml(id){printQ(id);}
 // STAFF・STOCK（準備中）
 // ============================================================
 function pgStaff(){
+  if(!D.staff)D.staff=[];
+  const sl=D.staff.filter(s=>s.type==='staff');
+  const pl=D.staff.filter(s=>s.type==='partner');
+  const mkRow=s=>
+    '<tr>'+
+    '<td style="font-weight:700"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:'+(s.color||'#4a7c5f')+';margin-right:5px"></span>'+esc(s.name)+'</td>'+
+    '<td style="color:var(--text2)">'+esc(s.role||'—')+'</td>'+
+    '<td>'+esc(s.phone||'—')+'</td>'+
+    '<td style="color:var(--text2)">'+esc(s.email||'—')+'</td>'+
+    '<td>'+esc(s.memo||'')+'</td>'+
+    '<td style="white-space:nowrap">'+
+      '<button class="btn bs bsm" onclick="showStaffMo('+s.id+')">✏️</button> '+
+      '<button class="btn bd bsm" onclick="delCon(&quot;staff&quot;,'+s.id+')">🗑</button>'+
+    '</td></tr>';
+  const empty=msg=>'<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--text3)">'+msg+'</td></tr>';
   document.getElementById('ct').innerHTML=
-    '<div style="text-align:center;padding:60px 20px">'+
-    '<div style="font-size:60px;margin-bottom:16px">👷</div>'+
-    '<div style="font-size:20px;font-weight:900;margin-bottom:8px">スタッフ・協力会社</div>'+
-    '<div style="font-size:14px;color:var(--text3);margin-bottom:24px">この機能は現在開発中です</div>'+
-    '<div style="background:var(--bg3);border-radius:var(--radius);padding:16px;max-width:320px;margin:0 auto;text-align:left;font-size:13px;color:var(--text2)">'+
-    '<div style="font-weight:700;margin-bottom:8px">実装予定：</div>'+
-    '<div>✅ スタッフ・外注業者登録</div>'+
-    '<div>✅ 案件へのアサイン</div>'+
-    '<div>✅ 稼働管理</div>'+
-    '</div></div>';
+    '<div style="margin-bottom:20px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'+
+        '<div style="font-size:16px;font-weight:900">👷 スタッフ・従業員</div>'+
+        '<button class="btn bp" onclick="showStaffMo(null,&quot;staff&quot;)">＋ スタッフ追加</button>'+
+      '</div>'+
+      '<div class="tw"><table>'+
+        '<thead><tr><th>氏名</th><th>役割・職種</th><th>電話番号</th><th>メール</th><th>メモ</th><th style="width:80px"></th></tr></thead>'+
+        '<tbody>'+(sl.length?sl.map(mkRow).join(''):empty('スタッフが登録されていません'))+'</tbody>'+
+      '</table></div>'+
+    '</div>'+
+    '<div>'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'+
+        '<div style="font-size:16px;font-weight:900">🏢 協力会社</div>'+
+        '<button class="btn bp" onclick="showStaffMo(null,&quot;partner&quot;)">＋ 協力会社追加</button>'+
+      '</div>'+
+      '<div class="tw"><table>'+
+        '<thead><tr><th>会社名・氏名</th><th>担当・専門</th><th>電話番号</th><th>メール</th><th>メモ</th><th style="width:80px"></th></tr></thead>'+
+        '<tbody>'+(pl.length?pl.map(mkRow).join(''):empty('協力会社が登録されていません'))+'</tbody>'+
+      '</table></div>'+
+    '</div>';
 }
 function pgStock(){
   document.getElementById('ct').innerHTML=
@@ -2424,7 +2468,36 @@ function showProjDetail(id){
   const stHtml=(dl.staff||[]).length?(dl.staff||[]).map(function(it){
     return'<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)"><div style="width:26px;height:26px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700">'+esc((it.name||'?').slice(0,1))+'</div><div style="flex:1"><div style="font-size:12px;font-weight:600">'+esc(it.name||'')+'</div><div style="font-size:10px;color:var(--text3)">'+esc(it.role||'')+(it.phone?' · '+esc(it.phone):'')+'</div></div>'+(it.days?'<span style="font-size:11px;font-weight:700;color:var(--accent)">'+esc(it.days)+'日</span>':'')+'</div>';
   }).join(''):'<div style="color:var(--text3);font-size:11px">なし</div>';
-  const html='<div style="margin-bottom:12px;padding-bottom:10px;border-bottom:2px solid var(--accent)"><div style="font-size:17px;font-weight:900;margin-bottom:4px">'+esc(p.title)+'</div><div style="display:flex;flex-wrap:wrap;gap:8px;font-size:12px;color:var(--text2)">'+(cust?'<span>'+esc(cust.name)+'</span>':'')+'<span>'+bdg(p.phase)+'</span>'+(p.sd?'<span>'+p.sd+(p.ed?' - '+p.ed:'')+'</span>':'')+(p.amount?'<span>'+fmt(p.amount)+'</span>':'')+'</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px"><div><div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px">段取りチェック</div>'+progBar+ckHtml+'</div><div><div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px">人員</div>'+stHtml+'</div></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px"><div><div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px">機器・商品</div>'+eqHtml+'</div><div><div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px">材料・部材</div>'+mtHtml+'</div></div>'+(p.memo?'<div style="padding:8px;background:var(--bg3);border-radius:6px;font-size:12px;margin-bottom:12px;white-space:pre-wrap">'+esc(p.memo)+'</div>':'')+'<div class="mf"><button class="btn bs" onclick="cmo()">閉じる</button><button class="btn bg bsm" onclick="printProjSheet('+id+')">印刷</button><button class="btn bp" onclick="cmo();showProjMo('+id+')" style="margin-left:auto">編集</button></div>';
+  const html=
+    '<div style="margin-bottom:12px;padding-bottom:10px;border-bottom:2px solid var(--accent)">'+
+      '<div style="font-size:17px;font-weight:900;margin-bottom:4px">'+esc(p.title)+'</div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:8px;font-size:12px;color:var(--text2)">'+
+        (cust?'<span>'+esc(cust.name)+'</span>':'')+
+        '<span>'+bdg(p.phase)+'</span>'+
+        (p.sd?'<span>'+p.sd+(p.ed?' - '+p.ed:'')+'</span>':'')+
+        (p.amount?'<span>'+fmt(p.amount)+'</span>':'')+
+      '</div>'+
+      ((p.staffIds&&p.staffIds.length&&D.staff&&D.staff.length)?
+        '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:7px">'+
+        p.staffIds.map(function(sid){
+          var st=(D.staff||[]).find(function(s){return s.id===sid;});
+          return st?'<span style="font-size:11px;padding:2px 8px;border-radius:12px;color:#fff;background:'+(st.color||'#4a7c5f')+'">'+(st.type==='partner'?'🏢':'👤')+esc(st.name)+'</span>':'';
+        }).join('')+'</div>':'')+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">'+
+      '<div><div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px">段取りチェック</div>'+progBar+ckHtml+'</div>'+
+      '<div><div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px">人員</div>'+stHtml+'</div>'+
+    '</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">'+
+      '<div><div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px">機器・商品</div>'+eqHtml+'</div>'+
+      '<div><div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px">材料・部材</div>'+mtHtml+'</div>'+
+    '</div>'+
+    (p.memo?'<div style="padding:8px;background:var(--bg3);border-radius:6px;font-size:12px;margin-bottom:12px;white-space:pre-wrap">'+esc(p.memo)+'</div>':'')+
+    '<div class="mf">'+
+      '<button class="btn bs" onclick="cmo()">閉じる</button>'+
+      '<button class="btn bg bsm" onclick="printProjSheet('+id+')">印刷</button>'+
+      '<button class="btn bp" onclick="cmo();showProjMo('+id+')" style="margin-left:auto">編集</button>'+
+    '</div>';
   mo(html,true);
 }
 
@@ -2557,6 +2630,70 @@ function delCon(type,id){
   ov.innerHTML=`<div class="cb"><div style="font-size:34px;margin-bottom:9px">⚠️</div><div style="font-size:15px;font-weight:700;margin-bottom:6px">${lbl[type]}を削除しますか？</div><div style="font-size:13px;color:var(--text2);margin-bottom:18px">この操作は取り消せません。</div><div style="display:flex;gap:7px;justify-content:center"><button class="btn bs" onclick="document.getElementById('cov').remove()">キャンセル</button><button class="btn bd" onclick="_del('${type}',${id})">削除する</button></div></div>`;
   document.body.appendChild(ov);
 }
+function showStaffMo(id,defaultType){
+  if(!D.staff)D.staff=[];
+  const s=id?D.staff.find(function(st){return st.id===id;}):null;
+  const type=s?s.type:(defaultType||'staff');
+  const isStaff=(type==='staff');
+  const lbl=isStaff?'スタッフ・従業員':'協力会社';
+  const delBtn=s?('<button class="btn bd" onclick="delCon(&quot;staff&quot;,'+s.id+')">🗑 削除</button>'):'';
+  const saveId=s?String(s.id):'null';
+  mo('<div class="mt">'+(s?lbl+'を編集':'新規'+lbl+'登録')+'</div>'+
+    '<input type="hidden" id="sf-type" value="'+type+'">'+
+    '<div class="fg">'+
+      '<div class="fr" style="grid-column:1/-1">'+
+        '<label class="fl">'+(isStaff?'氏名':'会社名・氏名')+' *</label>'+
+        '<input id="sf-nm" value="'+esc(s?s.name:'')+'">'+
+      '</div>'+
+      '<div class="fr">'+
+        '<label class="fl">'+(isStaff?'役割・職種':'担当・専門')+'</label>'+
+        '<input id="sf-rl" value="'+esc(s?s.role:'')+'">'+
+      '</div>'+
+      '<div class="fr">'+
+        '<label class="fl">電話番号</label>'+
+        '<input id="sf-ph" type="tel" value="'+esc(s?s.phone:'')+'">'+
+      '</div>'+
+      '<div class="fr">'+
+        '<label class="fl">メール</label>'+
+        '<input id="sf-em" type="email" value="'+esc(s?s.email:'')+'">'+
+      '</div>'+
+      '<div class="fr" style="grid-column:1/-1">'+
+        '<label class="fl">メモ</label>'+
+        '<textarea id="sf-me" rows="2">'+esc(s?s.memo:'')+'</textarea>'+
+      '</div>'+
+      '<div class="fr">'+
+        '<label class="fl">カラー</label>'+
+        '<div style="display:flex;gap:6px;flex-wrap:wrap;padding:4px 0">'+
+        ['#e74c3c','#e67e22','#f1c40f','#2ecc71','#1abc9c','#3498db','#2980b9','#9b59b6','#8e44ad','#e91e8c','#c0392b','#d35400','#27ae60','#16a085','#4a7c5f','#2c3e50','#7f8c8d','#8b6f47','#6b5fa0','#4872a8'].map(function(c){return '<div class="sf-cc" data-c="'+c+'" onclick="document.querySelectorAll(\'.sf-cc\').forEach(function(e){e.style.outline=\'none\'});this.style.outline=\'3px solid var(--text)\';this.style.outlineOffset=\'2px\';" style="width:22px;height:22px;background:'+c+';border-radius:50%;cursor:pointer;outline:'+(((s?s.color:'') ||'#4a7c5f')===c?'3px solid var(--text)':'none')+';outline-offset:2px"></div>';}).join('')+
+        '</div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="mf">'+delBtn+
+      '<button class="btn bs" onclick="cmo()">キャンセル</button>'+
+      '<button class="btn bp" onclick="saveStaff('+saveId+')">💾 保存</button>'+
+    '</div>');
+}
+
+function saveStaff(id){
+  if(!D.staff)D.staff=[];
+  const nm=document.getElementById('sf-nm')?.value.trim();
+  if(!nm){toast('名前を入力してください','er');return;}
+  const sfColor=document.querySelector('.sf-cc[style*="3px solid"]')?.dataset.c||'#4a7c5f';
+  const obj={
+    name:nm,
+    type:document.getElementById('sf-type')?.value||'staff',
+    role:gv('sf-rl'),phone:gv('sf-ph'),email:gv('sf-em'),memo:gv('sf-me'),color:sfColor
+  };
+  const realId=(id&&id!=='null')?parseInt(id):null;
+  if(realId){
+    const i=D.staff.findIndex(s=>s.id===realId);
+    if(i>=0){D.staff[i]={...D.staff[i],...obj};toast('更新しました ✅');}
+  }else{
+    D.staff.push({...obj,id:nid()});toast('登録しました ✅');
+  }
+  save();_flush();cmo();buildPage();
+}
+
 // ============================================================
 // NAV CLICK HANDLER
 // ============================================================
@@ -2571,7 +2708,7 @@ document.getElementById('sb-nav').addEventListener('click',e=>{
 seed();
 (function applyCfg(){if(!D||!D.cfg)return;const c=D.cfg;if(c.accentColor&&document.documentElement)document.documentElement.style.setProperty('--accent',c.accentColor);})();
 nav('dashboard');
-setTimeout(_checkAlerts,1000);
+setTimeout(_checkAlerts,1000);+(p.staffIds&&p.staffIds.length&&D.staff&&D.staff.length?'<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:7px">'+p.staffIds.map(function(sid){var st=(D.staff||[]).find(function(s){return s.id===sid;});return st?'<span style="display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:2px 8px;border-radius:12px;color:#fff;background:'+(st.color||'#4a7c5f')+'">'+(st.type==="partner"?'🏢':'👤')+esc(st.name)+'</span>':'';}).join('')+'</div>':'')
 </script>
 
 </body>
