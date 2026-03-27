@@ -1197,7 +1197,7 @@ function calWeek(){
       const ht=Math.max((function(st,et){return(function(t){const p=t.split(':').map(Number);return(p[0]*60+p[1])/60*SH2;})(et)-(function(t){const p=t.split(':').map(Number);return(p[0]*60+p[1])/60*SH2;})(st);})(s.st||'0:00',s.et||'0:00'),18);
       return'<div style="position:absolute;left:1px;right:1px;top:'+top+'px;height:'+ht+'px;background:'+(s.color||'var(--accent)')+';border-radius:3px;padding:1px 3px;font-size:9px;font-weight:700;cursor:pointer;overflow:hidden;color:#fff;z-index:3" draggable=\"true\" ondragstart=\"event.stopPropagation();_calDragStart(event,'+s.id+')\" oncontextmenu=\"event.preventDefault();event.stopPropagation();_calCtxMenu(event,'+s.id+')\" onclick=\"event.stopPropagation();showSchedMo('+s.id+',\''+ds+'\')">'+esc(s.title)+'<br><span style="font-size:8px;opacity:.85">'+s.st+'–'+s.et+'</span></div>';
     }).join('');
-    return'<div style="flex:1;border-right:1px solid var(--border);position:relative;cursor:pointer" data-ds="'+ds+'" data-h="'+h+'" ondragover="event.preventDefault()" ondrop="_calDrop(event,this)" onclick="_calCellClick(event,\''+ds+'\',this)">'+hlines+evs+'</div>';
+    return'<div style="flex:1;border-right:1px solid var(--border);position:relative;cursor:pointer" data-ds="'+ds+'" data-h="'+h+'" ondragover="event.preventDefault()" ondrop="_calDrop(event,this)" onclick="clickCal(event,\''+ds+'\',this)">'+hlines+evs+'</div>';
   }).join('');
 
   document.getElementById('ct').innerHTML=
@@ -2704,53 +2704,39 @@ function _calDragStart(ev,id){
 
 function _calDrop(ev,cell){
   ev.preventDefault();ev.stopPropagation();
-  const id=parseInt(ev.dataTransfer.getData('text/plain')||_calDragging);
-  if(!id)return;
-  const s=D.schedules.find(s=>s.id===id);if(!s)return;
-  const ds=cell.dataset.ds;
-  const h=parseInt(cell.dataset.h||0);
-  if(!ds)return;
+  const ds=cell.dataset.ds;if(!ds)return;
   const rect=cell.getBoundingClientRect();
   const SH2=window.innerWidth<=768?40:SH;
   const relY=Math.max(0,ev.clientY-rect.top);
-  const dropMin=Math.round(relY/SH2*60/15)*15;
-  const dropH=Math.max(0,Math.min(23,h+Math.floor(dropMin/60)));
-  const mm=String(dropMin%60).padStart(2,'0');
+  const totalMin=Math.round(relY/SH2*60/15)*15;
+  const dropH=Math.floor(totalMin/60);
+  const dropMm=totalMin%60;
+  const mm=String(dropMm).padStart(2,'0');
   const p=function(t){const a=(t||'0:00').split(':');return parseInt(a[0])*60+(parseInt(a[1])||0);};
+  // 複製モード
+  if(_calCopied!==null){
+    const src=D.schedules.find(function(s){return s.id===_calCopied;});
+    if(src){
+      const dur=Math.max(30,p(src.et)-p(src.st));
+      const em=dropH*60+dropMm+dur;
+      D.schedules.push({...src,id:nid(),date:ds,
+        st:dropH+':'+mm,
+        et:Math.floor(em/60)+':'+String(em%60).padStart(2,'0')});
+      _calCopied=null;save();_flush();
+      toast('複製しました ✅');buildPage();return;
+    }
+  }
+  // 移動モード
+  const id=parseInt(ev.dataTransfer.getData('text/plain')||_calDragging);
+  if(!id)return;
+  const s=D.schedules.find(function(s){return s.id===id;});if(!s)return;
   const dur=Math.max(30,p(s.et)-p(s.st));
-  const em=dropH*60+(dropMin%60)+dur;
+  const em=dropH*60+dropMm+dur;
   s.date=ds;
   s.st=dropH+':'+mm;
   s.et=Math.floor(em/60)+':'+String(em%60).padStart(2,'0');
-  _calDragging=null;
-  save();_flush();
-  toast('移動しました: '+s.title);
-  buildPage();
-}
-
-function _calCellClick(ev,ds,h){
-  if(_calCopied!==null){
-    const src=D.schedules.find(s=>s.id===_calCopied);
-    if(src){
-      const rect=ev.currentTarget.getBoundingClientRect();
-      const SH2=window.innerWidth<=768?40:SH;
-      const relY=Math.max(0,ev.clientY-rect.top);
-      const dropMin=Math.round(relY/SH2*60/15)*15;
-      const dropH=Math.max(0,Math.min(23,h+Math.floor(dropMin/60)));
-      const mm=String(dropMin%60).padStart(2,'0');
-      const p=function(t){const a=(t||'0:00').split(':');return parseInt(a[0])*60+(parseInt(a[1])||0);};
-      const dur=Math.max(30,p(src.et)-p(src.st));
-      const em=dropH*60+(dropMin%60)+dur;
-      const ns={...src,id:nid(),date:ds,st:dropH+':'+mm,et:Math.floor(em/60)+':'+String(em%60).padStart(2,'0')};
-      D.schedules.push(ns);
-      _calCopied=null;
-      save();_flush();
-      toast('複製しました: '+ns.title);
-      buildPage();
-      return;
-    }
-  }
-  clickCal(ev,ds,h);
+  _calDragging=null;save();_flush();
+  toast('移動しました ✅');buildPage();
 }
 
 function _calCtxMenu(ev,id){
