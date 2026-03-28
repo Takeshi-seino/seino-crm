@@ -1473,7 +1473,7 @@ function showProjMo(id,preCid){
     <div class="fr" style="grid-column:1/-1"><label class="fl">メモ</label><textarea id="f-me" rows="2">${esc(p?.memo||'')}</textarea></div>
     <div class="fr" style="grid-column:1/-1"><label class="fl">担当スタッフ・協力会社</label>
       <div style="max-height:100px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:6px;display:flex;flex-wrap:wrap;gap:6px">
-        ${(D.staff&&D.staff.length)?(D.staff.map(st=>`<label style="display:flex;align-items:center;gap:4px;padding:3px 10px;background:var(--bg3);border-radius:4px;font-size:12px;cursor:pointer;white-space:nowrap;border-left:3px solid ${st.color||'#4a7c5f'}"><input type="checkbox" class="pj-staff-cb" value="${st.id}" ${(p?.staffIds||[]).includes(st.id)?"checked":""} style="accent-color:${st.color||'#4a7c5f'};width:16px;height:16px;flex-shrink:0">${esc(st.name)}<span style="font-size:10px;color:var(--text3);margin-left:2px">${st.type==="partner"?"[協]":"[社]"}</span></label>`).join("")):"<span style=\"font-size:12px;color:var(--text3)\">スタッフ未登録（スタッフ・協力会社メニューで登録）</span>"}
+        ${(D.staff&&D.staff.length)?(D.staff.map(st=>`<label style="display:flex;align-items:center;gap:4px;padding:3px 10px;background:var(--bg3);border-radius:4px;font-size:12px;cursor:pointer;white-space:nowrap;border-left:3px solid ${st.color||'#4a7c5f'}"><input type="checkbox" class="pj-staff-cb" value="${st.id}" ${(p?.staffIds||[]).includes(st.id)?"checked":""} style="accent-color:${st.color||'#4a7c5f'}">${esc(st.name)}<span style="font-size:10px;color:var(--text3);margin-left:2px">${st.type==="partner"?"[協]":"[社]"}</span></label>`).join("")):"<span style=\"font-size:12px;color:var(--text3)\">スタッフ未登録（スタッフ・協力会社メニューで登録）</span>"}
       </div>
     </div>
   </div>
@@ -1528,7 +1528,7 @@ function showSchedMo(id,ds,st,et,allDay){
   </div>
   <div class="fr"><label class="fl">関連案件（任意）</label><select id="sc-pi"><option value="">— 関連付けない —</option>${D.projects.map(p=>`<option value="${p.id}" ${s?.pid===p.id?'selected':''}>${p.title}</option>`).join('')}</select></div>
   <div class="fr"><label class="fl">カラー</label><div style="display:flex;gap:5px;flex-wrap:wrap">${cols.map(c=>`<div class="cc" data-c="${c}" onclick="document.querySelectorAll('.cc').forEach(e=>e.style.outline='none');this.style.outline='3px solid var(--text)'" style="width:22px;height:22px;background:${c};border-radius:50%;cursor:pointer;outline:${(s?.color||cols[0])===c?'3px solid var(--text)':'none'}"></div>`).join('')}</div></div>
-  <div class="fr" style="grid-column:1/-1"><label class="fl">参加スタッフ・協力会社</label><div style="max-height:100px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:6px;display:flex;flex-wrap:wrap;gap:6px">${(D.staff&&D.staff.length)?(D.staff.map(st=>`<label style="display:flex;align-items:center;gap:4px;padding:3px 10px;background:var(--bg3);border-radius:4px;font-size:12px;cursor:pointer;white-space:nowrap;border-left:3px solid ${st.color||'#4a7c5f'}"><input type="checkbox" class="sc-staff-cb" value="${st.id}" ${(s?.staffIds||[]).includes(st.id)?"checked":""} style="accent-color:${st.color||'#4a7c5f'};width:16px;height:16px;flex-shrink:0">${esc(st.name)}<span style="font-size:10px;color:var(--text3);margin-left:2px">${st.type==="partner"?"[協]":"[社]"}</span></label>`).join("")):"<span style=\"font-size:12px;color:var(--text3)\">スタッフ未登録</span>"}</div></div>
+  <div class="fr" style="grid-column:1/-1"><label class="fl">参加スタッフ・協力会社</label><div style="max-height:100px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:6px;display:flex;flex-wrap:wrap;gap:6px">${(D.staff&&D.staff.length)?(D.staff.map(st=>`<label style="display:flex;align-items:center;gap:4px;padding:3px 10px;background:var(--bg3);border-radius:4px;font-size:12px;cursor:pointer;white-space:nowrap;border-left:3px solid ${st.color||'#4a7c5f'}"><input type="checkbox" class="sc-staff-cb" value="${st.id}" ${(s?.staffIds||[]).includes(st.id)?"checked":""} style="accent-color:${st.color||'#4a7c5f'}">${esc(st.name)}<span style="font-size:10px;color:var(--text3);margin-left:2px">${st.type==="partner"?"[協]":"[社]"}</span></label>`).join("")):"<span style=\"font-size:12px;color:var(--text3)\">スタッフ未登録</span>"}</div></div>
   <div class="fr"><label class="fl">メモ</label><textarea id="sc-me" rows="2">${esc(s?.memo||'')}</textarea></div>
   <div class="mf">${s?`<button class="btn bd" onclick="delCon('schedule',${s.id})">🗑 削除</button>`:''}
     <button class="btn bs" onclick="cmo()">キャンセル</button>
@@ -1873,16 +1873,23 @@ function _showPrintPreview(id,type){
           '<tr style="background:#222;color:#fff"><td style="padding:6px 10px;font-weight:700">合計金額</td><td style="padding:6px 14px;text-align:right;font-weight:900">¥'+fmtN(tot)+'</td></tr>'+
         '</table>'+
       '</div>'+
+      '<div id="print-close-bar" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:#1a1a1a;padding:10px 16px">'+
+        '<button onclick="document.getElementById(\'print-preview-ov\')?.remove()" style="width:100%;background:#e74c3c;color:#fff;border:none;border-radius:8px;padding:14px;font-size:16px;font-weight:700;cursor:pointer">✕ 閉じる（戻る）</button>'+
+      '</div>'+
       '<div style="text-align:center;padding:16px 0;border-top:1px solid #ddd">'+
-        '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">'+'<button onclick="document.getElementById(\'print-preview-ov\')?.remove()" style="background:#888;color:#fff;border:none;border-radius:8px;padding:12px 28px;font-size:15px;cursor:pointer;font-weight:700">✕ 閉じる</button>'+'<button onclick="window.print()" style="background:#4a7c5f;color:#fff;border:none;border-radius:8px;padding:12px 28px;font-size:15px;cursor:pointer;font-weight:700">🖨️ 印刷 / PDF保存</button>'+'</div>'+
+        '<button onclick="window.print()" style="background:#4a7c5f;color:#fff;border:none;border-radius:8px;padding:12px 28px;font-size:15px;cursor:pointer;font-weight:700">🖨️ 印刷 / PDF保存</button>'+
       '</div>'+
     '</div>';
   document.body.appendChild(ov);
   setTimeout(function(){
-    var btn=document.getElementById('mob-back-btn');
-    if(btn)btn.addEventListener('click',function(){
-      document.getElementById('print-preview-ov')?.remove();
-    });
+    if(window.innerWidth<=768){
+      var bar=document.getElementById('print-close-bar');
+      if(bar){
+        bar.style.display='block';
+        var wrap=document.querySelector('#print-preview-ov>div');
+        if(wrap)wrap.style.paddingTop='70px';
+      }
+    }
   },0);
 }
 function _buildQuotePrintHtml(id){printQ(id);}
