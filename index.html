@@ -1472,8 +1472,8 @@ function showProjMo(id,preCid){
     <div class="fr"><label class="fl">終了予定日</label><input type="date" id="f-ed" value="${p?.ed||''}"></div>
     <div class="fr" style="grid-column:1/-1"><label class="fl">メモ</label><textarea id="f-me" rows="2">${esc(p?.memo||'')}</textarea></div>
     <div class="fr" style="grid-column:1/-1"><label class="fl">担当スタッフ・協力会社</label>
-      <div style="max-height:100px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:6px;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:4px">
-        ${(D.staff&&D.staff.length)?(D.staff.map(st=>`<label style="display:flex;align-items:center;gap:4px;padding:3px 8px;background:var(--bg3);border-radius:4px;font-size:12px;cursor:pointer;border-left:3px solid ${st.color||'#4a7c5f'}"><input type="checkbox" class="pj-staff-cb" value="${st.id}" ${(p?.staffIds||[]).includes(st.id)?"checked":""} style="accent-color:${st.color||'#4a7c5f'}">${esc(st.name)}<span style="font-size:10px;color:var(--text3);margin-left:2px">${st.type==="partner"?"[協]":"[社]"}</span></label>`).join("")):"<span style=\"font-size:12px;color:var(--text3)\">スタッフ未登録（スタッフ・協力会社メニューで登録）</span>"}
+      <div style="max-height:100px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:6px;display:flex;flex-wrap:wrap;gap:6px">
+        ${(D.staff&&D.staff.length)?(D.staff.map(st=>`<label style="display:flex;align-items:center;gap:4px;padding:3px 10px;background:var(--bg3);border-radius:4px;font-size:12px;cursor:pointer;white-space:nowrap;border-left:3px solid ${st.color||'#4a7c5f'}"><input type="checkbox" class="pj-staff-cb" value="${st.id}" ${(p?.staffIds||[]).includes(st.id)?"checked":""} style="accent-color:${st.color||'#4a7c5f'}">${esc(st.name)}<span style="font-size:10px;color:var(--text3);margin-left:2px">${st.type==="partner"?"[協]":"[社]"}</span></label>`).join("")):"<span style=\"font-size:12px;color:var(--text3)\">スタッフ未登録（スタッフ・協力会社メニューで登録）</span>"}
       </div>
     </div>
   </div>
@@ -1528,7 +1528,7 @@ function showSchedMo(id,ds,st,et,allDay){
   </div>
   <div class="fr"><label class="fl">関連案件（任意）</label><select id="sc-pi"><option value="">— 関連付けない —</option>${D.projects.map(p=>`<option value="${p.id}" ${s?.pid===p.id?'selected':''}>${p.title}</option>`).join('')}</select></div>
   <div class="fr"><label class="fl">カラー</label><div style="display:flex;gap:5px;flex-wrap:wrap">${cols.map(c=>`<div class="cc" data-c="${c}" onclick="document.querySelectorAll('.cc').forEach(e=>e.style.outline='none');this.style.outline='3px solid var(--text)'" style="width:22px;height:22px;background:${c};border-radius:50%;cursor:pointer;outline:${(s?.color||cols[0])===c?'3px solid var(--text)':'none'}"></div>`).join('')}</div></div>
-  <div class="fr" style="grid-column:1/-1"><label class="fl">参加スタッフ・協力会社</label><div style="max-height:100px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:6px;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:4px">${(D.staff&&D.staff.length)?(D.staff.map(st=>`<label style="display:flex;align-items:center;gap:4px;padding:3px 8px;background:var(--bg3);border-radius:4px;font-size:12px;cursor:pointer;border-left:3px solid ${st.color||'#4a7c5f'}"><input type="checkbox" class="sc-staff-cb" value="${st.id}" ${(s?.staffIds||[]).includes(st.id)?"checked":""} style="accent-color:${st.color||'#4a7c5f'}">${esc(st.name)}<span style="font-size:10px;color:var(--text3);margin-left:2px">${st.type==="partner"?"[協]":"[社]"}</span></label>`).join("")):"<span style=\"font-size:12px;color:var(--text3)\">スタッフ未登録</span>"}</div></div>
+  <div class="fr" style="grid-column:1/-1"><label class="fl">参加スタッフ・協力会社</label><div style="max-height:100px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:6px;display:flex;flex-wrap:wrap;gap:6px">${(D.staff&&D.staff.length)?(D.staff.map(st=>`<label style="display:flex;align-items:center;gap:4px;padding:3px 10px;background:var(--bg3);border-radius:4px;font-size:12px;cursor:pointer;white-space:nowrap;border-left:3px solid ${st.color||'#4a7c5f'}"><input type="checkbox" class="sc-staff-cb" value="${st.id}" ${(s?.staffIds||[]).includes(st.id)?"checked":""} style="accent-color:${st.color||'#4a7c5f'}">${esc(st.name)}<span style="font-size:10px;color:var(--text3);margin-left:2px">${st.type==="partner"?"[協]":"[社]"}</span></label>`).join("")):"<span style=\"font-size:12px;color:var(--text3)\">スタッフ未登録</span>"}</div></div>
   <div class="fr"><label class="fl">メモ</label><textarea id="sc-me" rows="2">${esc(s?.memo||'')}</textarea></div>
   <div class="mf">${s?`<button class="btn bd" onclick="delCon('schedule',${s.id})">🗑 削除</button>`:''}
     <button class="btn bs" onclick="cmo()">キャンセル</button>
@@ -2475,7 +2475,7 @@ function showProjDetail(id){
         (p.amount?'<span>'+fmt(p.amount)+'</span>':'')+
       '</div>'+
       ((p.staffIds&&p.staffIds.length&&D.staff&&D.staff.length)?
-        '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:4px;margin-top:7px">'+
+        '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:7px">'+
         p.staffIds.map(function(sid){
           var st=(D.staff||[]).find(function(s){return s.id===sid;});
           return st?'<span style="font-size:11px;padding:2px 8px;border-radius:12px;color:#fff;background:'+(st.color||'#4a7c5f')+'">'+(st.type==='partner'?'🏢':'👤')+esc(st.name)+'</span>':'';
