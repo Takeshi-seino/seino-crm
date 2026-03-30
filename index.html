@@ -97,7 +97,7 @@ tbody tr:hover td{background:var(--bg3)}
 .amt{font-size:14px;font-weight:900;color:var(--accent)}
 
 /* MODAL */
-.ov{position:fixed;inset:0;background:rgba(44,38,32,.4);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(2px)}
+.ov{position:fixed;inset:0;background:rgba(44,38,32,.4);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px}
 .mo{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:22px;width:100%;max-width:540px;max-height:92vh;overflow-y:auto;box-shadow:0 8px 32px rgba(44,38,32,.16)}
 .mo-lg{max-width:860px}
 .mt{font-size:15px;font-weight:900;margin-bottom:16px;padding-bottom:11px;border-bottom:1px solid var(--border)}
@@ -333,7 +333,7 @@ tbody tr:hover td{background:var(--bg3)}
 // ============================================================
 // DATA — single in-memory object, flush to localStorage on debounce
 // ============================================================
-const K={c:'s5c',p:'s5p',q:'s5q',s:'s5s',id:'s5id',st:'s5st'};
+const K={c:'s5c',p:'s5p',q:'s5q',s:'s5s',id:'s5id',st:'s5st',si:'s5si',sl:'s5sl'};
 let D=null; // THE single data object
 
 function initD(){
@@ -344,6 +344,8 @@ function initD(){
     quotes:     JSON.parse(localStorage.getItem(K.q)||'[]'),
     schedules:  JSON.parse(localStorage.getItem(K.s)||'[]'),
     staff:      JSON.parse(localStorage.getItem('s5st')||'[]'),
+    stockItems: JSON.parse(localStorage.getItem(K.si)||'[]'),
+    stockLogs:  JSON.parse(localStorage.getItem(K.sl)||'[]'),
     nextId:     parseInt(localStorage.getItem(K.id)||'1'),
     cfg:        JSON.parse(localStorage.getItem('s5cfg')||'{}'),
   };
@@ -366,6 +368,8 @@ function _flush(){
     localStorage.setItem(K.q,JSON.stringify(D.quotes));
     localStorage.setItem(K.s,JSON.stringify(D.schedules));
     localStorage.setItem('s5st',JSON.stringify(D.staff||[]));
+    localStorage.setItem(K.si,JSON.stringify(D.stockItems||[]));
+    localStorage.setItem(K.sl,JSON.stringify(D.stockLogs||[]));
     localStorage.setItem(K.id,D.nextId);
     if(D.cfg) localStorage.setItem('s5cfg',JSON.stringify(D.cfg));
     const el=document.getElementById('sv-time');
@@ -416,6 +420,14 @@ function seed(){
     {id:90,pid:10,title:'現場打ち合わせ',date:td,st:'10:00',et:'11:30',memo:'',color:'#4a7c5f',allDay:false},
     {id:91,pid:null,title:'定例会議',date:td,st:'14:00',et:'15:00',memo:'',color:'#4872a8',allDay:false},
   ];
+  D.stockItems=[
+    {id:92,name:'LED電球 E26 60W相当',partNo:'LDA8L-G/60W',maker:'パナソニック',kojiType:'照明工事',unit:'個',qty:24,reorder:10,price:380,supplier:'〇〇電材',memo:'',created:td},
+    {id:93,name:'VVFケーブル 2.0mm×3C',partNo:'VVF2.0×3C',maker:'フジクラ',kojiType:'配線工事',unit:'巻',qty:3,reorder:5,price:4200,supplier:'〇〇電材',memo:'',created:td},
+    {id:94,name:'分電盤 20回路',partNo:'BQR8620',maker:'パナソニック',kojiType:'分電盤工事',unit:'台',qty:2,reorder:1,price:42000,supplier:'△△電設資材',memo:'',created:td},
+    {id:95,name:'埋込スイッチ（片切）',partNo:'WN5001',maker:'パナソニック',kojiType:'スイッチ工事',unit:'個',qty:18,reorder:10,price:450,supplier:'〇〇電材',memo:'',created:td},
+    {id:96,name:'接地コンセント 2P',partNo:'WN1101W',maker:'パナソニック',kojiType:'コンセント工事',unit:'個',qty:0,reorder:10,price:380,supplier:'〇〇電材',memo:'',created:td},
+  ];
+  D.stockLogs=[];
   D.nextId=100;
   save();_flush();
 }
@@ -453,7 +465,10 @@ function toggleSb(){
 function buildTopbar(){
   const el=document.getElementById('tbact');
   if(page==='customers'&&!detCid){
-    el.innerHTML=`<div class="sugg" style="position:relative"><input id="srch" type="text" placeholder="顧客名・番号・電話で検索..." value="${esc(srch)}" style="width:210px" oninput="srch=this.value;_dsr()"><div id="srch-clr" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3);display:${srch?'block':'none'}" onclick="srch='';document.getElementById('srch').value='';buildPage()">✕</div></div><button class="btn bp" onclick="showCustMo()">＋ 新規顧客</button>`;
+    el.innerHTML=`<div class="sugg" style="position:relative"><input id="srch" type="text" placeholder="顧客名・番号・電話で検索..." value="${esc(srch)}" style="width:210px"
+      oncompositionstart="_ime=true"
+      oncompositionend="_ime=false;srch=this.value;_dsr()"
+      oninput="if(!_ime){srch=this.value;_dsr()}"><div id="srch-clr" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3);display:${srch?'block':'none'}" onclick="srch='';document.getElementById('srch').value='';buildPage()">✕</div></div><button class="btn bp" onclick="showCustMo()">＋ 新規顧客</button>`;
   }else if(page==='projects'){
     var calBtns='';
     if(pView==='cal'&&window.innerWidth>768){
@@ -466,6 +481,13 @@ function buildTopbar(){
       calBtns+'<button class="btn bp" onclick="showProjMo()">＋ 新規案件</button>';
   }else if(page==='quotes'){
     el.innerHTML=`<button class="btn bp" onclick="showQuoteMo()">＋ 新規見積作成</button>`;
+  }else if(page==='stock'){
+    el.innerHTML=
+      `<input id="st-srch" type="text" placeholder="品名・型番で検索..." value="${esc(_stSrch)}" style="width:190px"
+        oncompositionstart="_stComposing=true"
+        oncompositionend="_stComposing=false;_stSrch=this.value;clearTimeout(_stDsrT);_stDsrT=setTimeout(buildPage,50)"
+        oninput="if(!_stComposing){_stSrch=this.value;clearTimeout(_stDsrT);_stDsrT=setTimeout(buildPage,50)}">` +
+      `<button class="btn bp" onclick="showStockItemMo()">＋ 品目登録</button>`;
   }else if(detCid){
     el.innerHTML=`<button class="btn bs" onclick="nav('customers')">← 顧客一覧に戻る</button>`;
   }else{
@@ -474,7 +496,7 @@ function buildTopbar(){
 }
 
 let _dsr_t=null;
-function _dsr(){srch=document.getElementById('srch')?.value||'';clearTimeout(_dsr_t);_dsr_t=setTimeout(buildPage,350);}
+function _dsr(){srch=document.getElementById('srch')?.value||'';clearTimeout(_dsr_t);_dsr_t=setTimeout(buildPage,50);}
 
 function buildPage(){
   if(page==='dashboard') pgDash();
@@ -1565,7 +1587,10 @@ function showQuoteMo(id,preCid){
       <div class="fr"><label class="fl">見積番号</label><input id="qe-no" value="${q?.qn||genQN()}" style="color:var(--accent);font-weight:700" readonly></div>
       <div class="fr"><label class="fl">見積書名 *</label><input id="qe-ti" value="${esc(q?.title||'')}" placeholder="例: 電気設備更新工事 見積書"></div>
       <div class="fr"><label class="fl">顧客名 <span style="font-size:9px;color:var(--accent)">（入力で顧客管理と連携）</span></label>
-        <div style="position:relative"><input type="text" id="qe-cn" value="${esc(cust?cust.name:q?.toName||'')}" placeholder="顧客名を入力..." autocomplete="off" oninput="_qeSug(this.value)" style="width:100%">
+        <div style="position:relative"><input type="text" id="qe-cn" value="${esc(cust?cust.name:q?.toName||'')}" placeholder="顧客名を入力..." autocomplete="off"
+          oncompositionstart="_ime=true"
+          oncompositionend="_ime=false;_qeSug(this.value)"
+          oninput="if(!_ime)_qeSug(this.value)" style="width:100%">
         <div id="qe-sl" class="sugl"></div></div>
         <div id="qe-cb" style="margin-top:4px;font-size:11px;color:var(--accent);font-weight:700;min-height:16px">${cust?`✅ ${cust.cn} – ${cust.name} と連携中`:''}</div>
       </div>
@@ -1940,19 +1965,363 @@ function pgStaff(){
       '</table></div>'+
     '</div>';
 }
+// ============================================================
+// STOCK 在庫管理
+// ============================================================
+let _stSrch='',_stFKoji='全て',_stFStock='全て',_stFSup='全て',_stDsrT=null,_stFocusSearch=false,_stComposing=false;
+let _ime=false; // グローバルIMEコンポジション中フラグ（全テキスト入力共通）
+const _KOJI_DEF=['照明工事','配線工事','スイッチ工事','分電盤工事','コンセント工事','エアコン工事','太陽光工事','その他'];
+function getKojiTypes(){
+  const custom=(D.cfg&&D.cfg.stockKojiTypes)||[];
+  return[..._KOJI_DEF,...custom.filter(k=>!_KOJI_DEF.includes(k))];
+}
+const _UNIT=['個','巻','本','台','式','枚','袋','箱','m','組','セット'];
+
 function pgStock(){
-  document.getElementById('ct').innerHTML=
-    '<div style="text-align:center;padding:60px 20px">'+
-    '<div style="font-size:60px;margin-bottom:16px">📦</div>'+
-    '<div style="font-size:20px;font-weight:900;margin-bottom:8px">在庫管理</div>'+
-    '<div style="font-size:14px;color:var(--text3);margin-bottom:24px">この機能は現在開発中です</div>'+
-    '<div style="background:var(--bg3);border-radius:var(--radius);padding:16px;max-width:320px;margin:0 auto;text-align:left;font-size:13px;color:var(--text2)">'+
-    '<div style="font-weight:700;margin-bottom:8px">実装予定：</div>'+
-    '<div>✅ 品目登録（電線・部材など）</div>'+
-    '<div>✅ 入出庫管理</div>'+
-    '<div>✅ 発注点アラート</div>'+
-    '<div>✅ 発注書PDF印刷</div>'+
-    '</div></div>';
+  if(!D.stockItems) D.stockItems=[];
+  if(!D.stockLogs)  D.stockLogs=[];
+  const items=D.stockItems;
+
+  // ユニークな工事種・発注先
+  const kojiTypes=[...new Set(items.map(i=>i.kojiType).filter(Boolean))];
+  const suppliers=[...new Set(items.map(i=>i.supplier).filter(Boolean))];
+  // staleフィルターリセット（対象データが消えた場合）
+  if(_stFKoji!=='全て'&&!kojiTypes.includes(_stFKoji)) _stFKoji='全て';
+  if(_stFSup!=='全て'&&!suppliers.includes(_stFSup))   _stFSup='全て';
+
+  // フィルタリング
+  const q=_stSrch.toLowerCase();
+  let filtered=items.filter(i=>{
+    const ms=!q||(i.name||'').toLowerCase().includes(q)||(i.partNo||'').toLowerCase().includes(q)||(i.maker||'').toLowerCase().includes(q)||(i.kojiType||'').toLowerCase().includes(q);
+    const mk=_stFKoji==='全て'||(i.kojiType||'')===_stFKoji;
+    const mst=_stFStock==='全て'||(_stFStock==='残少のみ'&&i.qty<=(i.reorder||0)&&i.qty>0)||(_stFStock==='在庫なし'&&i.qty<=0);
+    const msup=_stFSup==='全て'||(i.supplier||'')===_stFSup;
+    return ms&&mk&&mst&&msup;
+  });
+
+  // 統計
+  const totalItems=items.length;
+  const lowStock=items.filter(i=>i.qty>0&&i.qty<=(i.reorder||0)).length;
+  const outOfStock=items.filter(i=>i.qty<=0).length;
+  const totalValue=items.reduce((s,i)=>s+(i.qty||0)*(i.price||0),0);
+
+  // 残少・在庫なしを上に並べ替え
+  filtered.sort((a,b)=>{
+    const wa=a.qty<=0?2:a.qty<=(a.reorder||0)?1:0;
+    const wb=b.qty<=0?2:b.qty<=(b.reorder||0)?1:0;
+    if(wa!==wb)return wb-wa;
+    return(a.name||'').localeCompare(b.name||'','ja');
+  });
+
+  // テーブル行
+  const rows=filtered.length?filtered.map(i=>{
+    const isOut=i.qty<=0;
+    const isLow=!isOut&&i.qty<=(i.reorder||0);
+    const qc=isOut?'var(--red)':isLow?'var(--yellow)':'var(--green)';
+    const rowBg=isOut?'background:rgba(184,64,64,.04)':isLow?'background:rgba(200,146,42,.04)':'';
+    const warn=isOut?'⛔ ':isLow?'⚠ ':'';
+    const kojiTag=i.kojiType?`<span style="background:rgba(74,124,95,.1);color:var(--accent);padding:1px 6px;border-radius:10px;font-size:9px;font-weight:700">${esc(i.kojiType)}</span>`:'';
+    const subLine=[i.partNo,i.maker].filter(Boolean).join(' · ');
+    const orderBtn=(isOut||isLow)?`<button class="btn bsm" style="color:var(--yellow);border-color:rgba(200,146,42,.5);background:rgba(200,146,42,.07)" onclick="showStockLogMo(${i.id},'入庫')">📋 発注</button>`:'';
+    return`<tr style="${rowBg}">
+      <td style="max-width:260px">
+        <div style="font-weight:700;font-size:12px;margin-bottom:2px">${esc(i.name)}</div>
+        <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">
+          ${subLine?`<span style="font-size:10px;color:var(--text3)">${esc(subLine)}</span>`:''}
+          ${kojiTag}
+        </div>
+      </td>
+      <td style="color:${qc};font-weight:900;font-size:13px;white-space:nowrap">${warn}${fmtN(i.qty)}<span style="font-size:10px;font-weight:400"> ${esc(i.unit||'')}</span></td>
+      <td style="color:var(--text3);font-size:12px;white-space:nowrap">${fmtN(i.reorder||0)} ${esc(i.unit||'')}</td>
+      <td style="font-size:12px;color:var(--text3);white-space:nowrap">${fmt(i.price||0)}</td>
+      <td style="white-space:nowrap;text-align:right">
+        ${orderBtn}
+        <button class="btn bsm bs" onclick="showStockLogMo(${i.id},'入庫')" title="入庫">入</button>
+        <button class="btn bsm bs" onclick="showStockLogMo(${i.id},'出庫')" title="出庫">出</button>
+        <button class="btn bsm bs" onclick="showStockItemMo(${i.id})" title="編集">✏</button>
+      </td>
+    </tr>`;
+  }).join(''):`<tr><td colspan="5"><div class="emp" style="padding:36px 20px">該当する品目がありません</div></td></tr>`;
+
+  const kojiOpts=kojiTypes.map(k=>`<option value="${esc(k)}" ${_stFKoji===k?'selected':''}>${esc(k)}</option>`).join('');
+  const supOpts=suppliers.map(s=>`<option value="${esc(s)}" ${_stFSup===s?'selected':''}>${esc(s)}</option>`).join('');
+  const mob=window.innerWidth<=768;
+
+  document.getElementById('ct').innerHTML=`
+  <div style="max-width:1000px;margin:0 auto;display:flex;flex-direction:column;gap:11px">
+
+    <!-- サマリーカード -->
+    <div style="display:grid;grid-template-columns:${mob?'1fr 1fr':'repeat(4,1fr)'};gap:10px">
+      <div class="sc"><div class="sl">登録品目</div><div class="sv" style="color:var(--blue)">${totalItems}</div><div class="ss">品目数</div></div>
+      <div class="sc"><div class="sl">残少アラート</div><div class="sv" style="color:var(--yellow)">${lowStock}</div><div class="ss">発注点以下</div></div>
+      <div class="sc"><div class="sl">在庫なし</div><div class="sv" style="color:var(--red)">${outOfStock}</div><div class="ss">要補充</div></div>
+      <div class="sc"><div class="sl">在庫総額</div><div class="sv" style="font-size:${mob?'14':'16'}px;color:var(--accent)">${fmt(totalValue)}</div><div class="ss">標準単価×在庫数</div></div>
+    </div>
+
+    <!-- フィルター -->
+    <div class="card" style="padding:10px 14px">
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <select onchange="_stFKoji=this.value;buildPage()" style="font-size:12px">
+          <option value="全て">工事種：全て</option>${kojiOpts}
+        </select>
+        <select onchange="_stFStock=this.value;buildPage()" style="font-size:12px">
+          <option value="全て" ${_stFStock==='全て'?'selected':''}>在庫状態：全て</option>
+          <option value="残少のみ" ${_stFStock==='残少のみ'?'selected':''}>残少のみ</option>
+          <option value="在庫なし" ${_stFStock==='在庫なし'?'selected':''}>在庫なし</option>
+        </select>
+        ${supOpts?`<select onchange="_stFSup=this.value;buildPage()" style="font-size:12px">
+          <option value="全て">発注先：全て</option>${supOpts}
+        </select>`:''}
+        ${(_stSrch||_stFKoji!=='全て'||_stFStock!=='全て'||_stFSup!=='全て')?
+          `<button class="btn bs bsm" onclick="_stSrch='';_stFKoji='全て';_stFStock='全て';_stFSup='全て';document.getElementById('st-srch').value='';buildPage()">✕ リセット</button>`:''}
+      </div>
+    </div>
+
+    <!-- テーブル -->
+    <div class="tw">
+      <table>
+        <thead><tr>
+          <th>品名 / 型番・メーカー</th>
+          <th>在庫数</th>
+          <th>発注点</th>
+          <th>標準単価</th>
+          <th style="min-width:${mob?'80':'160'}px;text-align:right">操作</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+
+    ${totalItems?`<div style="font-size:11px;color:var(--text3);text-align:right">${filtered.length}件表示 / 計${totalItems}品目</div>`:''}
+
+    <!-- 操作ガイド（品目ゼロのとき） -->
+    ${!totalItems?`<div class="card" style="text-align:center;padding:36px 20px">
+      <div style="font-size:48px;margin-bottom:12px">📦</div>
+      <div style="font-weight:900;margin-bottom:6px">品目がまだ登録されていません</div>
+      <div style="color:var(--text3);font-size:13px;margin-bottom:18px">電材・資材などを登録すると在庫管理を始められます</div>
+      <button class="btn bp" onclick="showStockItemMo()">＋ 最初の品目を登録する</button>
+    </div>`:''}
+
+  </div>`;
+}
+
+// 品目登録・編集モーダル
+function showStockItemMo(id){
+  if(!D.stockItems) D.stockItems=[];
+  const item=id?D.stockItems.find(i=>i.id===id):null;
+  const saveId=id||'null';
+  const kojiSel=getKojiTypes().map(k=>`<option ${(item?.kojiType||'照明工事')===k?'selected':''}>${k}</option>`).join('');
+  const unitSel=_UNIT.map(u=>`<option ${(item?.unit||'個')===u?'selected':''}>${u}</option>`).join('');
+  const delBtn=item?`<button class="btn bd" onclick="delStockItem(${id})">🗑 削除</button>`:'';
+  const customKoji=((D.cfg&&D.cfg.stockKojiTypes)||[]);
+  const customTags=customKoji.length?customKoji.map(k=>
+    `<span style="display:inline-flex;align-items:center;gap:3px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:2px 8px;font-size:10px;margin:2px 2px 0 0">
+      ${esc(k)}<button type="button" onclick="_delKojiType('${esc(k)}')" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:11px;padding:0 0 0 2px;line-height:1">✕</button>
+    </span>`
+  ).join(''):'<span style="font-size:10px;color:var(--text3)">カスタム工事種はまだありません</span>';
+  mo(`<div class="mt">${item?'品目を編集':'品目登録'}</div>
+  <div class="fg">
+    <div class="fr" style="grid-column:1/-1"><label class="fl">品名 *</label><input id="sk-nm" value="${esc(item?.name||'')}"></div>
+    <div class="fr"><label class="fl">品番・型番</label><input id="sk-pn" value="${esc(item?.partNo||'')}"></div>
+    <div class="fr"><label class="fl">メーカー</label><input id="sk-mk" value="${esc(item?.maker||'')}"></div>
+    <div class="fr">
+      <label class="fl" style="display:flex;justify-content:space-between;align-items:center">
+        <span>工事種</span>
+        <button type="button" onclick="_toggleKojiAdd()" style="font-size:10px;padding:1px 7px;border-radius:10px;border:1px solid var(--accent);background:rgba(74,124,95,.08);color:var(--accent);cursor:pointer;font-weight:700">＋ 追加</button>
+      </label>
+      <select id="sk-kj">${kojiSel}</select>
+      <div id="sk-kj-wrap" style="display:none;margin-top:7px;background:var(--bg3);border-radius:7px;padding:9px;border:1px solid var(--border)">
+        <div style="display:flex;gap:6px;margin-bottom:7px">
+          <input id="sk-kj-new" placeholder="新しい工事種名を入力..." style="flex:1;font-size:12px">
+          <button type="button" class="btn bp bsm" onclick="_addKojiType()">追加</button>
+          <button type="button" class="btn bs bsm" onclick="_toggleKojiAdd()">✕</button>
+        </div>
+        <div style="font-size:10px;color:var(--text3);margin-bottom:4px;font-weight:700">カスタム工事種</div>
+        <div id="sk-kj-custom">${customTags}</div>
+      </div>
+    </div>
+    <div class="fr"><label class="fl">単位</label><select id="sk-un">${unitSel}</select></div>
+    <div class="fr"><label class="fl">現在在庫数</label><input id="sk-qty" type="number" min="0" step="0.1" value="${item?.qty||0}"></div>
+    <div class="fr"><label class="fl">発注点（残少アラート）</label><input id="sk-ro" type="number" min="0" step="0.1" value="${item?.reorder||0}"></div>
+    <div class="fr"><label class="fl">標準単価（円）</label><input id="sk-pr" type="number" min="0" value="${item?.price||0}"></div>
+    <div class="fr" style="grid-column:1/-1"><label class="fl">発注先</label><input id="sk-sup" value="${esc(item?.supplier||'')}"></div>
+    <div class="fr" style="grid-column:1/-1"><label class="fl">メモ</label><textarea id="sk-me" rows="2">${esc(item?.memo||'')}</textarea></div>
+  </div>
+  <div class="mf">${delBtn}
+    <button class="btn bs" onclick="cmo()">キャンセル</button>
+    <button class="btn bp" onclick="saveStockItem('${saveId}')">💾 保存</button>
+  </div>`);
+  setTimeout(()=>document.getElementById('sk-nm')?.focus(),80);
+}
+
+function _toggleKojiAdd(){
+  const w=document.getElementById('sk-kj-wrap');
+  if(!w)return;
+  const show=w.style.display==='none'||!w.style.display;
+  w.style.display=show?'block':'none';
+  if(show)setTimeout(()=>document.getElementById('sk-kj-new')?.focus(),50);
+}
+
+function _addKojiType(){
+  const inp=document.getElementById('sk-kj-new');
+  const val=(inp?.value||'').trim();
+  if(!val){toast('工事種名を入力してください','er');return;}
+  if(!D.cfg)D.cfg={};
+  if(!D.cfg.stockKojiTypes)D.cfg.stockKojiTypes=[];
+  if(getKojiTypes().includes(val)){toast('すでに存在する工事種です','er');return;}
+  D.cfg.stockKojiTypes.push(val);
+  save();_flush();
+  // select を全再構築（appendChildより確実）
+  const sel=document.getElementById('sk-kj');
+  if(sel){
+    const allTypes=getKojiTypes();
+    sel.innerHTML=allTypes.map(k=>`<option${k===val?' selected':''}>${esc(k)}</option>`).join('');
+  }
+  if(inp)inp.value='';
+  // カスタム一覧を更新
+  const box=document.getElementById('sk-kj-custom');
+  if(box){
+    const custom=D.cfg.stockKojiTypes;
+    box.innerHTML=custom.map(k=>
+      `<span style="display:inline-flex;align-items:center;gap:3px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:2px 8px;font-size:10px;margin:2px 2px 0 0">
+        ${esc(k)}<button type="button" onclick="_delKojiType('${esc(k)}')" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:11px;padding:0 0 0 2px;line-height:1">✕</button>
+      </span>`
+    ).join('');
+  }
+  toast(`「${val}」を追加しました ✅`);
+}
+
+function _delKojiType(name){
+  if(!D.cfg||!D.cfg.stockKojiTypes)return;
+  D.cfg.stockKojiTypes=D.cfg.stockKojiTypes.filter(k=>k!==name);
+  save();_flush();
+  // select を getKojiTypes() から全再構築（removeChild依存を排除）
+  const sel=document.getElementById('sk-kj');
+  if(sel){
+    const cur=sel.value;
+    const newTypes=getKojiTypes();
+    sel.innerHTML=newTypes.map(k=>`<option${(k===cur&&k!==name)?' selected':''}>${esc(k)}</option>`).join('');
+  }
+  // カスタム一覧を更新
+  const box=document.getElementById('sk-kj-custom');
+  if(box){
+    const custom=D.cfg.stockKojiTypes;
+    box.innerHTML=custom.length?custom.map(k=>
+      `<span style="display:inline-flex;align-items:center;gap:3px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:2px 8px;font-size:10px;margin:2px 2px 0 0">
+        ${esc(k)}<button type="button" onclick="_delKojiType('${esc(k)}')" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:11px;padding:0 0 0 2px;line-height:1">✕</button>
+      </span>`
+    ).join(''):'<span style="font-size:10px;color:var(--text3)">カスタム工事種はまだありません</span>';
+  }
+  toast(`「${name}」を削除しました`);
+}
+
+function saveStockItem(id){
+  if(!D.stockItems) D.stockItems=[];
+  const nm=gv('sk-nm').trim();
+  if(!nm){toast('品名を入力してください','er');return;}
+  const obj={
+    name:nm,
+    partNo:gv('sk-pn').trim(),
+    maker:gv('sk-mk').trim(),
+    kojiType:gv('sk-kj'),
+    unit:gv('sk-un'),
+    qty:parseFloat(gv('sk-qty'))||0,
+    reorder:parseFloat(gv('sk-ro'))||0,
+    price:parseFloat(gv('sk-pr'))||0,
+    supplier:gv('sk-sup').trim(),
+    memo:gv('sk-me').trim(),
+  };
+  const realId=(id&&id!=='null')?parseInt(id):null;
+  if(realId){
+    const idx=D.stockItems.findIndex(s=>s.id===realId);
+    if(idx>=0){D.stockItems[idx]={...D.stockItems[idx],...obj};toast('更新しました ✅');}
+  }else{
+    D.stockItems.push({...obj,id:nid(),created:today()});
+    toast('登録しました ✅');
+  }
+  save();_flush();cmo();buildPage();
+}
+
+function delStockItem(id){
+  if(!confirm('この品目を削除しますか？\n（入出庫ログも削除されます）'))return;
+  D.stockItems=(D.stockItems||[]).filter(i=>i.id!==id);
+  D.stockLogs=(D.stockLogs||[]).filter(l=>l.itemId!==id);
+  save();_flush();cmo();toast('削除しました');buildPage();
+}
+
+// 入出庫モーダル
+function showStockLogMo(itemId, defaultType){
+  if(!D.stockItems) D.stockItems=[];
+  const item=D.stockItems.find(i=>i.id===itemId);
+  if(!item){toast('品目が見つかりません','er');return;}
+  const projOpts=(D.projects||[]).filter(p=>p.status!=='完了'&&p.status!=='中止')
+    .map(p=>`<option value="${p.id}">${esc(p.title)}</option>`).join('');
+  mo(`<div class="mt">入出庫を記録 — <span style="color:var(--accent)">${esc(item.name)}</span></div>
+  <div style="background:var(--bg3);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px">
+    <span style="color:var(--text3);font-size:11px">現在在庫</span>
+    <span style="font-size:18px;font-weight:900;color:${item.qty<=0?'var(--red)':item.qty<=(item.reorder||0)?'var(--yellow)':'var(--accent)'}"> ${fmtN(item.qty)}${esc(item.unit||'')}</span>
+    <span style="margin-left:14px;color:var(--text3);font-size:11px">発注点: ${fmtN(item.reorder||0)}${esc(item.unit||'')}　標準単価: ${fmt(item.price||0)}</span>
+  </div>
+  <div class="fg">
+    <div class="fr"><label class="fl">種別</label><select id="sl-tp" onchange="_stLogTypeChange(this.value)">
+      <option ${(defaultType||'入庫')==='入庫'?'selected':''}>入庫</option>
+      <option ${defaultType==='出庫'?'selected':''}>出庫</option>
+    </select></div>
+    <div class="fr"><label class="fl">数量（${esc(item.unit||'')}）</label><input id="sl-qty" type="number" min="0.1" step="0.1" value="1"></div>
+    <div class="fr"><label class="fl">日付</label><input id="sl-dt" type="date" value="${today()}"></div>
+    <div class="fr"><label class="fl">関連案件</label><select id="sl-pj"><option value="">（なし）</option>${projOpts}</select></div>
+    <div id="sl-in-wrap" class="fg" style="grid-column:1/-1;margin:0">
+      <div class="fr"><label class="fl">発注先（入庫時）</label><input id="sl-sup" value="${esc(item.supplier||'')}"></div>
+      <div class="fr"><label class="fl">単価（入庫時・円）</label><input id="sl-pr" type="number" value="${item.price||0}"></div>
+    </div>
+    <div class="fr" style="grid-column:1/-1"><label class="fl">メモ</label><input id="sl-me" placeholder="現場使用分、など"></div>
+  </div>
+  <div class="mf">
+    <button class="btn bs" onclick="cmo()">キャンセル</button>
+    <button class="btn bp" onclick="saveStockLog(${itemId})">💾 記録する</button>
+  </div>`);
+  _stLogTypeChange(defaultType||'入庫');
+  setTimeout(()=>document.getElementById('sl-qty')?.select(),80);
+}
+
+function _stLogTypeChange(type){
+  const w=document.getElementById('sl-in-wrap');
+  if(w) w.style.display=type==='入庫'?'':'none';
+}
+
+function saveStockLog(itemId){
+  if(!D.stockLogs) D.stockLogs=[];
+  if(!D.stockItems) D.stockItems=[];
+  const item=D.stockItems.find(i=>i.id===itemId);
+  if(!item){toast('品目が見つかりません','er');return;}
+  const type=gv('sl-tp');
+  const qty=parseFloat(gv('sl-qty'))||0;
+  if(qty<=0){toast('数量を入力してください','er');return;}
+  if(type==='出庫'&&item.qty<qty){toast(`在庫数が不足しています（在庫: ${fmtN(item.qty)}${item.unit||''}）`,'er');return;}
+  const before=item.qty;
+  if(type==='入庫') item.qty=Math.round((item.qty+qty)*100)/100;
+  else item.qty=Math.round(Math.max(0,item.qty-qty)*100)/100;
+  // 入庫時は単価・発注先を更新
+  if(type==='入庫'){
+    const np=parseFloat(gv('sl-pr'))||0;
+    const ns=gv('sl-sup').trim();
+    if(np>0) item.price=np;
+    if(ns) item.supplier=ns;
+  }
+  const log={
+    id:nid(),itemId,type,qty,before,after:item.qty,
+    date:gv('sl-dt')||today(),
+    projectId:parseInt(gv('sl-pj'))||null,
+    supplier:gv('sl-sup')||'',
+    price:parseFloat(gv('sl-pr'))||0,
+    memo:gv('sl-me')||'',
+  };
+  D.stockLogs.push(log);
+  save();_flush();cmo();
+  toast(`${type}を記録しました ✅  ${fmtN(before)} → ${fmtN(item.qty)} ${item.unit||''}`);
+  if(item.qty<=(item.reorder||0)){
+    setTimeout(()=>toast(`⚠ 「${item.name}」が発注点以下です`,'in'),600);
+  }
+  buildPage();
 }
 
 // ============================================================
