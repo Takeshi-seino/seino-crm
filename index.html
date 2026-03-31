@@ -465,10 +465,10 @@ function toggleSb(){
 function buildTopbar(){
   const el=document.getElementById('tbact');
   if(page==='customers'&&!detCid){
-    el.innerHTML=`<div class="sugg" style="position:relative"><input id="srch" type="text" placeholder="顧客名・番号・電話で検索..." value="${esc(srch)}" style="width:210px"
+    el.innerHTML=`<div style="display:flex;gap:7px;align-items:center;margin-right:40px"><div class="sugg" style="position:relative"><input id="srch" type="text" placeholder="顧客名・番号・電話で検索..." value="${esc(srch)}" style="width:210px"
       oncompositionstart="_ime=true"
       oncompositionend="_ime=false;srch=this.value;_dsr()"
-      oninput="if(!_ime){srch=this.value;_dsr()}"><div id="srch-clr" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3);display:${srch?'block':'none'}" onclick="srch='';document.getElementById('srch').value='';buildPage()">✕</div></div><button class="btn bp" onclick="showCustMo()">＋ 新規顧客</button>`;
+      oninput="if(!_ime){srch=this.value;_dsr()}"><div id="srch-clr" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3);display:${srch?'block':'none'}" onclick="srch='';document.getElementById('srch').value='';buildPage()">✕</div></div><button class="btn bp" onclick="showCustMo()">＋ 新規顧客</button></div>`;
   }else if(page==='projects'){
     var calBtns='';
     if(pView==='cal'&&window.innerWidth>768){
@@ -476,18 +476,23 @@ function buildTopbar(){
         '<button class="btn bsm '+(calV==='week'?'bp':'bs')+'" onclick="calV=&quot;week&quot;;buildPage()">週</button>'+
         '<button class="btn bsm '+(calV==='month'?'bp':'bs')+'" onclick="calV=&quot;month&quot;;buildPage()">月</button>';
     }
-    el.innerHTML='<button class="btn bs bsm" onclick="pView=&quot;card&quot;;buildPage()">🗂</button>'+
+    el.innerHTML='<div style="display:flex;gap:7px;align-items:center;margin-right:40px">'+
+      '<button class="btn bs bsm" onclick="pView=&quot;card&quot;;buildPage()">🗂</button>'+
       '<button class="btn bs bsm" onclick="pView=&quot;cal&quot;;buildPage()">📅</button>'+
-      calBtns+'<button class="btn bp" onclick="showProjMo()">＋ 新規案件</button>';
+      calBtns+'<button class="btn bp" onclick="showProjMo()">＋ 新規案件</button>'+
+      '</div>';
   }else if(page==='quotes'){
-    el.innerHTML=`<button class="btn bp" onclick="showQuoteMo()">＋ 新規見積作成</button>`;
+    el.innerHTML=`<div style="display:flex;gap:7px;align-items:center;margin-right:40px"><button class="btn bp" onclick="showQuoteMo()">＋ 新規見積作成</button></div>`;
   }else if(page==='stock'){
     el.innerHTML=
+      `<div style="display:flex;gap:7px;align-items:center;margin-right:40px">` +
       `<input id="st-srch" type="text" placeholder="品名・型番で検索..." value="${esc(_stSrch)}" style="width:190px"
         oncompositionstart="_stComposing=true"
         oncompositionend="_stComposing=false;_stSrch=this.value;clearTimeout(_stDsrT);_stDsrT=setTimeout(buildPage,50)"
         oninput="if(!_stComposing){_stSrch=this.value;clearTimeout(_stDsrT);_stDsrT=setTimeout(buildPage,50)}">` +
-      `<button class="btn bp" onclick="showStockItemMo()">＋ 品目登録</button>`;
+      `<button class="btn bp" onclick="showStockItemMo()">＋ 品目登録</button>` +
+      `<button class="btn bb" onclick="printOrderSheet()" id="st-order-btn">🖨️ 発注書</button>` +
+      `</div>`;
   }else if(detCid){
     el.innerHTML=`<button class="btn bs" onclick="nav('customers')">← 顧客一覧に戻る</button>`;
   }else{
@@ -1966,6 +1971,134 @@ function pgStaff(){
     '</div>';
 }
 // ============================================================
+// STOCK 発注書印刷
+// ============================================================
+function printOrderSheet(){
+  if(!D.stockItems) D.stockItems=[];
+  const targets=(D.stockItems).filter(i=>i.qty<=(i.reorder||0));
+  if(!targets.length){toast('発注点以下の品目はありません','in');return;}
+
+  const cfg=D.cfg||{};
+  const today_=new Date();
+  const ds=today_.getFullYear()+'年'+(today_.getMonth()+1)+'月'+today_.getDate()+'日';
+
+  // 発注先ごとにグループ化（未設定は「未設定」）
+  const groups={};
+  targets.forEach(i=>{
+    const sup=i.supplier||'（発注先未設定）';
+    if(!groups[sup]) groups[sup]=[];
+    groups[sup].push(i);
+  });
+
+  const logoHtml=cfg.logoData?`<img src="${cfg.logoData}" style="height:28px;width:28px;object-fit:contain;margin-right:5px">`:'<svg width="24" height="24" viewBox="0 0 36 36"><rect width="36" height="36" rx="8" fill="#4a7c5f"/><rect x="10" y="20" width="16" height="11" rx="1" fill="white"/><polygon points="18,7 7,20 29,20" fill="white"/><rect x="15" y="24" width="6" height="7" rx="1" fill="#4a7c5f"/></svg>';
+
+  let sectionsHtml='';
+  Object.entries(groups).forEach(([sup,items],idx)=>{
+    const rows=items.map(i=>{
+      const isOut=i.qty<=0;
+      const orderQty=Math.max(1,(i.reorder||0)-i.qty+(i.reorder||0));// 発注推奨数 = 発注点×2 - 現在庫
+      const rowBg=isOut?'background:#fff5f5':'background:#fffbf0';
+      const warn=isOut?'⛔ 在庫なし':'⚠ 残少';
+      return`<tr style="${rowBg}">
+        <td>${esc(i.name)}<br><span style="font-size:7.5pt;color:#888">${esc([i.partNo,i.maker].filter(Boolean).join(' · '))}</span></td>
+        <td style="text-align:center">${esc(i.kojiType||'')}</td>
+        <td style="text-align:right;color:${isOut?'#c00':'#b36a00'};font-weight:700">${fmtN(i.qty)}</td>
+        <td style="text-align:right">${fmtN(i.reorder||0)}</td>
+        <td style="text-align:right;font-weight:900;color:#1a6e3c">${fmtN(orderQty)}</td>
+        <td style="text-align:center">${esc(i.unit||'')}</td>
+        <td style="text-align:right;color:#555">${fmt(i.price||0)}</td>
+        <td style="color:${isOut?'#c00':'#b36a00'};font-size:8pt;font-weight:700">${warn}</td>
+      </tr>`;
+    }).join('');
+    const totalRef=items.reduce((s,i)=>{
+      const oq=Math.max(1,(i.reorder||0)-i.qty+(i.reorder||0));
+      return s+oq*(i.price||0);
+    },0);
+    sectionsHtml+=`
+    <div class="sup-section" style="${idx>0?'page-break-before:auto;margin-top:18px':''}">
+      <div style="display:flex;align-items:center;justify-content:space-between;background:#333;color:#fff;padding:5px 10px;border-radius:4px 4px 0 0;margin-bottom:0">
+        <div style="font-size:10pt;font-weight:900">発注先：${esc(sup)}</div>
+        <div style="font-size:8pt">品目数：${items.length}件</div>
+      </div>
+      <table class="items">
+        <thead><tr>
+          <th style="text-align:left;min-width:130px">品名 / 型番・メーカー</th>
+          <th style="width:70px">工事種</th>
+          <th style="width:60px">現在庫</th>
+          <th style="width:50px">発注点</th>
+          <th style="width:60px">発注推奨数</th>
+          <th style="width:36px">単位</th>
+          <th style="width:75px">単価（参考）</th>
+          <th style="width:60px">状態</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr>
+          <td colspan="6" style="text-align:right;font-weight:700;background:#f0f0f0">参考金額合計</td>
+          <td style="text-align:right;font-weight:900;background:#f0f0f0">${fmt(totalRef)}</td>
+          <td style="background:#f0f0f0"></td>
+        </tr></tfoot>
+      </table>
+    </div>`;
+  });
+
+  const grandTotal=targets.reduce((s,i)=>{
+    const oq=Math.max(1,(i.reorder||0)-i.qty+(i.reorder||0));
+    return s+oq*(i.price||0);
+  },0);
+
+  const pw=window.open('','_blank');if(!pw)return;
+  pw.document.write(
+    '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">'+
+    '<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">'+
+    '<style>@page{size:A4 portrait;margin:10mm}*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+
+    'body{font-family:"Noto Serif JP","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;color:#111;font-size:9pt;line-height:1.5}'+
+    'h1{text-align:center;font-size:18pt;font-weight:700;letter-spacing:.4em;margin-bottom:4px;padding-bottom:4px;border-bottom:2px solid #111}'+
+    '.meta{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px}'+
+    '.co-box{border:1px solid #ccc;padding:6px 8px;background:#fafafa;text-align:right}'+
+    '.co-name{font-size:11pt;font-weight:900}'+
+    '.co-info{font-size:7.5pt;color:#555;line-height:1.6;margin-top:2px}'+
+    '.summary{display:flex;gap:10px;margin-bottom:12px}'+
+    '.sum-box{flex:1;border:1px solid #ccc;border-radius:4px;padding:6px 10px;text-align:center}'+
+    '.sum-lbl{font-size:7.5pt;color:#666;font-weight:700}'+
+    '.sum-val{font-size:13pt;font-weight:900}'+
+    'table.items{width:100%;border-collapse:collapse;font-size:8pt;margin-bottom:0}'+
+    'table.items th{background:#555;color:#fff;padding:4px 5px;text-align:center;font-weight:700;border:1px solid #666}'+
+    'table.items td{border:1px solid #bbb;padding:3px 5px;vertical-align:middle}'+
+    'table.items tbody tr:nth-child(even){background:#f9f9f9}'+
+    'table.items tfoot td{border:1px solid #bbb}'+
+    '.note{font-size:7.5pt;color:#666;margin-top:8px;border-top:1px dashed #ccc;padding-top:6px}'+
+    '@media print{.no-print{display:none!important}}</style></head><body>'+
+    '<div class="no-print" style="padding:8px;background:#f0f0f0;border-bottom:1px solid #ccc">'+
+      '<div style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap">'+
+      '<button onclick="window.close()" style="background:#e74c3c;color:#fff;border:none;padding:10px 20px;font-size:14px;border-radius:6px;cursor:pointer;font-weight:700">✕ 閉じる</button>'+
+      '<button onclick="window.print()" style="background:#333;color:#fff;border:none;padding:10px 20px;font-size:14px;border-radius:6px;cursor:pointer;font-weight:700">🖨️ 印刷する（PDFも可）</button>'+
+      '</div>'+
+    '</div>'+
+    '<div style="padding:6mm 8mm">'+
+    `<h1>発　注　書</h1>
+    <div class="meta">
+      <div style="font-size:8pt;color:#555">発行日：${ds}</div>
+      <div class="co-box">
+        <div style="display:flex;align-items:center;justify-content:flex-end;gap:5px;margin-bottom:2px">${logoHtml}<div class="co-name">${esc(cfg.companyName||'セイノデンキ')}</div></div>
+        <div class="co-info">
+          ${cfg.address?esc(cfg.address)+'<br>':''}
+          ${cfg.tel?'TEL.'+esc(cfg.tel):''}
+          ${cfg.rep?'&nbsp;担当&nbsp;'+esc(cfg.rep):''}
+        </div>
+      </div>
+    </div>
+    <div class="summary">
+      <div class="sum-box"><div class="sum-lbl">発注対象品目</div><div class="sum-val" style="color:#c00">${targets.length}品目</div></div>
+      <div class="sum-box"><div class="sum-lbl">発注先数</div><div class="sum-val" style="color:#444">${Object.keys(groups).length}社</div></div>
+      <div class="sum-box"><div class="sum-lbl">参考合計金額</div><div class="sum-val" style="color:#1a6e3c;font-size:11pt">${fmt(grandTotal)}</div></div>
+    </div>
+    ${sectionsHtml}
+    <div class="note">※ 発注推奨数は「発注点×2 − 現在庫数」で算出した目安です。実際の発注数は状況に応じて調整してください。</div>`+
+    '</div></body></html>'
+  );
+  pw.document.close();
+}
+
 // STOCK 在庫管理
 // ============================================================
 let _stSrch='',_stFKoji='全て',_stFStock='全て',_stFSup='全て',_stDsrT=null,_stFocusSearch=false,_stComposing=false;
