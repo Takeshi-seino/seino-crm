@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Hiragino Sans','Meiryo',sans-serif;font-size:13px;background:#f0ede8;padding:16px;color:#333}
+h2{font-size:13px;font-weight:700;color:#666;margin-bottom:8px;padding-left:4px}
+.screen{background:#e8e4df;border-radius:12px;padding:12px;margin-bottom:24px}
+.topbar{background:#fff;border-radius:8px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;border:1px solid #ddd}
+.topbar-title{font-size:14px;font-weight:700}
+.tab-bar{display:flex;gap:4px;margin-bottom:8px}
+.tab{padding:5px 14px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;color:#888;background:#fff;border:1px solid #ddd}
+.tab.on{background:#4a7c5f;color:#fff;border-color:#4a7c5f}
+.search-box{background:#fff;border:1px solid #ddd;border-radius:8px;padding:7px 12px;display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12px;color:#aaa}
+.filter-bar{display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap}
+.badge{display:inline-block;padding:3px 10px;border-radius:10px;font-size:11px;font-weight:700}
+.card{background:#fff;border-radius:8px;border:1px solid #ddd;padding:10px 12px;margin-bottom:6px}
+.card.warn{border-left:3px solid #e67e22}
+.card.danger{border-left:3px solid #e74c3c}
+.row{display:flex;gap:8px;align-items:center}
+.col{flex:1}
+.btn{padding:5px 12px;border-radius:6px;font-size:11px;font-weight:700;border:1px solid #ccc;background:#fff;cursor:pointer}
+.btn-g{background:#4a7c5f;color:#fff;border-color:#4a7c5f}
+.btn-o{color:#e67e22;border-color:#e67e22}
+.stat-row{display:flex;gap:6px;margin-bottom:8px}
+.stat{background:#fff;border-radius:8px;border:1px solid #ddd;padding:8px;text-align:center;flex:1}
+.stat-n{font-size:22px;font-weight:700;color:#4a7c5f}
+.stat-n.warn{color:#e67e22}
+.stat-n.danger{color:#e74c3c}
+.stat-l{font-size:10px;color:#888;margin-top:2px}
+.tbl{background:#fff;border-radius:8px;border:1px solid #ddd;overflow:hidden}
+.tbl-head{display:grid;grid-template-columns:1fr 70px 60px 64px;padding:7px 12px;background:#f5f5f5;font-size:10px;font-weight:700;color:#888;gap:8px}
+.tbl-row{display:grid;grid-template-columns:1fr 70px 60px 64px;padding:9px 12px;border-top:1px solid #f0f0f0;font-size:11px;gap:8px;align-items:center}
+.tbl-row.warn-row{background:#fffbf5}
+select{font-size:11px;padding:5px 8px;border-radius:6px;border:1px solid #ddd;background:#fff;color:#333}
+.label{font-size:10px;color:#888;margin-bottom:3px;font-weight:700}
+.input-mock{background:#f5f5f5;border:1px solid #ddd;border-radius:6px;padding:6px 10px;font-size:11px;color:#aaa}
+.modal-card{background:#fff;border-radius:12px;border:1px solid #ddd;padding:14px}
+.modal-title{font-size:14px;font-weight:700;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #eee}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.divider{border:none;border-top:1px solid #e0ddd8;margin:6px 0 16px}
+</style>
+</head>
+<body>
+
+<h2>案A　タブ切り替え型（一覧 / 入出庫 / 発注 / 検索）</h2>
+<div class="screen">
+  <div class="topbar">
+    <span class="topbar-title">📦 在庫管理</span>
+    <button class="btn btn-g">＋ 品目登録</button>
+  </div>
+  <div class="tab-bar">
+    <div class="tab on">一覧</div>
+    <div class="tab">入出庫</div>
+    <div class="tab">発注</div>
+    <div class="tab">検索</div>
+  </div>
+  <div class="search-box">🔍 品名・型番・メーカーで検索...</div>
+  <div class="filter-bar">
+    <span class="badge" style="background:#e8f5ee;color:#2d6a4f">全て</span>
+    <span class="badge" style="background:#f5f5f5;color:#888">照明</span>
+    <span class="badge" style="background:#f5f5f5;color:#888">配線</span>
+    <span class="badge" style="background:#f5f5f5;color:#888">スイッチ</span>
+    <span class="badge" style="background:#fef3e2;color:#92400e">残少 ⚠</span>
+  </div>
+  <div class="card">
+    <div class="row" style="margin-bottom:5px">
+      <div class="col">
+        <div style="font-size:12px;font-weight:700">LED電球 E26 60W相当</div>
+        <div style="font-size:10px;color:#888">LDA8L-G/60W　パナソニック　照明工事</div>
+      </div>
+      <span class="badge" style="background:#e8f5ee;color:#2d6a4f">在庫 24個</span>
+    </div>
+    <div class="row">
+      <span style="font-size:10px;color:#888">発注点: 10個　単価: ¥380</span>
+      <div style="margin-left:auto;display:flex;gap:4px">
+        <button class="btn" style="font-size:10px;padding:3px 8px">入庫</button>
+        <button class="btn" style="font-size:10px;padding:3px 8px">出庫</button>
+        <button class="btn" style="font-size:10px;padding:3px 8px">✏️</button>
+      </div>
+    </div>
+  </div>
+  <div class="card warn">
+    <div class="row" style="margin-bottom:5px">
+      <div class="col">
+        <div style="font-size:12px;font-weight:700">VVFケーブル 2.0mm×3C</div>
+        <div style="font-size:10px;color:#888">VVF2.0×3C　フジクラ　配線工事</div>
+      </div>
+      <span class="badge" style="background:#fef3e2;color:#92400e">残少 3巻 ⚠</span>
+    </div>
+    <div class="row">
+      <span style="font-size:10px;color:#888">発注点: 5巻　単価: ¥4,200</span>
+      <div style="margin-left:auto;display:flex;gap:4px">
+        <button class="btn btn-o" style="font-size:10px;padding:3px 8px">📋 発注</button>
+        <button class="btn" style="font-size:10px;padding:3px 8px">入庫</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>案B　上段サマリー＋検索・フィルター　下段テーブル一覧（コンパクト）</h2>
+<div class="screen">
+  <div class="topbar">
+    <span class="topbar-title">📦 在庫管理</span>
+    <button class="btn btn-g">＋ 品目登録</button>
+  </div>
+  <div class="stat-row">
+    <div class="stat"><div class="stat-n">48</div><div class="stat-l">登録品目</div></div>
+    <div class="stat"><div class="stat-n warn">3</div><div class="stat-l">残少アラート</div></div>
+    <div class="stat"><div class="stat-n danger">1</div><div class="stat-l">発注待ち</div></div>
+    <div class="stat"><div class="stat-n" style="font-size:15px">¥284K</div><div class="stat-l">在庫総額</div></div>
+  </div>
+  <div class="search-box">🔍 品名・型番・工事種で検索...</div>
+  <div class="filter-bar">
+    <select><option>工事種：全て</option><option>照明工事</option><option>配線工事</option><option>スイッチ工事</option></select>
+    <select><option>在庫：全て</option><option>残少のみ</option><option>在庫なし</option></select>
+    <select><option>発注先：全て</option><option>〇〇電材</option></select>
+  </div>
+  <div class="tbl">
+    <div class="tbl-head"><span>品名 / 型番</span><span>在庫</span><span>発注点</span><span></span></div>
+    <div class="tbl-row">
+      <div><div style="font-weight:700;font-size:11px">LED電球 E26</div><div style="font-size:9px;color:#888">LDA8L-G　パナソニック</div></div>
+      <span style="color:#2d6a4f;font-weight:700;font-size:12px">24個</span>
+      <span style="font-size:10px;color:#888">10個</span>
+      <div style="display:flex;gap:3px">
+        <button class="btn" style="font-size:10px;padding:2px 6px">入</button>
+        <button class="btn" style="font-size:10px;padding:2px 6px">出</button>
+      </div>
+    </div>
+    <div class="tbl-row warn-row">
+      <div><div style="font-weight:700;font-size:11px">VVFケーブル 2.0</div><div style="font-size:9px;color:#888">VVF2.0×3C　フジクラ</div></div>
+      <span style="color:#e67e22;font-weight:700;font-size:12px">3巻⚠</span>
+      <span style="font-size:10px;color:#888">5巻</span>
+      <div style="display:flex;gap:3px">
+        <button class="btn btn-o" style="font-size:10px;padding:2px 6px">発注</button>
+        <button class="btn" style="font-size:10px;padding:2px 6px">入</button>
+      </div>
+    </div>
+    <div class="tbl-row">
+      <div><div style="font-weight:700;font-size:11px">分電盤 20回路</div><div style="font-size:9px;color:#888">BQR8620　パナソニック</div></div>
+      <span style="color:#2d6a4f;font-weight:700;font-size:12px">2台</span>
+      <span style="font-size:10px;color:#888">1台</span>
+      <div style="display:flex;gap:3px">
+        <button class="btn" style="font-size:10px;padding:2px 6px">入</button>
+        <button class="btn" style="font-size:10px;padding:2px 6px">出</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2>入出庫モーダル（共通）</h2>
+<div class="screen">
+  <div class="modal-card">
+    <div class="modal-title">入出庫を記録　— VVFケーブル 2.0mm×3C</div>
+    <div class="form-grid">
+      <div>
+        <div class="label">種別</div>
+        <select style="width:100%"><option>入庫</option><option>出庫</option></select>
+      </div>
+      <div>
+        <div class="label">数量</div>
+        <div class="input-mock">10　巻</div>
+      </div>
+      <div>
+        <div class="label">関連案件</div>
+        <div class="input-mock" style="font-size:10px;color:#aaa">オフィスビル電気設備...</div>
+      </div>
+      <div>
+        <div class="label">日付</div>
+        <div class="input-mock">2026/03/29</div>
+      </div>
+      <div>
+        <div class="label">発注先（入庫時）</div>
+        <div class="input-mock">〇〇電材</div>
+      </div>
+      <div>
+        <div class="label">単価（入庫時）</div>
+        <div class="input-mock">¥4,200</div>
+      </div>
+    </div>
+    <div class="label">メモ</div>
+    <div class="input-mock" style="margin-bottom:12px">現場使用分</div>
+    <div style="display:flex;justify-content:flex-end;gap:8px">
+      <button class="btn">キャンセル</button>
+      <button class="btn btn-g">💾 記録する</button>
+    </div>
+  </div>
+</div>
+
+<h2>品目登録モーダル</h2>
+<div class="screen">
+  <div class="modal-card">
+    <div class="modal-title">品目登録</div>
+    <div class="form-grid">
+      <div style="grid-column:1/-1">
+        <div class="label">品名 *</div>
+        <div class="input-mock">LED電球 E26 60W相当</div>
+      </div>
+      <div>
+        <div class="label">品番・型番</div>
+        <div class="input-mock">LDA8L-G/60W</div>
+      </div>
+      <div>
+        <div class="label">メーカー</div>
+        <div class="input-mock">パナソニック</div>
+      </div>
+      <div>
+        <div class="label">工事種</div>
+        <select style="width:100%"><option>照明工事</option><option>配線工事</option><option>スイッチ工事</option></select>
+      </div>
+      <div>
+        <div class="label">単位</div>
+        <select style="width:100%"><option>個</option><option>巻</option><option>本</option><option>台</option><option>式</option></select>
+      </div>
+      <div>
+        <div class="label">現在在庫数</div>
+        <div class="input-mock">24</div>
+      </div>
+      <div>
+        <div class="label">発注点（残少アラート）</div>
+        <div class="input-mock">10</div>
+      </div>
+      <div>
+        <div class="label">標準単価</div>
+        <div class="input-mock">¥380</div>
+      </div>
+      <div style="grid-column:1/-1">
+        <div class="label">発注先</div>
+        <div class="input-mock">〇〇電材</div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px">
+      <button class="btn">キャンセル</button>
+      <button class="btn btn-g">💾 登録する</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

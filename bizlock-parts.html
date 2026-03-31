@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BizLock — AI 部材拾いプロトタイプ</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #0d0d0f; color: #e8e6e0; font-family: 'Courier New', monospace; font-size: 12px; }
+@keyframes pulse { 0%,100%{opacity:.4} 50%{opacity:1} }
+
+#header {
+  border-bottom: 1px solid #1e1e1e; padding: 12px 20px;
+  display: flex; align-items: center; gap: 10px;
+  position: sticky; top: 0; background: #0d0d0f; z-index: 10;
+}
+.logo { font-size: 10px; color: #444; letter-spacing: 3px; }
+.sep  { color: #222; }
+.htitle { font-size: 12px; color: #666; letter-spacing: 1px; }
+.api-badge { margin-left: auto; display: flex; gap: 5px; align-items: center; }
+.dot { width: 5px; height: 5px; border-radius: 50%; background: #4aff8a; box-shadow: 0 0 6px #4aff8a; }
+.api-label { font-size: 9px; color: #4aff8a; }
+
+#apikey-bar {
+  padding: 9px 20px; border-bottom: 1px solid #1a1a1a;
+  display: flex; gap: 8px; align-items: center; background: #0f0f0f;
+}
+#apikey-bar label { font-size: 9px; color: #444; letter-spacing: 1px; white-space: nowrap; }
+#apikey-input {
+  flex: 1; background: #161616; border: 1px solid #2a2a2a;
+  color: #888; font-family: inherit; font-size: 10px;
+  padding: 5px 10px; border-radius: 2px; outline: none;
+}
+#apikey-input:focus { border-color: #4a9eff; color: #bbb; }
+#apikey-input::placeholder { color: #2a2a2a; }
+.key-hint { font-size: 9px; color: #2e2e2e; white-space: nowrap; }
+
+#layout { display: grid; grid-template-columns: 1fr 1fr; min-height: calc(100vh - 90px); }
+
+#left { border-right: 1px solid #1a1a1a; display: flex; flex-direction: column; }
+#left-header { padding: 10px 16px; border-bottom: 1px solid #1a1a1a; display: flex; justify-content: space-between; align-items: center; }
+.label { font-size: 9px; color: #444; letter-spacing: 2px; }
+#btn-group { display: flex; gap: 6px; }
+.small-btn { font-size: 9px; color: #555; background: none; border: 1px solid #222; padding: 3px 9px; cursor: pointer; border-radius: 2px; font-family: inherit; transition: all 0.15s; }
+.small-btn:hover { color: #aaa; border-color: #555; }
+
+#input-area { flex: 1; background: transparent; border: none; color: #aaa; font-family: inherit; font-size: 11px; line-height: 1.9; padding: 14px 16px; resize: none; outline: none; min-height: 300px; }
+#input-area::placeholder { color: #252525; }
+
+#extract-zone { padding: 10px 14px; border-top: 1px solid #1a1a1a; }
+#extract-btn { width: 100%; padding: 11px; font-family: inherit; font-weight: bold; font-size: 10px; letter-spacing: 3px; border: none; border-radius: 2px; transition: all 0.2s; cursor: not-allowed; background: #161616; color: #333; }
+#extract-btn.ready { background: #4a9eff; color: #000; cursor: pointer; }
+#extract-btn.loading { background: #161616; color: #444; cursor: not-allowed; }
+#error-msg { font-size: 9px; color: #ff6b4a; margin-top: 6px; text-align: center; word-break: break-all; display: none; }
+
+#right { display: flex; flex-direction: column; }
+#right-header { padding: 10px 16px; border-bottom: 1px solid #1a1a1a; display: flex; justify-content: space-between; align-items: center; }
+#count-badge { font-size: 9px; color: #4aff8a; display: none; }
+#cat-filter { padding: 8px 14px; border-bottom: 1px solid #1a1a1a; display: none; flex-wrap: wrap; gap: 5px; }
+.cat-btn { font-size: 9px; padding: 2px 8px; cursor: pointer; border-radius: 2px; font-family: inherit; transition: all 0.15s; border: 1px solid #222; background: transparent; color: #555; }
+
+#output { flex: 1; overflow-y: auto; }
+#empty-state { padding: 60px 20px; text-align: center; color: #222; }
+#empty-state .icon { font-size: 28px; margin-bottom: 12px; }
+#empty-state .msg { font-size: 10px; line-height: 2.2; letter-spacing: 1px; }
+#loading-state { padding: 60px 20px; text-align: center; color: #444; font-size: 10px; letter-spacing: 2px; display: none; animation: pulse 1.5s ease-in-out infinite; }
+#summary-box { margin: 10px 14px 4px; padding: 9px 12px; background: #111; border-left: 2px solid #4a9eff; font-size: 10px; color: #666; line-height: 1.7; display: none; }
+#result-table { width: 100%; border-collapse: collapse; display: none; }
+#result-table th { padding: 7px 10px; text-align: left; color: #333; font-weight: normal; font-size: 9px; letter-spacing: 1px; border-bottom: 1px solid #1a1a1a; }
+#result-table td { padding: 8px 10px; border-bottom: 1px solid #111; }
+#result-table tr:hover td { background: #0f0f0f; }
+.cat-tag { font-size: 8px; padding: 2px 5px; border-radius: 2px; letter-spacing: 1px; white-space: nowrap; }
+.search-btn { font-size: 8px; color: #444; background: none; border: 1px solid #1e1e1e; padding: 2px 6px; cursor: pointer; border-radius: 2px; font-family: inherit; white-space: nowrap; transition: all 0.15s; }
+.search-btn:hover { color: #ffcc4a; border-color: rgba(255,204,74,0.3); }
+
+#action-bar { padding: 8px 14px; border-top: 1px solid #1a1a1a; display: none; gap: 6px; }
+#csv-btn { flex: 1; padding: 7px; font-size: 9px; letter-spacing: 2px; background: transparent; color: #555; border: 1px solid #222; cursor: pointer; border-radius: 2px; font-family: inherit; transition: all 0.15s; }
+#csv-btn:hover { color: #4aff8a; border-color: rgba(74,255,138,0.3); }
+#reset-btn { padding: 7px 14px; font-size: 9px; background: transparent; color: #333; border: 1px solid #1a1a1a; cursor: pointer; border-radius: 2px; font-family: inherit; }
+#reset-btn:hover { color: #666; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <span class="logo">BIZLOCK</span>
+  <span class="sep">|</span>
+  <span class="htitle">AI 部材拾い — プロトタイプ</span>
+  <div class="api-badge">
+    <div class="dot"></div>
+    <span class="api-label">Claude API</span>
+  </div>
+</div>
+
+<div id="apikey-bar">
+  <label>API KEY</label>
+  <input id="apikey-input" type="password" placeholder="sk-ant-api03-xxxxxxxxxx" oninput="updateBtn()">
+  <span class="key-hint">console.anthropic.com → API Keys</span>
+</div>
+
+<div id="layout">
+  <div id="left">
+    <div id="left-header">
+      <span class="label">INPUT — 仕様書テキスト</span>
+      <div id="btn-group">
+        <button class="small-btn" onclick="insertSample()">サンプル挿入</button>
+        <button class="small-btn" onclick="document.getElementById('file-in').click()">TXTファイル</button>
+        <input id="file-in" type="file" accept=".txt" style="display:none" onchange="loadFile(event)">
+      </div>
+    </div>
+    <textarea id="input-area" placeholder="仕様書テキストを貼り付け...
+
+例:
+VVFケーブル 2.0mm 2芯 200m
+埋込コンセント 20個
+分電盤 主幹50A 1面" oninput="updateBtn()"></textarea>
+    <div id="extract-zone">
+      <button id="extract-btn" onclick="extract()">▶  部材を抽出する</button>
+      <div id="error-msg"></div>
+    </div>
+  </div>
+
+  <div id="right">
+    <div id="right-header">
+      <span class="label">OUTPUT — 部材リスト</span>
+      <span id="count-badge"></span>
+    </div>
+    <div id="cat-filter"></div>
+    <div id="output">
+      <div id="empty-state">
+        <div class="icon">⚡</div>
+        <div class="msg">APIキーと仕様書テキストを入力して<br>部材を自動抽出します</div>
+      </div>
+      <div id="loading-state">図面を解析中...</div>
+      <div id="summary-box"></div>
+      <table id="result-table">
+        <thead><tr><th>カテゴリ</th><th>部材名</th><th>規格</th><th>数量</th><th></th></tr></thead>
+        <tbody id="result-body"></tbody>
+      </table>
+    </div>
+    <div id="action-bar">
+      <button id="csv-btn" onclick="downloadCSV()">CSV 出力</button>
+      <button id="reset-btn" onclick="resetAll()">リセット</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SYSTEM_PROMPT = `あなたは電気工事の積算・材料拾いの専門家です。
+入力された仕様書・図面テキストから電気工事に必要な部材を抽出し、以下のJSON形式のみで返してください。
+前置きや説明文は不要です。JSONのみを返してください。
+
+{
+  "materials": [
+    {
+      "name": "部材名",
+      "spec": "規格・仕様",
+      "quantity": 数量(数値またはnull),
+      "unit": "単位",
+      "category": "ケーブル or 器具 or 盤 or 配管 or その他",
+      "note": "備考"
+    }
+  ],
+  "summary": "抽出内容のサマリー1〜2文"
+}`;
+
+const SAMPLE = `電気設備工事仕様書
+
+1. 幹線設備
+- 引込開閉器盤（主幹ブレーカー 100A） 1面
+- CVケーブル 38mm² 3芯 地中埋設 約25m
+- CVケーブル 14mm² 3芯 天井隠蔽 約40m
+
+2. 分電盤
+- 住宅用分電盤（主幹50A、回路数20） 1面
+
+3. コンセント・スイッチ設備
+- 埋込コンセント（2P15A） 20個
+- 防水コンセント（屋外用） 3個
+- 埋込スイッチ（片切） 15個
+- 3路スイッチ 4個
+- VVFケーブル 2.0mm 2芯 約200m
+- VVFケーブル 1.6mm 2芯 約150m
+- VVFケーブル 1.6mm 3芯 約80m
+
+4. 照明設備
+- LEDダウンライト（60W相当） 24台
+- 蛍光灯（FL40W×2） 8台
+- 非常用照明器具 4台`;
+
+const CAT_COLORS = {
+  ケーブル: { bg:"#0e2238", ac:"#4a9eff" },
+  器具:    { bg:"#0e2218", ac:"#4aff8a" },
+  盤:      { bg:"#2a0e0e", ac:"#ff6b4a" },
+  配管:    { bg:"#1a0e2a", ac:"#c44aff" },
+  その他:  { bg:"#1e1e0e", ac:"#ffcc4a" },
+};
+
+let currentData = null;
+let currentCat = "すべて";
+
+function insertSample() { document.getElementById('input-area').value = SAMPLE; updateBtn(); }
+
+function loadFile(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => { document.getElementById('input-area').value = ev.target.result; updateBtn(); };
+  r.readAsText(f, "utf-8");
+}
+
+function updateBtn() {
+  const key  = document.getElementById('apikey-input').value.trim();
+  const text = document.getElementById('input-area').value.trim();
+  const btn  = document.getElementById('extract-btn');
+  btn.className = (key && text) ? 'ready' : '';
+}
+
+async function extract() {
+  const key  = document.getElementById('apikey-input').value.trim();
+  const text = document.getElementById('input-area').value.trim();
+  if (!key || !text) return;
+
+  setLoading(true);
+  clearError();
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 30000);
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        "anthropic-version": "2023-06-01",
+        "x-api-key": key
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 1000,
+        system: SYSTEM_PROMPT,
+        messages: [{ role: "user", content: text }]
+      })
+    });
+
+    clearTimeout(timeout);
+
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(`APIエラー ${res.status}: ${e?.error?.message || res.statusText}`);
+    }
+
+    const data = await res.json();
+    const raw = data.content?.map(c => c.text || "").join("") || "";
+    const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
+    currentData = parsed;
+    currentCat = "すべて";
+    renderResult();
+
+  } catch(e) {
+    clearTimeout(timeout);
+    if (e.name === 'AbortError') {
+      showError("タイムアウト（30秒）。APIキーまたはネットワークを確認してください。");
+    } else if (e.message.includes('Failed to fetch') || e.message.includes('NetworkError')) {
+      showError("接続エラー。ネットワークを確認してください。");
+    } else {
+      showError(e.message);
+    }
+  } finally {
+    setLoading(false);
+  }
+}
+
+function setLoading(on) {
+  const btn     = document.getElementById('extract-btn');
+  const loading = document.getElementById('loading-state');
+  const empty   = document.getElementById('empty-state');
+  if (on) {
+    btn.className = 'loading';
+    btn.textContent = 'AI 解析中 ...';
+    loading.style.display = 'block';
+    empty.style.display = 'none';
+    document.getElementById('result-table').style.display = 'none';
+    document.getElementById('summary-box').style.display = 'none';
+    document.getElementById('action-bar').style.display = 'none';
+    document.getElementById('cat-filter').style.display = 'none';
+    document.getElementById('count-badge').style.display = 'none';
+  } else {
+    updateBtn();
+    btn.textContent = '▶  部材を抽出する';
+    loading.style.display = 'none';
+  }
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-msg');
+  el.textContent = msg;
+  el.style.display = 'block';
+  document.getElementById('empty-state').style.display = 'block';
+}
+function clearError() {
+  const el = document.getElementById('error-msg');
+  el.textContent = '';
+  el.style.display = 'none';
+}
+
+function renderResult() {
+  const d = currentData; if (!d) return;
+  document.getElementById('empty-state').style.display = 'none';
+
+  if (d.summary) {
+    const sb = document.getElementById('summary-box');
+    sb.textContent = d.summary;
+    sb.style.display = 'block';
+  }
+
+  const badge = document.getElementById('count-badge');
+  badge.textContent = d.materials.length + ' 件抽出';
+  badge.style.display = 'block';
+
+  const cats = ["すべて", ...new Set(d.materials.map(m => m.category))];
+  const cf = document.getElementById('cat-filter');
+  cf.innerHTML = '';
+  if (cats.length > 2) {
+    cf.style.display = 'flex';
+    cats.forEach(c => {
+      const col = CAT_COLORS[c] || CAT_COLORS["その他"];
+      const btn = document.createElement('button');
+      btn.className = 'cat-btn';
+      btn.textContent = c;
+      if (c === currentCat) {
+        btn.style.border = `1px solid ${col.ac}`;
+        btn.style.background = col.bg;
+        btn.style.color = col.ac;
+      }
+      btn.onclick = () => { currentCat = c; renderResult(); };
+      cf.appendChild(btn);
+    });
+  }
+
+  const tbody = document.getElementById('result-body');
+  tbody.innerHTML = '';
+  d.materials
+    .filter(m => currentCat === "すべて" || m.category === currentCat)
+    .forEach(m => {
+      const col = CAT_COLORS[m.category] || CAT_COLORS["その他"];
+      const tr = document.createElement('tr');
+      const qty = m.quantity != null ? `${m.quantity} ${m.unit}` : '<span style="color:#333">—</span>';
+      const q = encodeURIComponent(m.name + ' ' + (m.spec || ''));
+      tr.innerHTML = `
+        <td><span class="cat-tag" style="background:${col.bg};color:${col.ac}">${m.category}</span></td>
+        <td style="color:#ccc">${m.name}</td>
+        <td style="color:#555">${m.spec || '—'}</td>
+        <td style="color:#eee;white-space:nowrap">${qty}</td>
+        <td><button class="search-btn" onclick="window.open('https://www.monotaro.com/s/?c=&q=${q}','_blank')">検索→</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+  document.getElementById('result-table').style.display = 'table';
+  document.getElementById('action-bar').style.display = 'flex';
+}
+
+function downloadCSV() {
+  if (!currentData) return;
+  const rows = [
+    ["カテゴリ","部材名","規格","数量","単位","備考"],
+    ...currentData.materials.map(m => [m.category, m.name, m.spec||"", m.quantity??"", m.unit, m.note||""])
+  ].map(r => r.join(",")).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["\uFEFF" + rows], {type:"text/csv;charset=utf-8"}));
+  a.download = "部材リスト.csv";
+  a.click();
+}
+
+function resetAll() {
+  currentData = null; currentCat = "すべて";
+  document.getElementById('input-area').value = '';
+  document.getElementById('empty-state').style.display = 'block';
+  document.getElementById('result-table').style.display = 'none';
+  document.getElementById('summary-box').style.display = 'none';
+  document.getElementById('action-bar').style.display = 'none';
+  document.getElementById('cat-filter').style.display = 'none';
+  document.getElementById('count-badge').style.display = 'none';
+  clearError(); updateBtn();
+}
+</script>
+</body>
+</html>

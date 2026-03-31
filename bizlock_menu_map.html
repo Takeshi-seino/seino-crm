@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BizLock 業種別メニューカバレッジマップ</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Meiryo', 'Yu Gothic', sans-serif;
+  font-size: 11px;
+  color: #1a1a1a;
+  background: #fff;
+  line-height: 1.6;
+}
+
+/* ========== PRINT SETUP ========== */
+@page {
+  size: A4 portrait;
+  margin: 14mm 14mm 14mm 14mm;
+}
+@media print {
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  .no-print { display: none !important; }
+  .page-break { page-break-before: always; break-before: always; }
+  body { font-size: 10px; }
+}
+
+/* ========== LAYOUT ========== */
+.page { max-width: 780px; margin: 0 auto; padding: 24px 28px; }
+
+/* ========== HEADER ========== */
+.doc-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding-bottom: 12px; margin-bottom: 18px;
+  border-bottom: 2px solid #2d6b46;
+}
+.doc-title { font-size: 18px; font-weight: 700; color: #1a1a1a; letter-spacing: 0.02em; }
+.doc-subtitle { font-size: 11px; color: #666; margin-top: 3px; }
+.doc-meta { text-align: right; font-size: 10px; color: #888; line-height: 1.7; }
+.logo-tag {
+  display: inline-block; background: #2d6b46; color: #fff;
+  font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 4px;
+  letter-spacing: 0.06em; margin-bottom: 4px;
+}
+
+/* ========== LEGEND ========== */
+.legend {
+  display: flex; gap: 20px; align-items: center;
+  margin-bottom: 12px; flex-wrap: wrap;
+}
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: #444; }
+.legend-dot {
+  width: 12px; height: 12px; border-radius: 2px; flex-shrink: 0;
+}
+.legend-note { margin-left: auto; font-size: 9px; color: #999; }
+
+/* ========== SECTION LABEL ========== */
+.sec-label {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
+  color: #888; text-transform: uppercase; margin-bottom: 5px; margin-top: 14px;
+}
+.sec-label:first-of-type { margin-top: 0; }
+
+/* ========== TREEMAP ========== */
+.tmap-wrap { position: relative; margin-bottom: 4px; }
+
+/* ========== FEATURE TABLE ========== */
+.feat-section { margin-top: 20px; }
+.feat-section-title {
+  font-size: 12px; font-weight: 700; color: #fff;
+  padding: 5px 10px; border-radius: 4px; margin-bottom: 8px;
+}
+.feat-section-title.green { background: #2d6b46; }
+.feat-section-title.orange { background: #a84e25; }
+.feat-section-title.purple { background: #5a3a8a; }
+
+.feat-table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+.feat-table th {
+  background: #f5f5f3; font-size: 9px; font-weight: 700; color: #555;
+  padding: 5px 8px; text-align: left; border-bottom: 1px solid #ddd;
+  letter-spacing: 0.05em;
+}
+.feat-table td {
+  padding: 6px 8px; font-size: 10px; border-bottom: 1px solid #eee;
+  vertical-align: top; line-height: 1.5;
+}
+.feat-table tr:last-child td { border-bottom: none; }
+.feat-table tr:hover td { background: #fafaf8; }
+.feat-name { font-weight: 700; color: #1a1a1a; white-space: nowrap; }
+.feat-scene { color: #444; }
+.feat-ind { color: #777; font-size: 9px; }
+.cnt-badge {
+  display: inline-block; font-size: 9px; font-weight: 700;
+  padding: 1px 5px; border-radius: 10px; white-space: nowrap;
+}
+.cnt-green { background: rgba(45,107,70,.12); color: #2d6b46; }
+.cnt-orange { background: rgba(168,78,37,.12); color: #a84e25; }
+.cnt-purple { background: rgba(90,58,138,.12); color: #5a3a8a; }
+
+/* ========== INDUSTRY TABLE ========== */
+.ind-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  margin-top: 10px;
+}
+.ind-card {
+  border: 1px solid #e0e0dc; border-radius: 6px;
+  padding: 9px 11px; background: #fafaf8;
+}
+.ind-name {
+  font-size: 11px; font-weight: 700; color: #1a1a1a;
+  margin-bottom: 4px; display: flex; align-items: center; gap: 5px;
+}
+.ind-icon {
+  width: 18px; height: 18px; border-radius: 3px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10px; flex-shrink: 0;
+}
+.ind-desc { font-size: 9px; color: #666; line-height: 1.6; }
+.ind-tags { margin-top: 5px; display: flex; flex-wrap: wrap; gap: 3px; }
+.ind-tag {
+  font-size: 8px; padding: 1px 5px; border-radius: 3px;
+  background: #eee; color: #555;
+}
+.ind-tag.gap { background: rgba(90,58,138,.1); color: #5a3a8a; }
+
+/* ========== FOOTER ========== */
+.doc-footer {
+  margin-top: 24px; padding-top: 10px; border-top: 1px solid #ddd;
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 9px; color: #aaa;
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+
+  <!-- ===== HEADER ===== -->
+  <div class="doc-header">
+    <div>
+      <div style="margin-bottom:5px;"><span class="logo-tag">BizLock</span></div>
+      <div class="doc-title">業種別メニューカバレッジマップ</div>
+      <div class="doc-subtitle">ブロックカスタマイズ機能設計資料 ― 対象13業種 / 機能26項目</div>
+    </div>
+    <div class="doc-meta">
+      <div>作成日 ： 2026年3月</div>
+      <div>作成者 ： セイノデンキ</div>
+      <div style="margin-top:4px;color:#bbb;">Internal use only</div>
+    </div>
+  </div>
+
+  <!-- ===== LEGEND ===== -->
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#2d6b46;"></div>既存機能（すぐ活用可能）
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#a84e25;"></div>新規開発が必要
+    </div>
+    <div class="legend-item">
+      <div class="legend-dot" style="background:#5a3a8a;"></div>製造業固有のギャップ
+    </div>
+    <div class="legend-note">タイルの面積 ＝ 対応業種数（全13業種）</div>
+  </div>
+
+  <!-- ===== HEATMAP: EXISTING ===== -->
+  <div class="sec-label">既存機能</div>
+  <div class="tmap-wrap" id="ex-map" style="height:140px;"></div>
+
+  <!-- ===== HEATMAP: NEW ===== -->
+  <div class="sec-label">新規開発が必要な機能</div>
+  <div class="tmap-wrap" id="nw-map" style="height:290px;"></div>
+
+  <!-- ===== HEATMAP: MFG GAP ===== -->
+  <div class="sec-label">製造業固有のギャップ（他業種には不要）</div>
+  <div class="tmap-wrap" id="mf-map" style="height:60px;"></div>
+
+  <!-- ===== PAGE BREAK ===== -->
+  <div class="page-break"></div>
+
+  <!-- ===== FEATURE TABLE: EXISTING ===== -->
+  <div class="feat-section">
+    <div class="feat-section-title green">■ 既存機能（8機能） ― 現在のCRMにすでに搭載済み</div>
+    <table class="feat-table">
+      <thead>
+        <tr>
+          <th style="width:130px;">機能名</th>
+          <th style="width:42px;text-align:center;">対応<br>業種数</th>
+          <th>主な利用シーン</th>
+          <th style="width:160px;">活用しやすい業種</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="feat-name">ダッシュボード</td>
+          <td style="text-align:center;"><span class="cnt-badge cnt-green">13業種</span></td>
+          <td class="feat-scene">売上・案件数・アラートをKPI一覧で把握。毎朝開いて今日のタスクと状況を確認する起点。</td>
+          <td class="feat-ind">全業種共通</td>
+        </tr>
+        <tr>
+          <td class="feat-name">顧客管理</td>
+          <td style="text-align:center;"><span class="cnt-badge cnt-green">13業種</span></td>
+          <td class="feat-scene">法人・個人の連絡先・取引履歴・担当者を一元管理。「あの会社、前回いくらだったっけ？」をすぐ解決。</td>
+          <td class="feat-ind">全業種共通</td>
+        </tr>
+        <tr>
+          <td class="feat-name">見積・請求管理</td>
+          <td style="text-align:center;"><span class="cnt-badge cnt-green">13業種</span></td>
+          <td class="feat-scene">見積書・請求書をその場で作成・PDF出力。インボイス対応、消費税計算、番号採番まで自動。</td>
+          <td class="feat-ind">全業種共通</td>
+        </tr>
+        <tr>
+          <td class="feat-name">スケジュール</td>
+          <td style="text-align:center;"><span class="cnt-badge cnt-green">13業種</span></td>
+          <td class="feat-scene">週次・月次カレンダーにスタッフ別で予定を入力。案件と紐付けて「誰がどの現場に入るか」を可視化。</td>
+          <td class="feat-ind">全業種共通</td>
+        </tr>
+        <tr>
+          <td class="feat-name">スタッフ・協力会社</td>
+          <td style="text-align:center;"><span class="cnt-badge cnt-green">13業種</span></td>
+          <td class="feat-scene">社内スタッフと外注先の情報をまとめて管理。色分けでカレンダーに表示。</td>
+          <td class="feat-ind">全業種共通</td>
+        </tr>
+        <tr>
+          <td class="feat-name">CSVエクスポート</td>
+          <td style="text-align:center;"><span class="cnt-badge cnt-green">13業種</span></td>
+          <td class="feat-scene">顧客・案件・見積データを一括でExcel出力。税理士提出・集計作業に活用。</td>
+          <td class="feat-ind">全業種共通</td>
+        </tr>
+        <tr>
+          <td class="feat-name">案件・工事管理</td>
+          <td style="text-align:center;"><span class="cnt-badge cnt-green">8業種</span></td>
+          <td class="feat-scene">工事の進捗フェーズ（設計中→施工中→検査中→完了）を管理。現場写真を案件に紐付けて記録。</td>
+          <td class="feat-ind">電気・水道・内装・空調・造園・塗装・清掃・建設</td>
+        </tr>
+        <tr>
+          <td class="feat-name">在庫管理</td>
+          <td style="text-align:center;"><span class="cnt-badge cnt-green">10業種</span></td>
+          <td class="feat-scene">資材・商品・食材の在庫数を管理。発注点を設定して「残少アラート」を自動通知。入出庫ログも記録。</td>
+          <td class="feat-ind">工事系・小売・飲食・小規模工場</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- FEATURE TABLE: NEW -->
+    <div class="feat-section-title orange" style="margin-top:16px;">■ 新規開発が必要な機能（15機能） ― BizLockで追加実装予定</div>
+    <table class="feat-table">
+      <thead>
+        <tr>
+          <th style="width:130px;">機能名</th>
+          <th style="width:42px;text-align:center;">対応<br>業種数</th>
+          <th>主な利用シーン</th>
+          <th style="width:160px;">特に重要な業種</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="feat-name">売上レポート・分析</td>
+          <td style="text-align:center;"><span class="cnt-badge cnt-orange">13業種</span></td>
+          <td class="feat-scene">月次・年次の売上グラフ、顧客別・担当者別集計。「今月どれくらい稼いだか」を即座に把握。</td>
+          <td class="feat-ind">全業種共通</td>
+        </tr>
+        <tr>
+          <td class="feat-name">レシート・領収書保存</td>
+          <td style="text-align:center;"><span class="cnt-badge cnt-orange">13業種</span></td>
+          <td class="feat-scene">経費領収書をスマホで撮影して保存。勘定科目タグを付けて税理士にそのまま渡せる形に。</td>
+          <td class="feat-ind">全業種共通</td>
+        </tr>
+        <tr>
+          <td class="feat-name">勤怠管理</td>
+          <td style="text-align:center;"><span class="cnt-badge cnt-orange">13業種</span></td>
+          <td class="feat-scene">スタッフの出退勤・残業・有給を記録。給与計算の基礎データとして月次で出力。</td>
+          <td class="feat-ind">全業種共通</td>
+        </tr>
+        <tr>
+          <td class="feat-name">契約書・書類管理</td>
+          <td style="text-align:center;"><span class="cnt-badge cnt-orange">11業種</span></td>
+          <td class="feat-scene">工事請負契約・賃貸借契約・業務委託書などをPDFで保存・検索。顧客や案件と紐付けて管理。</td>
+          <td class="feat-ind">工事系・不動産・小売・飲食・工場</td>
+        </tr>
+        <tr>
+          <td class="feat-name">日報・作業報告</td>
+          <td style="text-align:center;"><span class="cnt-badge cnt-orange">11業種</span></td>
+          <td class="feat-scene">その日の作業内容・時間・使用資材をスマホで入力。上長が翌日確認して進捗把握。</td>
+          <td class="feat-ind">工事系・清掃・警備・飲食・工場</td>
+        </tr>
+        <tr>
+          <td class="feat-name">発注・仕入管理</td>
+          <td style="text-align:center;"><span class="cnt-badge cnt-orange">10業種</span></td>
+          <td class="feat-scene">業者への発注記録と入荷確認をセットで管理。「注文したのに届いていない」を防ぐ。小売・飲食の仕入れにも対応。</td>
+          <td class="feat-ind">工事系・小売・飲食・工場</td>
+        </tr>
+        <tr>
+          <td class="feat-name">写真・現場記録</td>
+          <td style="text-align:center;"><span class="cnt-badge cnt-orange">10業種</span></td>
+          <td class="feat-scene">現場の施工前後写真を案件に紐付けて保存。飲食業では衛生管理の写真記録にも転用可能。</td>
+          <td class="feat-ind">工事系・清掃・飲食・工場</td>
+        </tr>
+        <tr>
+          <td class="feat-name">シフト管理</td>
+          <td style="text-align:center;"><span class="cnt-badge cnt-orange">9業種</span></td>
+          <td class="feat-scene">週次シフト表を作成してスタッフに通知。希望休・固定シフトを考慮した自動割当。特に小売・飲食・警備・清掃で効果大。</td>
+          <td class="feat-ind">小売・飲食・清掃・警備・工場 等</td>
+        </tr>
+        <tr>
+          <td class="feat-name">点検・メンテナンス管理</td>
+          <td style="text-align:center;"><span class="cnt-badge cnt-orange">9業種</span></td>
+          <td class="feat-scene">定期点検のスケジュール管理と履歴記録。設備の法定点検サイクルを登録してアラート通知。電気工事の定期点検フェーズを発展させた機能。</td>
+          <td class="feat-ind">電気・空調・不動産・警備・工場 等</td>
+        </tr>
+        <tr>
+          <td class="feat-name">図面・仕様書管理</td>
+          <td style="text-align:center;"><span class="cnt-badge cnt-orange">7業種</span></td>
+          <td class="feat-scene">CAD図面・仕様書・施工図をクラウド保存して現場でも閲覧。「古い図面を持っていった」を防止。</td>
+          <td class="feat-ind">電気・水道・内装・空調・建設・造園・工場</td>
+        </tr>
+        <tr>
+          <td class="feat-name">外注・協力会社発注</td>
+          <td style="text-align:center;"><span class="cnt-badge cnt-orange">7業種</span></td>
+          <td class="feat-scene">外注依頼書の作成・送付・発注金額管理。案件別に外注コストを集計して実行利益を把握。</td>
+          <td class="feat-ind">工事系・工場</td>
+        </tr>
+        <tr>
+          <td class="feat-name">予約管理</td>
+          <td style="text-align:center;"><span class="cnt-badge cnt-orange">7業種</span></td>
+          <td class="feat-scene">来客・訪問予約をカレンダー管理。飲食の席予約から内装・リフォームの現地調査日程まで幅広く対応。</td>
+          <td class="feat-ind">飲食・不動産・内装・小売 等</td>
+        </tr>
+        <tr>
+          <td class="feat-name">点検チェックリスト</td>
+          <td style="text-align:center;"><span class="cnt-badge cnt-orange">7業種</span></td>
+          <td class="feat-scene">現場確認項目をチェックリスト化。完了記録に担当者名・日時が自動付与されて証拠として残せる。</td>
+          <td class="feat-ind">電気・水道・空調・不動産・警備・飲食・工場</td>
+        </tr>
+        <tr>
+          <td class="feat-name">工程表・ガントチャート</td>
+          <td style="text-align:center;"><span class="cnt-badge cnt-orange">6業種</span></td>
+          <td class="feat-scene">工事・製造の工程をガントチャートで可視化。遅延検知と自動スケジュール調整。複数案件の同時進行を管理。</td>
+          <td class="feat-ind">電気・水道・内装・空調・建設・工場</td>
+        </tr>
+        <tr>
+          <td class="feat-name">アフターサービス管理</td>
+          <td style="text-align:center;"><span class="cnt-badge cnt-orange">6業種</span></td>
+          <td class="feat-scene">保証期間管理・クレーム対応履歴・定期訪問の記録。「あそこ、いつ保証切れだっけ？」をアラートで管理。</td>
+          <td class="feat-ind">電気・水道・内装・空調・小売・不動産</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- FEATURE TABLE: MFG GAP -->
+    <div class="feat-section-title purple" style="margin-top:16px;">■ 製造業固有のギャップ（3機能） ― 小規模工場への対応時に追加実装が必要</div>
+    <table class="feat-table">
+      <thead>
+        <tr>
+          <th style="width:130px;">機能名</th>
+          <th style="width:42px;text-align:center;">対応<br>業種数</th>
+          <th>主な利用シーン</th>
+          <th style="width:160px;">対応業種</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="feat-name">生産管理・工程進捗</td>
+          <td style="text-align:center;"><span class="cnt-badge cnt-purple">1業種</span></td>
+          <td class="feat-scene">生産指示書の発行、各工程の完成数カウント、投入数・完成数・不良数をリアルタイム把握。汎用CRMのカバー範囲外となる製造業固有の機能。</td>
+          <td class="feat-ind">小規模工場</td>
+        </tr>
+        <tr>
+          <td class="feat-name">品質管理・不良記録</td>
+          <td style="text-align:center;"><span class="cnt-badge cnt-purple">2業種</span></td>
+          <td class="feat-scene">ロット別の検査記録・不良率集計・是正処置の管理。飲食業のHACCP管理にも一部転用可能。</td>
+          <td class="feat-ind">小規模工場・飲食業</td>
+        </tr>
+        <tr>
+          <td class="feat-name">ロット・シリアル管理</td>
+          <td style="text-align:center;"><span class="cnt-badge cnt-purple">2業種</span></td>
+          <td class="feat-scene">原材料から製品までの追跡番号（ロット番号・シリアル番号）を紐付けて管理。製品の遡及調査（トレーサビリティ）に対応。</td>
+          <td class="feat-ind">小規模工場・小売業（一部）</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ===== PAGE BREAK ===== -->
+  <div class="page-break"></div>
+
+  <!-- ===== INDUSTRY SCENARIOS ===== -->
+  <div style="font-size:14px;font-weight:700;margin-bottom:4px;">業種別 ― 想定利用シーン一覧</div>
+  <div style="font-size:10px;color:#666;margin-bottom:14px;">各業種でBizLockをどのように活用するか、主要シーンと「ブロックカスタマイズ」で非表示にすべき機能を示す。</div>
+
+  <div class="ind-grid">
+
+    <div class="ind-card">
+      <div class="ind-name">
+        <div class="ind-icon" style="background:#e8f4ed;">⚡</div>
+        電気工事業　<span style="font-size:9px;color:#2d6b46;font-weight:400;">（現行システムのベース）</span>
+      </div>
+      <div class="ind-desc">
+        工事案件の受注から完了まで全工程をCRMで一元管理。見積→施工→検査→請求の流れをフェーズ管理し、現場写真・図面・点検記録を案件に紐付ける。スタッフのスケジュールをカレンダーで可視化し、複数現場の並走を管理。
+      </div>
+      <div class="ind-tags">
+        <span class="ind-tag">全機能対応</span>
+        <span class="ind-tag">点検フェーズ実装済</span>
+      </div>
+    </div>
+
+    <div class="ind-card">
+      <div class="ind-name">
+        <div class="ind-icon" style="background:#e8f0fa;">💧</div>
+        水道・設備工事業
+      </div>
+      <div class="ind-desc">
+        電気工事業とほぼ同構造。緊急対応（水漏れ・詰まり）の即日スケジューリングと、定期点検・バルブ交換などのメンテナンス管理が加わる。アフターサービス管理で顧客ごとの設備履歴を蓄積。
+      </div>
+      <div class="ind-tags">
+        <span class="ind-tag">案件管理</span><span class="ind-tag">定期点検</span><span class="ind-tag">アフターサービス</span>
+      </div>
+    </div>
+
+    <div class="ind-card">
+      <div class="ind-name">
+        <div class="ind-icon" style="background:#faf0e8;">🏠</div>
+        内装・リフォーム業
+      </div>
+      <div class="ind-desc">
+        顧客との打ち合わせ記録から施工写真・完成写真まで案件で管理。工程表で大工・クロス・電気などの職人を外注発注しながら工程を調整。見積の材料費・工賃の内訳管理が重要。予約管理で現地調査を管理。
+      </div>
+      <div class="ind-tags">
+        <span class="ind-tag">工程表</span><span class="ind-tag">外注管理</span><span class="ind-tag">現場写真</span>
+      </div>
+    </div>
+
+    <div class="ind-card">
+      <div class="ind-name">
+        <div class="ind-icon" style="background:#e8f4fa;">❄️</div>
+        空調・管工事業
+      </div>
+      <div class="ind-desc">
+        新設工事と定期メンテナンスの両軸で運用。フィルター清掃・冷媒補充などの定期点検を点検チェックリストで管理し、不具合記録を蓄積。法定点検のリマインドアラートが特に有効。
+      </div>
+      <div class="ind-tags">
+        <span class="ind-tag">定期点検</span><span class="ind-tag">チェックリスト</span><span class="ind-tag">保証管理</span>
+      </div>
+    </div>
+
+    <div class="ind-card">
+      <div class="ind-name">
+        <div class="ind-icon" style="background:#eaf5ec;">🌿</div>
+        造園・外構業
+      </div>
+      <div class="ind-desc">
+        季節による繁忙変動が大きいため、スケジュール管理が核心。剪定・除草の定期メンテ顧客リストを顧客管理で保持し、毎年同じ時期に連絡するサイクル管理に活用。資材の在庫・仕入管理も必要。
+      </div>
+      <div class="ind-tags">
+        <span class="ind-tag">定期巡回管理</span><span class="ind-tag">在庫・仕入</span><span class="ind-tag">図面管理</span>
+      </div>
+    </div>
+
+    <div class="ind-card">
+      <div class="ind-name">
+        <div class="ind-icon" style="background:#fdf0e8;">🎨</div>
+        塗装業
+      </div>
+      <div class="ind-desc">
+        施工前・中・後の写真記録が最重要。見積書で塗料の種類・面積・工程（下塗り・中塗り・上塗り）を明記し、日報で進捗記録。天候に左右されるため、スケジュールの柔軟な変更管理が必要。
+      </div>
+      <div class="ind-tags">
+        <span class="ind-tag">現場写真</span><span class="ind-tag">日報</span><span class="ind-tag">スケジュール</span>
+      </div>
+    </div>
+
+    <div class="ind-card">
+      <div class="ind-name">
+        <div class="ind-icon" style="background:#f0f0f8;">🧹</div>
+        清掃業
+      </div>
+      <div class="ind-desc">
+        スタッフの現場割り当てが日常業務の核心。シフト管理・勤怠管理が特に重要で、複数スタッフを複数現場に割り当てるスケジュール管理が必要。定期清掃の巡回記録と日報管理も活用。
+      </div>
+      <div class="ind-tags">
+        <span class="ind-tag">シフト管理</span><span class="ind-tag">勤怠管理</span><span class="ind-tag">日報</span>
+      </div>
+    </div>
+
+    <div class="ind-card">
+      <div class="ind-name">
+        <div class="ind-icon" style="background:#f5f0fa;">🛡️</div>
+        警備業
+      </div>
+      <div class="ind-desc">
+        シフト管理と勤怠管理が業務の根幹。顧客（警備先）ごとの契約書・担当スタッフを管理し、巡回記録を日報として蓄積。緊急対応記録もスケジュールに連動して残す。
+      </div>
+      <div class="ind-tags">
+        <span class="ind-tag">シフト管理</span><span class="ind-tag">巡回日報</span><span class="ind-tag">契約書管理</span>
+      </div>
+    </div>
+
+    <div class="ind-card">
+      <div class="ind-name">
+        <div class="ind-icon" style="background:#f0f5fa;">🏢</div>
+        不動産管理業
+      </div>
+      <div class="ind-desc">
+        物件（顧客）と入居者・オーナーを顧客管理で紐付け。定期設備点検・清掃の発注管理、修繕工事の案件管理、契約書の保管が主軸。予約管理で内見・契約面談を管理。
+      </div>
+      <div class="ind-tags">
+        <span class="ind-tag">予約管理</span><span class="ind-tag">契約書管理</span><span class="ind-tag">点検・メンテ</span>
+      </div>
+    </div>
+
+    <div class="ind-card">
+      <div class="ind-name">
+        <div class="ind-icon" style="background:#eaefe8;">🏗️</div>
+        建設・土木業
+      </div>
+      <div class="ind-desc">
+        大規模案件の長期工程管理が中心。ガントチャートで複数工程を可視化し、外注業者への発注・精算を案件別に管理。図面バージョン管理と現場写真の記録が安全管理・施工管理の証拠として機能。
+      </div>
+      <div class="ind-tags">
+        <span class="ind-tag">工程表</span><span class="ind-tag">外注管理</span><span class="ind-tag">図面管理</span>
+      </div>
+    </div>
+
+    <div class="ind-card">
+      <div class="ind-name">
+        <div class="ind-icon" style="background:#faf5e8;">🛍️</div>
+        小売業
+      </div>
+      <div class="ind-desc">
+        在庫管理・発注仕入管理が核心機能。商品ごとに発注点を設定して欠品を防止。シフト管理で従業員の勤務管理を行い、売上レポートで商品別・期間別の売れ行きを分析。予約はサービス商材の事前予約に活用。
+      </div>
+      <div class="ind-tags">
+        <span class="ind-tag">在庫管理</span><span class="ind-tag">シフト管理</span><span class="ind-tag">売上分析</span>
+      </div>
+    </div>
+
+    <div class="ind-card">
+      <div class="ind-name">
+        <div class="ind-icon" style="background:#faeae8;">🍜</div>
+        飲食業
+      </div>
+      <div class="ind-desc">
+        予約管理・シフト管理・仕入管理の3点が重要。食材の在庫・発注をリアルタイムで管理し、ロスを削減。衛生管理の記録（写真・チェックリスト）はHACCP対応として活用。売上日報で日次の稼ぎを把握。
+      </div>
+      <div class="ind-tags">
+        <span class="ind-tag">予約管理</span><span class="ind-tag">仕入管理</span><span class="ind-tag">衛生記録</span>
+      </div>
+    </div>
+
+    <div class="ind-card" style="border-color:#c9b8e8;background:#f8f4fe;">
+      <div class="ind-name">
+        <div class="ind-icon" style="background:#ece8fa;">🏭</div>
+        小規模工場　<span style="font-size:9px;color:#5a3a8a;font-weight:400;">（8割対応・3点要追加）</span>
+      </div>
+      <div class="ind-desc">
+        勤怠・シフト・在庫・発注・日報・図面・外注・設備メンテの大半は汎用機能で吸収可能。10〜30人規模の加工場・町工場なら実用範囲。ただし下記3点は追加実装が必要。
+      </div>
+      <div class="ind-tags">
+        <span class="ind-tag gap">要追加：生産管理</span>
+        <span class="ind-tag gap">要追加：品質管理</span>
+        <span class="ind-tag gap">要追加：ロット管理</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== FOOTER ===== -->
+  <div class="doc-footer">
+    <div>BizLock 業種別メニューカバレッジマップ ― Internal</div>
+    <div>© 2026 セイノデンキ</div>
+  </div>
+
+</div><!-- /page -->
+
+<!-- ===== D3 TREEMAP ===== -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script>
+(function() {
+  const ALL = ['電気工事業','水道・設備工事','内装・リフォーム','空調・管工事','造園・外構','塗装業','清掃業','警備業','不動産管理','建設・土木','小売業','飲食業','小規模工場'];
+
+  const existing = [
+    {name:'ダッシュボード', ind:ALL},
+    {name:'顧客管理', ind:ALL},
+    {name:'見積・請求管理', ind:ALL},
+    {name:'スケジュール', ind:ALL},
+    {name:'スタッフ・協力会社', ind:ALL},
+    {name:'CSVエクスポート', ind:ALL},
+    {name:'在庫管理', ind:['電気工事業','水道・設備工事','内装・リフォーム','空調・管工事','造園・外構','塗装業','建設・土木','小売業','飲食業','小規模工場']},
+    {name:'案件・工事管理', ind:['電気工事業','水道・設備工事','内装・リフォーム','空調・管工事','造園・外構','塗装業','清掃業','建設・土木']},
+  ];
+
+  const newFeat = [
+    {name:'売上レポート・分析', ind:ALL},
+    {name:'レシート・領収書保存', ind:ALL},
+    {name:'勤怠管理', ind:ALL},
+    {name:'契約書・書類管理', ind:['電気工事業','水道・設備工事','内装・リフォーム','空調・管工事','造園・外構','塗装業','建設・土木','不動産管理','小売業','飲食業','小規模工場']},
+    {name:'日報・作業報告', ind:['電気工事業','水道・設備工事','内装・リフォーム','空調・管工事','造園・外構','塗装業','建設・土木','清掃業','警備業','飲食業','小規模工場']},
+    {name:'発注・仕入管理', ind:['電気工事業','水道・設備工事','内装・リフォーム','空調・管工事','造園・外構','塗装業','建設・土木','小売業','飲食業','小規模工場']},
+    {name:'写真・現場記録', ind:['電気工事業','水道・設備工事','内装・リフォーム','空調・管工事','造園・外構','塗装業','建設・土木','清掃業','飲食業','小規模工場']},
+    {name:'シフト管理', ind:['電気工事業','水道・設備工事','建設・土木','清掃業','警備業','不動産管理','小売業','飲食業','小規模工場']},
+    {name:'点検・メンテナンス管理', ind:['電気工事業','水道・設備工事','空調・管工事','造園・外構','建設・土木','不動産管理','警備業','飲食業','小規模工場']},
+    {name:'図面・仕様書管理', ind:['電気工事業','水道・設備工事','内装・リフォーム','空調・管工事','建設・土木','造園・外構','小規模工場']},
+    {name:'外注・協力会社発注', ind:['電気工事業','水道・設備工事','内装・リフォーム','空調・管工事','建設・土木','造園・外構','小規模工場']},
+    {name:'予約管理', ind:['飲食業','内装・リフォーム','不動産管理','小売業','電気工事業','水道・設備工事','空調・管工事']},
+    {name:'点検チェックリスト', ind:['電気工事業','水道・設備工事','空調・管工事','不動産管理','警備業','飲食業','小規模工場']},
+    {name:'工程表・ガントチャート', ind:['電気工事業','水道・設備工事','内装・リフォーム','空調・管工事','建設・土木','小規模工場']},
+    {name:'アフターサービス管理', ind:['電気工事業','水道・設備工事','内装・リフォーム','空調・管工事','小売業','不動産管理']},
+  ];
+
+  const mfGap = [
+    {name:'生産管理・工程進捗', ind:['小規模工場']},
+    {name:'品質管理・不良記録', ind:['小規模工場','飲食業']},
+    {name:'ロット・シリアル管理', ind:['小規模工場','小売業']},
+  ];
+
+  function buildMap(id, features, mode) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const W = el.offsetWidth || 720;
+    const H = parseInt(el.style.height);
+
+    const root = d3.hierarchy({children: features.map(f => ({...f, value: Math.max(f.ind.length, 1)}))})
+      .sum(d => d.value);
+    d3.treemap().size([W, H]).padding(2).tile(d3.treemapSquarify)(root);
+
+    const minN = 1, maxN = 13;
+
+    root.leaves().forEach(leaf => {
+      const d = leaf.data;
+      const w = Math.round(leaf.x1 - leaf.x0);
+      const h = Math.round(leaf.y1 - leaf.y0);
+      const n = d.ind.length;
+      const t = (n - minN) / (maxN - minN);
+
+      let bg;
+      if (mode === 'existing') bg = `hsl(148,${36+t*18}%,${40-t*12}%)`;
+      else if (mode === 'new')  bg = `hsl(22,${52+t*20}%,${42-t*14}%)`;
+      else                      bg = `hsl(270,${40+t*15}%,${38-t*8}%)`;
+
+      const div = document.createElement('div');
+      div.style.cssText = `position:absolute;left:${Math.round(leaf.x0)}px;top:${Math.round(leaf.y0)}px;width:${w}px;height:${h}px;background:${bg};color:#fff;padding:4px 6px;overflow:hidden;box-sizing:border-box;border:2px solid #fff;border-radius:3px;`;
+
+      if (w > 44 && h > 18) {
+        const fs = w < 80 ? 9 : 10;
+        div.innerHTML = `<div style="font-size:${fs}px;font-weight:700;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${d.name}</div>`
+          + (h > 36 ? `<div style="font-size:9px;opacity:0.65;margin-top:1px;">${n}業種</div>` : '');
+      }
+      el.appendChild(div);
+    });
+  }
+
+  buildMap('ex-map', existing, 'existing');
+  buildMap('nw-map', newFeat, 'new');
+  buildMap('mf-map', mfGap, 'mf');
+})();
+</script>
+</body>
+</html>

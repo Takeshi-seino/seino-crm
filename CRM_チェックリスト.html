@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>セイノデンキ CRM v5 チェックリスト</title>
+<style>
+@page{size:A4;margin:15mm}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Hiragino Kaku Gothic ProN','Meiryo','Yu Gothic',sans-serif;font-size:9.5pt;color:#111;line-height:1.6}
+h1{font-size:15pt;font-weight:700;border-bottom:2px solid #333;padding-bottom:6px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:baseline}
+h1 span{font-size:9pt;color:#666;font-weight:400}
+.section{margin-bottom:14px;break-inside:avoid}
+.sec-title{font-size:9pt;font-weight:700;color:#fff;background:#333;padding:3px 8px;margin-bottom:4px}
+.item{display:flex;align-items:flex-start;gap:8px;padding:3px 6px;border-bottom:0.5px solid #e0e0e0}
+.item:last-child{border-bottom:none}
+.box{width:13px;height:13px;border:1.5px solid #555;flex-shrink:0;margin-top:2px}
+.label{flex:1;font-size:9pt}
+.note{font-size:8pt;color:#666;margin-top:1px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+.footer{margin-top:20px;font-size:8pt;color:#888;text-align:right;border-top:0.5px solid #ccc;padding-top:6px}
+@media print{body{font-size:9pt}}
+</style>
+</head>
+<body>
+
+<h1>セイノデンキ CRM v5 — 動作確認チェックリスト <span>確認日：　　　　　　　　　確認者：　　　　　　　</span></h1>
+
+<div class="grid">
+<div>
+
+<div class="section">
+<div class="sec-title">PC — 全体・ナビゲーション</div>
+<div class="item"><div class="box"></div><div class="label">サイドバーメニューのクリックでページ遷移<div class="note">ダッシュボード・顧客・案件・見積・スケジュール・スタッフ・在庫・設定</div></div></div>
+<div class="item"><div class="box"></div><div class="label">ハンバーガーボタン（☰）でサイドバー開閉</div></div>
+<div class="item"><div class="box"></div><div class="label">データ管理の展開（CSV・バックアップ・復元）</div></div>
+<div class="item"><div class="box"></div><div class="label">アラートポップアップ（起動時）</div></div>
+</div>
+
+<div class="section">
+<div class="sec-title">PC — ダッシュボード</div>
+<div class="item"><div class="box"></div><div class="label">統計カード4つ表示（顧客数・案件数・未処理見積・売上）</div></div>
+<div class="item"><div class="box"></div><div class="label">進行中の案件リスト</div></div>
+<div class="item"><div class="box"></div><div class="label">最近の見積リスト</div></div>
+<div class="item"><div class="box"></div><div class="label">今週のスケジュール表示</div></div>
+<div class="item"><div class="box"></div><div class="label">「カレンダーを開く」→ スケジュールページへ遷移</div></div>
+<div class="item"><div class="box"></div><div class="label">「＋ 追加」→ スケジュール追加モーダル</div></div>
+</div>
+
+<div class="section">
+<div class="sec-title">PC — 顧客管理</div>
+<div class="item"><div class="box"></div><div class="label">顧客一覧テーブル表示・検索</div></div>
+<div class="item"><div class="box"></div><div class="label">新規顧客登録モーダル</div></div>
+<div class="item"><div class="box"></div><div class="label">編集・削除ボタン</div></div>
+<div class="item"><div class="box"></div><div class="label">顧客詳細ページへ遷移</div></div>
+<div class="item"><div class="box"></div><div class="label">詳細：📅 履歴タブ（案件・見積の時系列）</div></div>
+<div class="item"><div class="box"></div><div class="label">詳細：🔧 保有タブ（保有機器の登録・編集・削除）</div></div>
+<div class="item"><div class="box"></div><div class="label">詳細：📄 契約タブ（保証/保守/エアクリ/点検/リース）</div></div>
+<div class="item"><div class="box"></div><div class="label">詳細：📝 レポートタブ</div></div>
+<div class="item"><div class="box"></div><div class="label">詳細：⚡ 案件タブ / 📋 見積タブ</div></div>
+</div>
+
+<div class="section">
+<div class="sec-title">PC — 案件・工事管理</div>
+<div class="item"><div class="box"></div><div class="label">案件カード表示・検索・フィルター</div></div>
+<div class="item"><div class="box"></div><div class="label">カレンダービュー切替（月・週・日）</div></div>
+<div class="item"><div class="box"></div><div class="label">新規案件登録モーダル</div></div>
+<div class="item"><div class="box"></div><div class="label">案件詳細モーダル（段取り・機器・材料・人員）</div></div>
+<div class="item"><div class="box"></div><div class="label">工事指示書印刷</div></div>
+<div class="item"><div class="box"></div><div class="label">天気情報表示（週・月ビュー）</div></div>
+</div>
+
+<div class="section">
+<div class="sec-title">PC — 見積・請求管理</div>
+<div class="item"><div class="box"></div><div class="label">見積一覧テーブル表示</div></div>
+<div class="item"><div class="box"></div><div class="label">新規見積作成モーダル（明細行の追加・削除）</div></div>
+<div class="item"><div class="box"></div><div class="label">見積書印刷 → A4 1ページに収まる<div class="note">印刷ボタンが印刷物に含まれないこと</div></div></div>
+<div class="item"><div class="box"></div><div class="label">請求書印刷 → 「御請求書」様式<div class="note">JSコードが表示されないこと</div></div></div>
+<div class="item"><div class="box"></div><div class="label">ステータス変更（作成中・提出済・承認済・却下）</div></div>
+</div>
+
+<div class="section">
+<div class="sec-title">PC — スケジュール</div>
+<div class="item"><div class="box"></div><div class="label">月ビュー：天気・案件・予定表示</div></div>
+<div class="item"><div class="box"></div><div class="label">週ビュー：時間軸・スクロール同期</div></div>
+<div class="item"><div class="box"></div><div class="label">日ビュー：1日の予定一覧</div></div>
+<div class="item"><div class="box"></div><div class="label">スケジュール追加・編集・削除</div></div>
+</div>
+
+<div class="section">
+<div class="sec-title">PC — 設定</div>
+<div class="item"><div class="box"></div><div class="label">会社情報入力（社名・住所・TEL・FAX・担当者）</div></div>
+<div class="item"><div class="box"></div><div class="label">ロゴ画像アップロード・削除</div></div>
+<div class="item"><div class="box"></div><div class="label">AI設定（使用するAI・APIキー）</div></div>
+<div class="item"><div class="box"></div><div class="label">アラート設定（通知日数・ポップアップ ON/OFF）<div class="note">アラート設定が1つだけ表示されること（重複なし）</div></div></div>
+<div class="item"><div class="box"></div><div class="label">テーマカラー変更 → 即反映</div></div>
+<div class="item"><div class="box"></div><div class="label">設定を保存 → 再読み込み後も保持</div></div>
+</div>
+
+</div>
+<div>
+
+<div class="section">
+<div class="sec-title">スマホ — 全体・ナビゲーション</div>
+<div class="item"><div class="box"></div><div class="label">ボトムナビ5項目が全て見える<div class="note">ホーム・顧客・案件・予定・見積</div></div></div>
+<div class="item"><div class="box"></div><div class="label">☰ ボタンでサイドバー開閉（スタッフ・在庫・設定）</div></div>
+<div class="item"><div class="box"></div><div class="label">各ページのタイトルが縦書きにならない</div></div>
+</div>
+
+<div class="section">
+<div class="sec-title">スマホ — ダッシュボード</div>
+<div class="item"><div class="box"></div><div class="label">統計カード 2×2 グリッドで表示</div></div>
+<div class="item"><div class="box"></div><div class="label">進行中案件・最近の見積が縦1列</div></div>
+<div class="item"><div class="box"></div><div class="label">今週のスケジュールが表示される</div></div>
+<div class="item"><div class="box"></div><div class="label">「カレンダーを開く」→ 予定ページへ遷移</div></div>
+</div>
+
+<div class="section">
+<div class="sec-title">スマホ — 顧客・案件・見積</div>
+<div class="item"><div class="box"></div><div class="label">顧客一覧がカード形式で表示</div></div>
+<div class="item"><div class="box"></div><div class="label">見積一覧がカード形式で表示</div></div>
+<div class="item"><div class="box"></div><div class="label">案件はカード表示（カレンダーにならない）</div></div>
+</div>
+
+<div class="section">
+<div class="sec-title">スマホ — カレンダー（予定ページ）</div>
+<div class="item"><div class="box"></div><div class="label">月グリッド + 下部に選択日の予定リスト</div></div>
+<div class="item"><div class="box"></div><div class="label">日付タップで予定リストが切り替わる</div></div>
+<div class="item"><div class="box"></div><div class="label">月・週・日の切替ボタンが機能する</div></div>
+<div class="item"><div class="box"></div><div class="label">週ビュー：7日分のリスト表示</div></div>
+<div class="item"><div class="box"></div><div class="label">日ビュー：1日分のリスト表示</div></div>
+<div class="item"><div class="box"></div><div class="label">天気情報は表示されない（スマホ専用）</div></div>
+</div>
+
+<div class="section">
+<div class="sec-title">スマホ — 見積・請求書印刷</div>
+<div class="item"><div class="box"></div><div class="label">印刷ボタンで新しいタブが開く</div></div>
+<div class="item"><div class="box"></div><div class="label">印刷レイアウトがA4に収まる</div></div>
+<div class="item"><div class="box"></div><div class="label">「印刷する」ボタンが印刷物に含まれない</div></div>
+<div class="item"><div class="box"></div><div class="label">JSコードが画面に表示されない</div></div>
+</div>
+
+<div class="section">
+<div class="sec-title">スマホ — 設定</div>
+<div class="item"><div class="box"></div><div class="label">アラート設定が1つだけ表示（重複なし）</div></div>
+<div class="item"><div class="box"></div><div class="label">ラジオボタンが正常に表示・選択できる</div></div>
+<div class="item"><div class="box"></div><div class="label">設定保存が機能する</div></div>
+</div>
+
+<div class="section">
+<div class="sec-title">準備中ページ</div>
+<div class="item"><div class="box"></div><div class="label">👷 スタッフ・協力会社 → 「開発中」画面が表示される</div></div>
+<div class="item"><div class="box"></div><div class="label">📦 在庫管理 → 「開発中」画面が表示される</div></div>
+</div>
+
+<div class="section">
+<div class="sec-title">データ管理</div>
+<div class="item"><div class="box"></div><div class="label">顧客・案件・見積の CSV エクスポート</div></div>
+<div class="item"><div class="box"></div><div class="label">全データの JSON バックアップ</div></div>
+<div class="item"><div class="box"></div><div class="label">バックアップファイルから復元</div></div>
+<div class="item"><div class="box"></div><div class="label">データが再読み込み後も消えない（localStorage）</div></div>
+</div>
+
+<div class="section">
+<div class="sec-title">備考・未対応・要確認</div>
+<div class="item"><div class="box"></div><div class="label">&nbsp;</div></div>
+<div class="item"><div class="box"></div><div class="label">&nbsp;</div></div>
+<div class="item"><div class="box"></div><div class="label">&nbsp;</div></div>
+<div class="item"><div class="box"></div><div class="label">&nbsp;</div></div>
+<div class="item"><div class="box"></div><div class="label">&nbsp;</div></div>
+<div class="item"><div class="box"></div><div class="label">&nbsp;</div></div>
+</div>
+
+</div>
+</div>
+
+<div class="footer">セイノデンキ CRM v5 &nbsp;|&nbsp; GitHub: takeshi-seino.github.io/seino-crm &nbsp;|&nbsp; 作成日: 2026年3月26日</div>
+
+</body>
+</html>
