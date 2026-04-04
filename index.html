@@ -251,6 +251,8 @@ tbody tr:hover td{background:var(--bg3)}
   .mo-lg{ max-width:100%; }
   /* テーブルのフォント縮小 */
   td,th{ padding:6px 8px;font-size:12px; }
+  /* モーダル内inputのズーム防止（iOS Safari対策） */
+  .mo input,.mo select,.mo textarea{ font-size:16px !important; }
 }
 @media (min-width:769px){
   #mob-menu-btn{ display:none !important; }
@@ -2502,11 +2504,12 @@ function _tsRenderMonth(staff){
       cells+='<td style="min-width:36px;max-width:36px;height:34px;padding:0;position:relative;cursor:pointer;background:'+bg+';'+(we&&!sh?'background:rgba(184,64,64,.03);':'')+'" onclick="_tsOpenMo('+s.id+',\''+ds+'\')">'+bar+label+'</td>';
     }
     var monthTotal=totalH.toFixed(1);
+    var mob=window.innerWidth<=768;
     rows+='<tr>'+
-      '<td style="position:sticky;left:0;z-index:2;background:var(--bg2);min-width:110px;white-space:nowrap;font-size:12px;font-weight:700;padding:4px 8px;border-right:1px solid var(--border)">'+
+      '<td style="position:sticky;left:0;z-index:2;background:var(--bg2);min-width:'+(mob?'70':'110')+'px;white-space:nowrap;font-size:'+(mob?'11':'12')+'px;font-weight:700;padding:4px '+(mob?'4':'8')+'px;border-right:1px solid var(--border)">'+
         '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+(s.color||'var(--accent)')+';margin-right:4px"></span>'+
         esc(s.name)+
-        '<span style="font-size:9px;color:var(--text3);margin-left:6px">'+monthTotal+'h</span>'+
+        (mob?'':'<span style="font-size:9px;color:var(--text3);margin-left:6px">'+monthTotal+'h</span>')+
       '</td>'+cells+'</tr>';
   });
 
@@ -2521,7 +2524,7 @@ function _tsRenderMonth(staff){
     coverRow+='<td style="min-width:36px;max-width:36px;text-align:center;padding:4px 0;font-size:10px;font-weight:700;color:'+clr+'">'+count+'</td>';
   }
 
-  var navHtml='<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">'+
+  var navHtml='<div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px">'+
     '<button class="btn bs bsm" onclick="_tsM--;if(_tsM<0){_tsM=11;_tsY--;}buildPage()">◀</button>'+
     '<span style="font-size:15px;font-weight:900;min-width:120px;text-align:center">'+_tsY+'年'+(_tsM+1)+'月</span>'+
     '<button class="btn bs bsm" onclick="_tsM++;if(_tsM>11){_tsM=0;_tsY++;}buildPage()">▶</button>'+
@@ -2545,7 +2548,7 @@ function _tsRenderMonth(staff){
 // ── 日ビュー ──
 function _tsRenderDay(staff){
   var ds=_tsDayDateStr();
-  var navHtml='<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">'+
+  var navHtml='<div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px">'+
     '<button class="btn bs bsm" onclick="var d=new Date(_tsY,_tsM,_tsD-1);_tsY=d.getFullYear();_tsM=d.getMonth();_tsD=d.getDate();buildPage()">◀</button>'+
     '<span style="font-size:15px;font-weight:900;min-width:160px;text-align:center">'+_tsY+'年'+(_tsM+1)+'月'+_tsD+'日（'+_tsDow(ds)+'）</span>'+
     '<button class="btn bs bsm" onclick="var d=new Date(_tsY,_tsM,_tsD+1);_tsY=d.getFullYear();_tsM=d.getMonth();_tsD=d.getDate();buildPage()">▶</button>'+
