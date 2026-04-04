@@ -286,6 +286,7 @@ tbody tr:hover td{background:var(--bg3)}
     <button class="nb" data-page="staff"><span class="ni">👷</span>スタッフ・協力会社</button>
     <button class="nb" data-page="stock"><span class="ni">📦</span>在庫管理</button>
     <button class="nb" data-page="timeshift"><span class="ni">🕐</span>タイムシフト管理</button>
+    <button class="nb" data-page="reservation"><span class="ni">📋</span>予約管理</button>
     <button class="nb" data-page="bizcards"><span class="ni">🪪</span>名刺管理<span class="nbc" id="bc-bc">0</span></button>
     <button class="nb" data-page="settings"><span class="ni">⚙️</span>設定</button>
     <div class="nsec" style="cursor:pointer;display:flex;justify-content:space-between" onclick="toggleDM()">
@@ -341,7 +342,7 @@ tbody tr:hover td{background:var(--bg3)}
 // ============================================================
 // DATA — single in-memory object, flush to localStorage on debounce
 // ============================================================
-const K={c:'s5c',p:'s5p',q:'s5q',s:'s5s',id:'s5id',st:'s5st',si:'s5si',sl:'s5sl',bc:'s5bc',tm:'s5tm',ts:'s5ts'};
+const K={c:'s5c',p:'s5p',q:'s5q',s:'s5s',id:'s5id',st:'s5st',si:'s5si',sl:'s5sl',bc:'s5bc',tm:'s5tm',ts:'s5ts',rsv:'s5rsv'};
 let D=null; // THE single data object
 
 function initD(){
@@ -357,6 +358,7 @@ function initD(){
     bizCards:   JSON.parse(localStorage.getItem(K.bc)||'[]'),
     teams:      JSON.parse(localStorage.getItem(K.tm)||'[]'),
     timeShifts: JSON.parse(localStorage.getItem(K.ts)||'{}'),
+    reservations: JSON.parse(localStorage.getItem(K.rsv)||'[]'),
     nextId:     parseInt(localStorage.getItem(K.id)||'1'),
     cfg:        JSON.parse(localStorage.getItem('s5cfg')||'{}'),
   };
@@ -384,6 +386,7 @@ function _flush(){
     localStorage.setItem(K.bc,JSON.stringify(D.bizCards||[]));
     localStorage.setItem(K.tm,JSON.stringify(D.teams||[]));
     localStorage.setItem(K.ts,JSON.stringify(D.timeShifts||{}));
+    localStorage.setItem(K.rsv,JSON.stringify(D.reservations||[]));
     localStorage.setItem(K.id,D.nextId);
     if(D.cfg) localStorage.setItem('s5cfg',JSON.stringify(D.cfg));
     const el=document.getElementById('sv-time');
@@ -515,7 +518,7 @@ function nav(pg,cid){
     const btn=document.getElementById('mbt-'+p);
     if(btn){btn.style.color=p===pg?'var(--accent)':'#888';btn.style.fontWeight=p===pg?'700':'400';}
   });
-  document.getElementById('pg-title').textContent=detCid?'顧客詳細':{dashboard:'ダッシュボード',customers:'顧客管理',projects:'案件・工事管理',quotes:'見積・請求管理',schedule:'スケジュール',staff:'スタッフ・協力会社',stock:'在庫管理',timeshift:'タイムシフト管理',bizcards:'名刺管理',settings:'設定'}[pg]||pg;
+  document.getElementById('pg-title').textContent=detCid?'顧客詳細':{dashboard:'ダッシュボード',customers:'顧客管理',projects:'案件・工事管理',quotes:'見積・請求管理',schedule:'スケジュール',staff:'スタッフ・協力会社',stock:'在庫管理',timeshift:'タイムシフト管理',reservation:'予約管理',bizcards:'名刺管理',settings:'設定'}[pg]||pg;
   buildTopbar();
   buildPage();
 }
@@ -597,6 +600,7 @@ function buildPage(){
   else if(page==='staff') pgStaff();
   else if(page==='stock') pgStock();
   else if(page==='timeshift') pgTimeShift();
+  else if(page==='reservation') pgReservation();
   else if(page==='bizcards') pgBizCards();
   else if(page==='settings') pgSettings();
 }
@@ -2269,6 +2273,177 @@ function saveBizCard(id){
 }
 
 // ============================================================
+// RESERVATION 予約管理
+// ============================================================
+function pgReservation(){
+  if(!D.reservations) D.reservations=[];
+  var now=new Date();
+  var todayStr=now.toISOString().slice(0,10);
+  var DOW=['日','月','火','水','木','金','土'];
+
+  var _rsvView=window._rsvViewState||'today';
+  var _rsvCalY=window._rsvCalY||now.getFullYear();
+  var _rsvCalM=window._rsvCalM!==undefined?window._rsvCalM:now.getMonth();
+
+  function filtered(){return D.reservations||[];}
+  function todayList(){return filtered().filter(function(r){return r.date===todayStr;}).sort(function(a,b){return a.time.localeCompare(b.time);});}
+
+  function render(){
+    var tl=todayList();
+    var totalPeople=tl.filter(function(r){return r.status!=='キャンセル';}).reduce(function(s,r){return s+(r.people||0);},0);
+    var confirmed=tl.filter(function(r){return r.status==='予約中';}).length;
+    var arrived=tl.filter(function(r){return r.status==='来店済';}).length;
+    var cancelled=tl.filter(function(r){return r.status==='キャンセル';}).length;
+
+    var viewBtns='<div style="display:flex;gap:5px">'+
+      '<button class="btn '+(_rsvView==='today'?'bp':'bs')+' bsm" onclick="window._rsvSetView(\'today\')">今日</button>'+
+      '<button class="btn '+(_rsvView==='list'?'bp':'bs')+' bsm" onclick="window._rsvSetView(\'list\')">一覧</button>'+
+      '<button class="btn '+(_rsvView==='cal'?'bp':'bs')+' bsm" onclick="window._rsvSetView(\'cal\')">カレンダー</button>'+
+      '<button class="btn bp bsm" onclick="window._rsvOpenMo()">＋ 予約追加</button>'+
+    '</div>';
+
+    var html='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">'+viewBtns+'</div>';
+
+    // サマリカード
+    html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">'+
+      '<div class="card" style="padding:10px;text-align:center"><div style="font-size:20px;font-weight:700">'+tl.length+'</div><div style="font-size:10px;color:var(--text3)">今日の予約</div></div>'+
+      '<div class="card" style="padding:10px;text-align:center"><div style="font-size:20px;font-weight:700">'+totalPeople+'</div><div style="font-size:10px;color:var(--text3)">合計人数</div></div>'+
+      '<div class="card" style="padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--green)">'+arrived+'</div><div style="font-size:10px;color:var(--text3)">来店済</div></div>'+
+      '<div class="card" style="padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--red)">'+cancelled+'</div><div style="font-size:10px;color:var(--text3)">キャンセル</div></div>'+
+    '</div>';
+
+    if(_rsvView==='today'){
+      if(!tl.length){
+        html+='<div class="card" style="padding:30px;text-align:center;color:var(--text3)">今日の予約はありません<br><button class="btn bp bsm" onclick="window._rsvOpenMo()" style="margin-top:10px">＋ 予約を追加</button></div>';
+      }else{
+        tl.forEach(function(r){
+          var stCol=r.status==='来店済'?'var(--green)':r.status==='キャンセル'?'var(--red)':'var(--blue)';
+          html+='<div class="card" style="padding:12px 14px;margin-bottom:6px;cursor:pointer;border-left:3px solid '+stCol+'" onclick="window._rsvOpenMo('+r.id+')">'+
+            '<div style="display:flex;align-items:center;gap:10px">'+
+              '<div style="font-size:16px;font-weight:900;color:var(--accent);min-width:44px">'+esc(r.time)+'</div>'+
+              '<div style="flex:1">'+
+                '<div style="font-size:13px;font-weight:700">'+esc(r.name||'名無し')+' <span style="font-size:12px;font-weight:400;color:var(--text3)">'+esc(String(r.people||1))+'名</span></div>'+
+                (r.course?'<div style="font-size:11px;color:var(--text3)">'+esc(r.course)+'</div>':'')+
+                (r.note?'<div style="font-size:11px;color:var(--text3)">📝 '+esc(r.note)+'</div>':'')+
+              '</div>'+
+              '<div style="font-size:11px;font-weight:700;color:'+stCol+'">'+esc(r.status)+'</div>'+
+            '</div>'+
+          '</div>';
+        });
+      }
+    }else if(_rsvView==='list'){
+      var listData=filtered().filter(function(r){return r.date>=todayStr;}).sort(function(a,b){return a.date.localeCompare(b.date)||a.time.localeCompare(b.time);});
+      if(!listData.length){
+        html+='<div class="card" style="padding:30px;text-align:center;color:var(--text3)">予約データがありません</div>';
+      }else{
+        html+='<div class="tw"><table><thead><tr><th>日時</th><th>お名前</th><th>人数</th><th>コース</th><th>状況</th><th></th></tr></thead><tbody>';
+        listData.forEach(function(r){
+          var isToday=r.date===todayStr;
+          html+='<tr style="cursor:pointer'+(isToday?';background:rgba(74,124,95,.06)':'')+'" onclick="window._rsvOpenMo('+r.id+')">'+
+            '<td style="font-weight:'+(isToday?'700':'400')+'">'+esc(r.date.slice(5))+' '+esc(r.time)+'</td>'+
+            '<td>'+esc(r.name||'')+'</td>'+
+            '<td style="text-align:center">'+esc(String(r.people||1))+'名</td>'+
+            '<td style="color:var(--text3)">'+esc(r.course||'')+'</td>'+
+            '<td>'+bdg(r.status)+'</td>'+
+            '<td><button class="btn bs bsm" onclick="event.stopPropagation();window._rsvOpenMo('+r.id+')">編集</button></td>'+
+          '</tr>';
+        });
+        html+='</tbody></table></div>';
+      }
+    }else if(_rsvView==='cal'){
+      var y=_rsvCalY,m=_rsvCalM;
+      var firstDow=new Date(y,m,1).getDay();
+      var lastDay=new Date(y,m+1,0).getDate();
+      html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'+
+        '<button class="btn bs bsm" onclick="window._rsvChangeMonth(-1)">◀</button>'+
+        '<div style="font-size:13px;font-weight:700">'+y+'年'+(m+1)+'月</div>'+
+        '<button class="btn bs bsm" onclick="window._rsvChangeMonth(1)">▶</button>'+
+      '</div>';
+      html+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">';
+      DOW.forEach(function(d,i){
+        html+='<div style="text-align:center;font-size:10px;font-weight:700;padding:4px 0;color:'+(i===0?'var(--red)':i===6?'var(--blue)':'var(--text3)')+'">'+d+'</div>';
+      });
+      for(var i=0;i<firstDow;i++) html+='<div></div>';
+      for(var d=1;d<=lastDay;d++){
+        var ds=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+        var dow=new Date(y,m,d).getDay();
+        var dayRsvs=filtered().filter(function(r){return r.date===ds&&r.status!=='キャンセル';});
+        var isToday=ds===todayStr;
+        var totalP=dayRsvs.reduce(function(s,r){return s+(r.people||0);},0);
+        html+='<div onclick="window._rsvDayTap(\''+ds+'\')" style="min-height:52px;border-radius:6px;padding:4px;cursor:pointer;background:'+(isToday?'rgba(74,124,95,.12)':'var(--bg2)')+';border:'+(isToday?'1.5px solid var(--accent)':'0.5px solid var(--border)')+'">'+
+          '<div style="font-size:11px;font-weight:'+(isToday?'900':'500')+';color:'+(dow===0?'var(--red)':dow===6?'var(--blue)':'var(--text)')+'">'+d+'</div>'+
+          (dayRsvs.length>0?'<div style="font-size:9px;color:var(--accent);font-weight:700">'+dayRsvs.length+'件</div><div style="font-size:9px;color:var(--text3)">'+totalP+'名</div>':'')+
+        '</div>';
+      }
+      html+='</div>';
+    }
+
+    document.getElementById('ct').innerHTML=html;
+  }
+
+  // 予約モーダル
+  window._rsvOpenMo=function(id){
+    var r=id?(D.reservations||[]).find(function(x){return x.id===id;}):null;
+    var statusOpts=['予約中','来店済','キャンセル'].map(function(s){return '<option '+(r?.status===s?'selected':'')+'>'+s+'</option>';}).join('');
+    mo('<div class="mt">'+(r?'予約を編集':'予約を追加')+'</div>'+
+      '<div class="fg">'+
+        '<div class="fr"><label class="fl">日付</label><input type="date" id="rsv-date" value="'+(r?.date||todayStr)+'"></div>'+
+        '<div class="fr"><label class="fl">時間</label><input type="time" id="rsv-time" value="'+(r?.time||'18:00')+'"></div>'+
+        '<div class="fr"><label class="fl">お名前</label><input id="rsv-name" value="'+esc(r?.name||'')+'" placeholder="山田 花子"></div>'+
+        '<div class="fr"><label class="fl">人数</label><input type="number" id="rsv-people" value="'+(r?.people||2)+'" min="1" max="99" style="width:80px"> 名</div>'+
+        '<div class="fr"><label class="fl">コース</label><input id="rsv-course" value="'+esc(r?.course||'')+'" placeholder="コース名（任意）"></div>'+
+        '<div class="fr"><label class="fl">電話番号</label><input id="rsv-tel" value="'+esc(r?.tel||'')+'" placeholder="090-0000-0000"></div>'+
+        '<div class="fr" style="grid-column:1/-1"><label class="fl">状況</label><select id="rsv-status">'+statusOpts+'</select></div>'+
+        '<div class="fr" style="grid-column:1/-1"><label class="fl">メモ・特記事項</label><textarea id="rsv-note" rows="2" placeholder="アレルギー・記念日など">'+esc(r?.note||'')+'</textarea></div>'+
+      '</div>'+
+      '<div class="mf">'+
+        (r?'<button class="btn bd" onclick="window._rsvDel('+r.id+')">🗑 削除</button>':'')+
+        '<button class="btn bs" onclick="cmo()">キャンセル</button>'+
+        '<button class="btn bp" onclick="window._rsvSave('+(r?.id||'null')+')">💾 保存</button>'+
+      '</div>');
+  };
+
+  window._rsvSave=function(id){
+    if(!D.reservations)D.reservations=[];
+    var obj={
+      date:document.getElementById('rsv-date')?.value||todayStr,
+      time:document.getElementById('rsv-time')?.value||'18:00',
+      name:document.getElementById('rsv-name')?.value.trim()||'',
+      people:parseInt(document.getElementById('rsv-people')?.value)||1,
+      course:document.getElementById('rsv-course')?.value.trim()||'',
+      tel:document.getElementById('rsv-tel')?.value.trim()||'',
+      status:document.getElementById('rsv-status')?.value||'予約中',
+      note:document.getElementById('rsv-note')?.value.trim()||'',
+    };
+    if(!obj.name){toast('お名前を入力してください','er');return;}
+    if(id&&id!=='null'){
+      var idx=D.reservations.findIndex(function(r){return r.id===id;});
+      if(idx>=0)D.reservations[idx]={...D.reservations[idx],...obj};
+    }else{
+      D.reservations.push({...obj,id:nid(),created:new Date().toISOString()});
+    }
+    save();_flush();cmo();toast('予約を保存しました ✅');render();
+  };
+
+  window._rsvDel=function(id){
+    D.reservations=(D.reservations||[]).filter(function(r){return r.id!==id;});
+    save();_flush();cmo();toast('削除しました');render();
+  };
+
+  window._rsvSetView=function(v){_rsvView=v;window._rsvViewState=v;render();};
+  window._rsvDayTap=function(ds){_rsvView='today';window._rsvViewState='today';render();};
+  window._rsvChangeMonth=function(d){
+    _rsvCalM+=d;
+    if(_rsvCalM>11){_rsvCalM=0;_rsvCalY++;}
+    if(_rsvCalM<0){_rsvCalM=11;_rsvCalY--;}
+    window._rsvCalY=_rsvCalY;window._rsvCalM=_rsvCalM;
+    render();
+  };
+
+  render();
+}
+
+// ============================================================
 // TIMESHIFT タイムシフト管理
 // ============================================================
 let _tsView='month',_tsY=new Date().getFullYear(),_tsM=new Date().getMonth(),_tsD=new Date().getDate(),_tsStore='all';
@@ -3216,7 +3391,7 @@ function restoreData(e){
   const r=new FileReader();r.onload=ev=>{
     try{
       const b=JSON.parse(ev.target.result);
-      D={customers:b.customers||[],projects:b.projects||[],quotes:b.quotes||[],schedules:b.schedules||[],staff:b.staff||[],stockItems:b.stockItems||[],stockLogs:b.stockLogs||[],bizCards:b.bizCards||[],teams:b.teams||[],timeShifts:b.timeShifts||{},nextId:b.nextId||200,cfg:b.cfg||{}};
+      D={customers:b.customers||[],projects:b.projects||[],quotes:b.quotes||[],schedules:b.schedules||[],staff:b.staff||[],stockItems:b.stockItems||[],stockLogs:b.stockLogs||[],bizCards:b.bizCards||[],teams:b.teams||[],timeShifts:b.timeShifts||{},reservations:b.reservations||[],nextId:b.nextId||200,cfg:b.cfg||{}};
       // handle old field names (cid vs customerId, sd/ed vs startDate/endDate)
       D.projects=D.projects.map(p=>({...p,cid:p.cid||p.customerId,sd:p.sd||p.startDate,ed:p.ed||p.endDate,imgs:p.imgs||p.images||[]}));
       D.quotes=D.quotes.map(q=>({...q,cid:q.cid||q.customerId,qn:q.qn||q.quoteNo,cp:q.cp||q.contactPerson}));
@@ -3394,7 +3569,7 @@ async function gdriveLoad(){
       customers:b.customers||[],projects:b.projects||[],quotes:b.quotes||[],
       schedules:b.schedules||[],staff:b.staff||[],
       stockItems:b.stockItems||[],stockLogs:b.stockLogs||[],
-      bizCards:b.bizCards||[],teams:b.teams||[],timeShifts:b.timeShifts||{},nextId:b.nextId||200,cfg:b.cfg||{}
+      bizCards:b.bizCards||[],teams:b.teams||[],timeShifts:b.timeShifts||{},reservations:b.reservations||[],nextId:b.nextId||200,cfg:b.cfg||{}
     };
     D.projects=D.projects.map(p=>({...p,cid:p.cid||p.customerId,sd:p.sd||p.startDate,ed:p.ed||p.endDate,imgs:p.imgs||p.images||[]}));
     D.quotes=D.quotes.map(q=>({...q,cid:q.cid||q.customerId,qn:q.qn||q.quoteNo,cp:q.cp||q.contactPerson}));
