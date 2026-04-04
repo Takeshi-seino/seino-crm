@@ -2450,6 +2450,55 @@ function pgReservation(){
 // ============================================================
 let _tsView='month',_tsY=new Date().getFullYear(),_tsM=new Date().getMonth(),_tsD=new Date().getDate(),_tsStore='all';
 
+// スタッフ略称名を生成（3〜4文字、重複時はアルファベット付加）
+function _tsShortNames(staffList){
+  var result={};
+  // まず各スタッフの略称候補を生成
+  var candidates=staffList.map(function(s){
+    var nm=(s.name||'').replace(/\s+/g,'');
+    // 姓名を分離して姓3文字を基本候補に
+    var parts=(s.name||'').trim().split(/\s+/);
+    if(parts.length>=2){
+      var sei=parts[0];var mei=parts[1];
+      return {id:s.id, short:sei.slice(0,3), full:nm};
+    }
+    return {id:s.id, short:nm.slice(0,4), full:nm};
+  });
+  // 重複チェック→重複があれば名前1文字追加、それでもダメならA,B...付加
+  var used={};
+  candidates.forEach(function(c){
+    var key=c.short;
+    if(!used[key]){used[key]=[c];} else {used[key].push(c);}
+  });
+  Object.keys(used).forEach(function(key){
+    var group=used[key];
+    if(group.length===1){
+      result[group[0].id]=key;
+    }else{
+      // 名前の1文字目を追加して区別を試みる
+      var resolved={};
+      group.forEach(function(c){
+        var parts=((staffList.find(function(s){return s.id===c.id;})||{}).name||'').trim().split(/\s+/);
+        var longer=parts.length>=2?parts[0].slice(0,2)+parts[1].slice(0,1):c.full.slice(0,4);
+        if(!resolved[longer]){resolved[longer]=[c.id];}else{resolved[longer].push(c.id);}
+      });
+      var alpha=0;
+      Object.keys(resolved).forEach(function(lk){
+        var ids=resolved[lk];
+        if(ids.length===1){
+          result[ids[0]]=lk;
+        }else{
+          ids.forEach(function(id){
+            result[id]=lk+String.fromCharCode(65+alpha);
+            alpha++;
+          });
+        }
+      });
+    }
+  });
+  return result;
+}
+
 function _tsDaysInMonth(){return new Date(_tsY,_tsM+1,0).getDate();}
 function _tsDateStr(d){return _tsY+'-'+String(_tsM+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');}
 function _tsDayDateStr(){return _tsY+'-'+String(_tsM+1).padStart(2,'0')+'-'+String(_tsD).padStart(2,'0');}
@@ -2484,6 +2533,8 @@ function _tsRenderMonth(staff){
       '<div style="font-weight:700;'+(isT?'color:var(--accent)':'')+'">'+d+'</div></th>';
   }
 
+  var shortNames=_tsShortNames(staff);
+  var mob=window.innerWidth<=768;
   var rows='';
   staff.forEach(function(s){
     var cells='';var totalH=0;
@@ -2504,12 +2555,13 @@ function _tsRenderMonth(staff){
       cells+='<td style="min-width:36px;max-width:36px;height:34px;padding:0;position:relative;cursor:pointer;background:'+bg+';'+(we&&!sh?'background:rgba(184,64,64,.03);':'')+'" onclick="_tsOpenMo('+s.id+',\''+ds+'\')">'+bar+label+'</td>';
     }
     var monthTotal=totalH.toFixed(1);
-    var mob=window.innerWidth<=768;
+    var sn=shortNames[s.id]||esc(s.name).slice(0,4);
     rows+='<tr>'+
-      '<td style="position:sticky;left:0;z-index:2;background:var(--bg2);min-width:'+(mob?'70':'110')+'px;white-space:nowrap;font-size:'+(mob?'11':'12')+'px;font-weight:700;padding:4px '+(mob?'4':'8')+'px;border-right:1px solid var(--border)">'+
-        '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+(s.color||'var(--accent)')+';margin-right:4px"></span>'+
-        esc(s.name)+
-        (mob?'':'<span style="font-size:9px;color:var(--text3);margin-left:6px">'+monthTotal+'h</span>')+
+      '<td style="position:sticky;left:0;z-index:2;background:var(--bg2);min-width:'+(mob?'48':'70')+'px;white-space:nowrap;font-size:'+(mob?'10':'12')+'px;font-weight:700;padding:4px '+(mob?'3':'6')+'px;border-right:1px solid var(--border)">'+
+        esc(sn)+
+      '</td>'+
+      '<td style="position:sticky;left:'+(mob?'48':'70')+'px;z-index:2;background:var(--bg2);min-width:'+(mob?'32':'42')+'px;text-align:right;font-size:'+(mob?'9':'10')+'px;font-weight:700;color:var(--accent);padding:4px '+(mob?'2':'4')+'px;border-right:1px solid var(--border)">'+
+        monthTotal+'h'+
       '</td>'+cells+'</tr>';
   });
 
@@ -2535,9 +2587,9 @@ function _tsRenderMonth(staff){
     '<div style="max-width:100%;margin:0 auto">'+navHtml+
       '<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg2);box-shadow:var(--shadow2)">'+
         '<table style="border-collapse:collapse;width:max-content;min-width:100%">'+
-          '<thead><tr><th style="position:sticky;left:0;z-index:3;background:var(--bg3);min-width:110px;padding:4px 8px;border-right:1px solid var(--border);font-size:10px;text-align:left">スタッフ</th>'+dayHeaders+'</tr></thead>'+
+          '<thead><tr><th style="position:sticky;left:0;z-index:3;background:var(--bg3);min-width:'+(mob?'48':'70')+'px;padding:4px '+(mob?'3':'6')+'px;border-right:1px solid var(--border);font-size:10px;text-align:left">名前</th><th style="position:sticky;left:'+(mob?'48':'70')+'px;z-index:3;background:var(--bg3);min-width:'+(mob?'32':'42')+'px;padding:4px 2px;border-right:1px solid var(--border);font-size:9px;text-align:right">時間</th>'+dayHeaders+'</tr></thead>'+
           '<tbody>'+rows+
-            '<tr style="border-top:2px solid var(--border)"><td style="position:sticky;left:0;z-index:2;background:var(--bg3);padding:4px 8px;border-right:1px solid var(--border);font-size:10px;font-weight:700;color:var(--text3)">出勤人数</td>'+coverRow+'</tr>'+
+            '<tr style="border-top:2px solid var(--border)"><td style="position:sticky;left:0;z-index:2;background:var(--bg3);padding:4px '+(mob?'3':'6')+'px;border-right:1px solid var(--border);font-size:10px;font-weight:700;color:var(--text3)">人数</td><td style="position:sticky;left:'+(mob?'48':'70')+'px;z-index:2;background:var(--bg3);border-right:1px solid var(--border)"></td>'+coverRow+'</tr>'+
           '</tbody>'+
         '</table>'+
       '</div>'+
@@ -2559,6 +2611,8 @@ function _tsRenderDay(staff){
   var hours=[];for(var h=6;h<=22;h++)hours.push(h);
   var thHtml=hours.map(function(h){return '<th style="min-width:40px;font-size:9px;padding:2px;text-align:center;border-left:1px solid var(--border)">'+h+'時</th>';}).join('');
 
+  var shortNames=_tsShortNames(staff);
+  var mob=window.innerWidth<=768;
   var rows='';
   staff.forEach(function(s){
     var sh=_tsGet(s.id,ds);
@@ -2587,10 +2641,13 @@ function _tsRenderDay(staff){
       });
     }
     var wh=_tsWorkHours(sh);
-    var statusTxt=sh?(sh.type==='off'?'<span style="color:var(--red);font-weight:700">休</span>':wh.toFixed(1)+'h'):'<span style="color:var(--text3)">—</span>';
-    rows+='<tr><td style="position:sticky;left:0;z-index:2;background:var(--bg2);min-width:120px;white-space:nowrap;font-size:12px;font-weight:700;padding:4px 8px;border-right:1px solid var(--border)">'+
-      '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+(s.color||'var(--accent)')+';margin-right:4px"></span>'+
-      esc(s.name)+' <span style="font-size:9px;color:var(--text3)">'+statusTxt+'</span></td>'+cells+'</tr>';
+    var whTxt=sh?(sh.type==='off'?'<span style="color:var(--red)">休</span>':wh.toFixed(1)+'h'):'<span style="color:var(--text3)">—</span>';
+    var sn=shortNames[s.id]||esc(s.name).slice(0,4);
+    var nameW=mob?'48':'70';var hW=mob?'32':'42';
+    rows+='<tr>'+
+      '<td style="position:sticky;left:0;z-index:2;background:var(--bg2);min-width:'+nameW+'px;white-space:nowrap;font-size:'+(mob?'10':'12')+'px;font-weight:700;padding:4px '+(mob?'3':'6')+'px;border-right:1px solid var(--border)">'+esc(sn)+'</td>'+
+      '<td style="position:sticky;left:'+nameW+'px;z-index:2;background:var(--bg2);min-width:'+hW+'px;text-align:right;font-size:'+(mob?'9':'10')+'px;font-weight:700;color:var(--accent);padding:4px '+(mob?'2':'4')+'px;border-right:1px solid var(--border)">'+whTxt+'</td>'+
+      cells+'</tr>';
   });
 
   // カバレッジバー
@@ -2613,9 +2670,9 @@ function _tsRenderDay(staff){
     '<div style="max-width:100%;margin:0 auto">'+navHtml+
       '<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg2);box-shadow:var(--shadow2)">'+
         '<table style="border-collapse:collapse;width:max-content;min-width:100%">'+
-          '<thead><tr><th style="position:sticky;left:0;z-index:3;background:var(--bg3);min-width:120px;padding:4px 8px;border-right:1px solid var(--border);font-size:10px;text-align:left">スタッフ</th>'+thHtml+'</tr></thead>'+
+          '<thead><tr><th style="position:sticky;left:0;z-index:3;background:var(--bg3);min-width:'+(mob?'48':'70')+'px;padding:4px '+(mob?'3':'6')+'px;border-right:1px solid var(--border);font-size:10px;text-align:left">名前</th><th style="position:sticky;left:'+(mob?'48':'70')+'px;z-index:3;background:var(--bg3);min-width:'+(mob?'32':'42')+'px;padding:4px 2px;border-right:1px solid var(--border);font-size:9px;text-align:right">時間</th>'+thHtml+'</tr></thead>'+
           '<tbody>'+rows+
-            '<tr style="border-top:2px solid var(--border)"><td style="position:sticky;left:0;z-index:2;background:var(--bg3);padding:4px 8px;border-right:1px solid var(--border);font-size:10px;font-weight:700;color:var(--text3)">出勤人数</td>'+coverCells+'</tr>'+
+            '<tr style="border-top:2px solid var(--border)"><td style="position:sticky;left:0;z-index:2;background:var(--bg3);padding:4px '+(mob?'3':'6')+'px;border-right:1px solid var(--border);font-size:10px;font-weight:700;color:var(--text3)">人数</td><td style="position:sticky;left:'+(mob?'48':'70')+'px;z-index:2;background:var(--bg3);border-right:1px solid var(--border)"></td>'+coverCells+'</tr>'+
           '</tbody>'+
         '</table>'+
       '</div>'+
