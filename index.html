@@ -4,17 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>セイノデンキ CRM</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&display=swap" rel="stylesheet">
 <style>
-/* System fonts first - instant render, no network */
 :root{
-  --bg:#f4f3f1;--bg2:#ffffff;--bg3:#ede9e4;--bg4:#e6e0d8;
-  --border:#d6cfc6;--border2:#c8bfb4;
-  --text:#2c2620;--text2:#6b5e52;--text3:#a0917f;
-  --accent:#4a7c5f;--accent2:#c5724a;--accent3:#8b6f47;
-  --blue:#4872a8;--green:#3a7d52;--red:#b84040;
-  --purple:#6b5fa0;--cyan:#3a8a8a;--yellow:#c8922a;
-  --shadow:0 2px 12px rgba(44,38,32,.09);
-  --shadow2:0 1px 4px rgba(44,38,32,.06);
+  --bg:#f4f2ed;--bg2:#ffffff;--bg3:#eceae4;--bg4:#ddd9d0;
+  --border:#cdc7ba;--border2:#b8b0a2;
+  --text:#1a2236;--text2:#4a5568;--text3:#8a93a8;
+  --accent:#4a7860;--accent2:#b08a18;--accent3:#8b6f47;
+  --blue:#3a60a0;--green:#4a7860;--red:#b84040;
+  --purple:#6b5fa0;--cyan:#3a8a8a;--yellow:#b08a18;
+  --gold:#b08a18;--sage:#4a7860;--navy:#3a60a0;--ink:#1a2236;
+  --shadow:0 2px 12px rgba(26,34,54,.08);
+  --shadow2:0 1px 4px rgba(26,34,54,.05);
   --radius:9px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
@@ -250,6 +251,8 @@ tbody tr:hover td{background:var(--bg3)}
   .mo-lg{ max-width:100%; }
   /* テーブルのフォント縮小 */
   td,th{ padding:6px 8px;font-size:12px; }
+  /* モーダル内inputのズーム防止（iOS Safari対策） */
+  .mo input,.mo select,.mo textarea{ font-size:16px !important; }
 }
 @media (min-width:769px){
   #mob-menu-btn{ display:none !important; }
@@ -265,15 +268,14 @@ tbody tr:hover td{background:var(--bg3)}
 <div id="sb">
   <div class="logo">
     <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-      <rect width="36" height="36" rx="8" fill="#4a7c5f"/>
-      <rect x="10" y="20" width="16" height="11" rx="1" fill="white" opacity=".95"/>
-      <polygon points="18,7 7,20 29,20" fill="white"/>
-      <rect x="15" y="24" width="6" height="7" rx="1" fill="#4a7c5f"/>
-      <polygon points="21,9 17,17 20,17 16,25 23,15 20,15" fill="#a8d8a8" opacity=".9"/>
-      <ellipse cx="27" cy="10" rx="3.5" ry="2.5" fill="#7ec87e" transform="rotate(-30 27 10)"/>
+      <rect width="36" height="36" rx="8" fill="#b08a18"/>
+      <rect x="4" y="4" width="12" height="12" rx="2" fill="white" opacity="1"/>
+      <rect x="20" y="4" width="12" height="12" rx="2" fill="white" opacity=".75"/>
+      <rect x="4" y="20" width="12" height="12" rx="2" fill="white" opacity=".45"/>
+      <rect x="20" y="20" width="12" height="12" rx="2" fill="white" opacity=".15"/>
     </svg>
     <div>
-      <div class="logo-t">セイノデンキ</div>
+      <div class="logo-t" style="font-family:'DM Serif Display',serif;letter-spacing:.04em">BizLock</div>
       <div class="logo-s">CRM v5.0</div>
     </div>
   </div>
@@ -285,6 +287,8 @@ tbody tr:hover td{background:var(--bg3)}
     <button class="nb" data-page="schedule"><span class="ni">📅</span>スケジュール</button>
     <button class="nb" data-page="staff"><span class="ni">👷</span>スタッフ・協力会社</button>
     <button class="nb" data-page="stock"><span class="ni">📦</span>在庫管理</button>
+    <button class="nb" data-page="timeshift"><span class="ni">🕐</span>タイムシフト管理</button>
+    <button class="nb" data-page="reservation"><span class="ni">📋</span>予約管理</button>
     <button class="nb" data-page="bizcards"><span class="ni">🪪</span>名刺管理<span class="nbc" id="bc-bc">0</span></button>
     <button class="nb" data-page="settings"><span class="ni">⚙️</span>設定</button>
     <div class="nsec" style="cursor:pointer;display:flex;justify-content:space-between" onclick="toggleDM()">
@@ -296,6 +300,11 @@ tbody tr:hover td{background:var(--bg3)}
       <button class="nb" onclick="exportCSV('quotes')"><span class="ni">📤</span>見積CSV</button>
       <button class="nb" onclick="backupData()"><span class="ni">💾</span>バックアップ</button>
       <button class="nb" onclick="document.getElementById('rf').click()"><span class="ni">📂</span>データ復元</button>
+      <div class="nsec">Google Drive</div>
+      <button class="nb" id="gdrive-btn" onclick="gdriveToggle()"><span class="ni">☁️</span><span id="gdrive-label">Google Drive 接続</span></button>
+      <button class="nb" onclick="gdriveSave()" id="gdrive-save-btn" style="display:none"><span class="ni">⬆️</span>Driveに保存</button>
+      <button class="nb" onclick="gdriveLoad()" id="gdrive-load-btn" style="display:none"><span class="ni">⬇️</span>Driveから読込</button>
+      <div id="gdrive-status" style="padding:4px 9px;font-size:10px;color:var(--text3);display:none"></div>
     </div>
   </nav>
   <div class="sb-foot">
@@ -328,13 +337,14 @@ tbody tr:hover td{background:var(--bg3)}
   <div id="ct"></div>
 </div>
 <div id="toast"></div>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 
 <script>
 'use strict';
 // ============================================================
 // DATA — single in-memory object, flush to localStorage on debounce
 // ============================================================
-const K={c:'s5c',p:'s5p',q:'s5q',s:'s5s',id:'s5id',st:'s5st',si:'s5si',sl:'s5sl',bc:'s5bc'};
+const K={c:'s5c',p:'s5p',q:'s5q',s:'s5s',id:'s5id',st:'s5st',si:'s5si',sl:'s5sl',bc:'s5bc',tm:'s5tm',ts:'s5ts',rsv:'s5rsv'};
 let D=null; // THE single data object
 
 function initD(){
@@ -348,6 +358,9 @@ function initD(){
     stockItems: JSON.parse(localStorage.getItem(K.si)||'[]'),
     stockLogs:  JSON.parse(localStorage.getItem(K.sl)||'[]'),
     bizCards:   JSON.parse(localStorage.getItem(K.bc)||'[]'),
+    teams:      JSON.parse(localStorage.getItem(K.tm)||'[]'),
+    timeShifts: JSON.parse(localStorage.getItem(K.ts)||'{}'),
+    reservations: JSON.parse(localStorage.getItem(K.rsv)||'[]'),
     nextId:     parseInt(localStorage.getItem(K.id)||'1'),
     cfg:        JSON.parse(localStorage.getItem('s5cfg')||'{}'),
   };
@@ -360,7 +373,7 @@ function save(){
   clearTimeout(_st);
   const el=document.getElementById('sv-time');
   if(el) el.textContent='保存待機中...';
-  _st=setTimeout(_flush,1000);
+  _st=setTimeout(()=>{_flush();if(typeof _gdriveAutoSync==='function')_gdriveAutoSync();},1000);
 }
 function _flush(){
   if(!D)return;
@@ -373,6 +386,9 @@ function _flush(){
     localStorage.setItem(K.si,JSON.stringify(D.stockItems||[]));
     localStorage.setItem(K.sl,JSON.stringify(D.stockLogs||[]));
     localStorage.setItem(K.bc,JSON.stringify(D.bizCards||[]));
+    localStorage.setItem(K.tm,JSON.stringify(D.teams||[]));
+    localStorage.setItem(K.ts,JSON.stringify(D.timeShifts||{}));
+    localStorage.setItem(K.rsv,JSON.stringify(D.reservations||[]));
     localStorage.setItem(K.id,D.nextId);
     if(D.cfg) localStorage.setItem('s5cfg',JSON.stringify(D.cfg));
     const el=document.getElementById('sv-time');
@@ -407,32 +423,81 @@ function seed(){
   initD();
   if(D.customers.length){_bc();return;}
   const td=today();
+  function dOff(d){const t=new Date();t.setDate(t.getDate()+d);return t.toISOString().slice(0,10);}
+
   D.customers=[
-    {id:1,cn:'C-0001',name:'田中建設株式会社',contact:'田中 一郎',phone:'03-1234-5678',email:'<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="f084919e919b91b084919e919b91dd9b959e8395848385de939fde9a80">[email&#160;protected]</a>',address:'東京都新宿区西新宿1-1-1',type:'法人',status:'アクティブ',memo:'大口顧客',created:'2025-04-01'},
-    {id:2,cn:'C-0002',name:'山田 花子',contact:'山田 花子',phone:'090-9876-5432',email:'<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="d0b8b1beb1bbbf90b5a8b1bda0bcb5feb3bfbd">[email&#160;protected]</a>',address:'神奈川県横浜市中区1-2-3',type:'個人',status:'アクティブ',memo:'',created:'2025-06-15'},
-    {id:3,cn:'C-0003',name:'鈴木商事株式会社',contact:'鈴木 次郎',phone:'06-2345-6789',email:'<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="8ffcfaf5fae4e6cffcfaf5fae4e6a2fce7e0e5e6a1ece0a1e5ff">[email&#160;protected]</a>',address:'大阪府大阪市北区梅田2-3-4',type:'法人',status:'フォロー中',memo:'LED切替検討中',created:'2025-09-01'},
+    {id:1,cn:'C-0001',name:'田中建設株式会社',contact:'田中 一郎',phone:'03-1234-5678',email:'tanaka@tanaken.co.jp',address:'東京都新宿区西新宿1-1-1',type:'法人',status:'アクティブ',memo:'大口顧客・年間契約',created:'2025-04-01'},
+    {id:2,cn:'C-0002',name:'山田 花子',contact:'山田 花子',phone:'090-9876-5432',email:'hanako@example.com',address:'神奈川県横浜市中区1-2-3',type:'個人',status:'アクティブ',memo:'紹介経由',created:'2025-06-15'},
+    {id:3,cn:'C-0003',name:'鈴木商事株式会社',contact:'鈴木 次郎',phone:'06-2345-6789',email:'suzuki@suzukishouji.co.jp',address:'大阪府大阪市北区梅田2-3-4',type:'法人',status:'フォロー中',memo:'LED切替検討中',created:'2025-09-01'},
+    {id:4,cn:'C-0004',name:'株式会社ミライ不動産',contact:'佐藤 美咲',phone:'03-3456-7890',email:'sato@mirai-re.co.jp',address:'東京都港区赤坂3-5-2',type:'法人',status:'アクティブ',memo:'管理物件多数 定期点検契約',created:'2025-11-10'},
+    {id:5,cn:'C-0005',name:'東北大学 工学部',contact:'高橋 教授',phone:'022-795-1234',email:'takahashi@tohoku.ac.jp',address:'宮城県仙台市青葉区荒巻字青葉6-6',type:'法人',status:'アクティブ',memo:'研究棟改修',created:'2026-01-05'},
+    {id:6,cn:'C-0006',name:'伊藤 健太',contact:'伊藤 健太',phone:'080-5555-1234',email:'ito.kenta@gmail.com',address:'宮城県仙台市太白区長町5-8-12',type:'個人',status:'アクティブ',memo:'新築戸建て',created:'2026-02-01'},
+    {id:7,cn:'C-0007',name:'有限会社 丸山水産',contact:'丸山 大輔',phone:'0225-34-5678',email:'maruyama@marusuisan.jp',address:'宮城県石巻市中央2-10-3',type:'法人',status:'休眠',memo:'冷凍倉庫の電気工事 次回は来年',created:'2025-03-20'},
+    {id:8,cn:'C-0008',name:'セブンイレブン 仙台駅東口店',contact:'店長 渡辺',phone:'022-299-8765',email:'',address:'宮城県仙台市宮城野区榴岡1-2-1',type:'法人',status:'アクティブ',memo:'看板・照明メンテ',created:'2026-03-01'},
   ];
+
+  D.staff=[
+    {id:30,name:'清野 剛',type:'staff',role:'代表・現場監督',phone:'090-1111-2222',email:'seino@seinodenki.jp',memo:'第一種電気工事士',color:'#4a7860'},
+    {id:31,name:'佐々木 翔太',type:'staff',role:'電気工事士',phone:'090-3333-4444',email:'sasaki@seinodenki.jp',memo:'第二種電気工事士 入社3年目',color:'#3498db'},
+    {id:32,name:'菅原 愛',type:'staff',role:'事務・経理',phone:'090-5555-6666',email:'sugawara@seinodenki.jp',memo:'見積・請求書管理担当',color:'#9b59b6'},
+    {id:33,name:'高橋 誠',type:'staff',role:'電気工事士',phone:'090-7777-8888',email:'takahashi.m@seinodenki.jp',memo:'第一種電気工事士 エアコン得意',color:'#e67e22'},
+    {id:40,name:'株式会社 東北電設',type:'partner',role:'高圧受変電・特高工事',phone:'022-222-3333',email:'info@tohoku-densetsu.co.jp',memo:'大規模案件の協力会社',color:'#2980b9'},
+    {id:41,name:'有限会社 エアテック宮城',type:'partner',role:'空調設備・エアコン設置',phone:'022-444-5555',email:'info@airtech-miyagi.jp',memo:'業務用エアコン専門',color:'#1abc9c'},
+    {id:42,name:'佐藤電気工業',type:'partner',role:'太陽光・蓄電池',phone:'022-666-7777',email:'sato@sato-denki.co.jp',memo:'太陽光パネル施工実績多数',color:'#f1c40f'},
+  ];
+
   D.projects=[
-    {id:10,cid:1,title:'オフィスビル電気設備更新工事',status:'進行中',phase:'施工中',amount:3500000,sd:'2026-03-01',ed:'2026-04-30',memo:'B1F〜5F全フロア',created:'2026-01-20',imgs:[]},
-    {id:11,cid:2,title:'住宅分電盤交換工事',status:'完了',phase:'完了',amount:85000,sd:'2026-01-10',ed:'2026-01-10',memo:'',created:'2026-01-05',imgs:[]},
-    {id:12,cid:3,title:'倉庫LED照明全面切替',status:'見積中',phase:'見積提出',amount:780000,sd:'2026-03-15',ed:'2026-05-31',memo:'補助金申請検討',created:'2026-02-20',imgs:[]},
+    {id:10,cid:1,title:'オフィスビル電気設備更新工事',status:'進行中',phase:'施工中',amount:3500000,sd:'2026-03-01',ed:'2026-04-30',memo:'B1F〜5F全フロア 田中建設本社ビル',created:'2026-01-20',imgs:[],staffIds:[30,31,40]},
+    {id:11,cid:2,title:'住宅分電盤交換工事',status:'完了',phase:'完了',amount:85000,sd:'2026-01-10',ed:'2026-01-10',memo:'古い分電盤→パナBQR8620に交換完了',created:'2026-01-05',imgs:[],staffIds:[30]},
+    {id:12,cid:3,title:'倉庫LED照明全面切替',status:'見積中',phase:'見積提出',amount:780000,sd:'2026-03-15',ed:'2026-05-31',memo:'補助金申請検討 約200灯',created:'2026-02-20',imgs:[],staffIds:[30,33]},
+    {id:13,cid:4,title:'マンション共用部LED化工事',status:'進行中',phase:'施工中',amount:1200000,sd:'2026-03-20',ed:'2026-04-15',memo:'ミライ不動産管理物件 全3棟',created:'2026-03-01',imgs:[],staffIds:[31,33]},
+    {id:14,cid:5,title:'研究棟 電源増設・LAN配線工事',status:'進行中',phase:'設計中',amount:2800000,sd:'2026-04-01',ed:'2026-06-30',memo:'実験装置用200V電源×8 LAN配線100口',created:'2026-02-15',imgs:[],staffIds:[30,31,40]},
+    {id:15,cid:6,title:'新築戸建て電気工事一式',status:'進行中',phase:'施工中',amount:950000,sd:'2026-03-10',ed:'2026-04-20',memo:'太陽光+蓄電池含む オール電化',created:'2026-02-28',imgs:[],staffIds:[33,42]},
+    {id:16,cid:8,title:'看板照明LED交換',status:'完了',phase:'完了',amount:120000,sd:'2026-03-05',ed:'2026-03-05',memo:'屋外看板×2 店内サイン×1',created:'2026-03-01',imgs:[],staffIds:[31]},
+    {id:17,cid:4,title:'賃貸物件 定期点検（3月分）',status:'完了',phase:'定期点検',amount:60000,sd:'2026-03-25',ed:'2026-03-25',memo:'管理物件10室 年4回点検契約',created:'2026-03-20',imgs:[],staffIds:[33]},
+    {id:18,cid:1,title:'田中建設 倉庫エアコン設置',status:'見積中',phase:'見積提出',amount:480000,sd:'2026-04-10',ed:'2026-04-20',memo:'業務用天カセ×3台',created:'2026-03-25',imgs:[],staffIds:[30,41]},
   ];
+
   D.quotes=[
-    {id:20,qn:'M-00001',cid:1,pid:10,title:'電気設備更新工事 見積書',date:'2026-01-15',amount:3500000,tax:350000,taxRate:10,status:'承認済',toName:'田中建設株式会社',subject:'電気設備更新工事',validity:'発行日より30日間',cp:'清野　剛',memo:'',items:[{name:'電気設備一式',qty:'1',unit:'式',price:'3500000',note:''}],created:'2026-01-15'},
+    {id:20,qn:'M-00001',cid:1,pid:10,title:'電気設備更新工事 見積書',date:'2026-01-15',amount:3500000,tax:350000,taxRate:10,status:'承認済',toName:'田中建設株式会社',subject:'電気設備更新工事',validity:'発行日より30日間',cp:'清野　剛',memo:'',items:[{name:'分電盤交換（5F分）',qty:'5',unit:'台',price:'45000',note:''},{name:'照明器具LED化',qty:'120',unit:'台',price:'8500',note:'蛍光灯→LED'},{name:'配線工事一式',qty:'1',unit:'式',price:'1200000',note:''},{name:'諸経費',qty:'1',unit:'式',price:'280000',note:''}],created:'2026-01-15'},
+    {id:21,qn:'M-00002',cid:3,pid:12,title:'倉庫LED照明 見積書',date:'2026-03-15',amount:780000,tax:78000,taxRate:10,status:'提出済',toName:'鈴木商事株式会社',subject:'倉庫LED照明全面切替工事',validity:'発行日より30日間',cp:'清野　剛',memo:'補助金適用で実質半額の見込み',items:[{name:'LED照明器具 40W相当',qty:'200',unit:'台',price:'2800',note:'既存撤去含む'},{name:'取付工事費',qty:'1',unit:'式',price:'180000',note:''},{name:'廃棄処分費',qty:'1',unit:'式',price:'40000',note:''}],created:'2026-03-15'},
+    {id:22,qn:'M-00003',cid:1,pid:18,title:'倉庫エアコン設置 見積書',date:'2026-03-28',amount:480000,tax:48000,taxRate:10,status:'作成中',toName:'田中建設株式会社',subject:'倉庫エアコン設置工事',validity:'発行日より30日間',cp:'清野　剛',memo:'',items:[{name:'業務用天カセエアコン',qty:'3',unit:'台',price:'120000',note:'ダイキン SZRC80B'},{name:'設置工事費',qty:'3',unit:'台',price:'25000',note:'配管・電源含む'},{name:'諸経費',qty:'1',unit:'式',price:'45000',note:''}],created:'2026-03-28'},
   ];
+
   D.schedules=[
-    {id:90,pid:10,title:'現場打ち合わせ',date:td,st:'10:00',et:'11:30',memo:'',color:'#4a7c5f',allDay:false},
-    {id:91,pid:null,title:'定例会議',date:td,st:'14:00',et:'15:00',memo:'',color:'#4872a8',allDay:false},
+    {id:90,pid:10,title:'田中建設ビル 3F施工',date:td,st:'08:30',et:'17:00',memo:'佐々木・東北電設と合流',color:'#4a7860',allDay:false},
+    {id:91,pid:null,title:'定例ミーティング',date:td,st:'17:30',et:'18:00',memo:'週次進捗確認',color:'#3a60a0',allDay:false},
+    {id:92,pid:13,title:'マンションLED工事 B棟',date:dOff(1),st:'09:00',et:'16:00',memo:'共用廊下・階段 佐々木担当',color:'#e67e22',allDay:false},
+    {id:93,pid:15,title:'伊藤邸 配線工事',date:dOff(1),st:'10:00',et:'15:00',memo:'2F コンセント・照明配線',color:'#9b59b6',allDay:false},
+    {id:94,pid:14,title:'東北大 現場調査・打合せ',date:dOff(2),st:'10:00',et:'12:00',memo:'高橋教授と実験装置の電源仕様確認',color:'#2980b9',allDay:false},
+    {id:95,pid:null,title:'〇〇電材 発注打合せ',date:dOff(2),st:'14:00',et:'15:00',memo:'LED照明・ケーブル大量発注の価格交渉',color:'#b08a18',allDay:false},
+    {id:96,pid:12,title:'鈴木商事 補助金申請書類',date:dOff(3),st:'09:00',et:'12:00',memo:'菅原さんと書類準備',color:'#1abc9c',allDay:false},
+    {id:97,pid:10,title:'田中建設ビル 4F施工',date:dOff(3),st:'08:30',et:'17:00',memo:'4F全フロア 東北電設同行',color:'#4a7860',allDay:false},
+    {id:98,pid:null,title:'安全講習会',date:dOff(5),st:'09:00',et:'12:00',memo:'全員参加 消防署主催',color:'#e74c3c',allDay:false},
+    {id:99,pid:18,title:'田中建設倉庫 現場調査',date:dOff(4),st:'13:00',et:'15:00',memo:'エアコン設置位置・電源確認',color:'#4a7860',allDay:false},
   ];
+
   D.stockItems=[
-    {id:92,name:'LED電球 E26 60W相当',partNo:'LDA8L-G/60W',maker:'パナソニック',kojiType:'照明工事',unit:'個',qty:24,reorder:10,price:380,supplier:'〇〇電材',memo:'',created:td},
-    {id:93,name:'VVFケーブル 2.0mm×3C',partNo:'VVF2.0×3C',maker:'フジクラ',kojiType:'配線工事',unit:'巻',qty:3,reorder:5,price:4200,supplier:'〇〇電材',memo:'',created:td},
-    {id:94,name:'分電盤 20回路',partNo:'BQR8620',maker:'パナソニック',kojiType:'分電盤工事',unit:'台',qty:2,reorder:1,price:42000,supplier:'△△電設資材',memo:'',created:td},
-    {id:95,name:'埋込スイッチ（片切）',partNo:'WN5001',maker:'パナソニック',kojiType:'スイッチ工事',unit:'個',qty:18,reorder:10,price:450,supplier:'〇〇電材',memo:'',created:td},
-    {id:96,name:'接地コンセント 2P',partNo:'WN1101W',maker:'パナソニック',kojiType:'コンセント工事',unit:'個',qty:0,reorder:10,price:380,supplier:'〇〇電材',memo:'',created:td},
+    {id:50,name:'LED電球 E26 60W相当',partNo:'LDA8L-G/60W',maker:'パナソニック',kojiType:'照明工事',unit:'個',qty:24,reorder:10,price:380,supplier:'〇〇電材',memo:'',created:td},
+    {id:51,name:'LEDベースライト 40W相当',partNo:'LSEB9040',maker:'パナソニック',kojiType:'照明工事',unit:'台',qty:45,reorder:20,price:4200,supplier:'〇〇電材',memo:'直付型',created:td},
+    {id:52,name:'VVFケーブル 1.6mm×2C',partNo:'VVF1.6×2C',maker:'フジクラ',kojiType:'配線工事',unit:'巻',qty:8,reorder:5,price:3200,supplier:'〇〇電材',memo:'100m巻',created:td},
+    {id:53,name:'VVFケーブル 2.0mm×3C',partNo:'VVF2.0×3C',maker:'フジクラ',kojiType:'配線工事',unit:'巻',qty:3,reorder:5,price:4200,supplier:'〇〇電材',memo:'100m巻 残少',created:td},
+    {id:54,name:'分電盤 20回路',partNo:'BQR8620',maker:'パナソニック',kojiType:'分電盤工事',unit:'台',qty:2,reorder:1,price:42000,supplier:'△△電設資材',memo:'',created:td},
+    {id:55,name:'埋込スイッチ（片切）',partNo:'WN5001',maker:'パナソニック',kojiType:'スイッチ工事',unit:'個',qty:18,reorder:10,price:450,supplier:'〇〇電材',memo:'',created:td},
+    {id:56,name:'接地コンセント 2P',partNo:'WN1101W',maker:'パナソニック',kojiType:'コンセント工事',unit:'個',qty:0,reorder:10,price:380,supplier:'〇〇電材',memo:'在庫切れ 要発注',created:td},
+    {id:57,name:'PF管 16mm',partNo:'MFS-16',maker:'未来工業',kojiType:'配線工事',unit:'巻',qty:12,reorder:5,price:1800,supplier:'〇〇電材',memo:'50m巻',created:td},
+    {id:58,name:'アウトレットボックス',partNo:'CDO-4B',maker:'未来工業',kojiType:'配線工事',unit:'個',qty:30,reorder:15,price:120,supplier:'〇〇電材',memo:'',created:td},
+    {id:59,name:'ダウンライト φ100',partNo:'XND1008WL',maker:'パナソニック',kojiType:'照明工事',unit:'台',qty:6,reorder:5,price:3800,supplier:'△△電設資材',memo:'LED一体型 調光対応',created:td},
+    {id:60,name:'ブレーカー 20A',partNo:'BCW220',maker:'パナソニック',kojiType:'分電盤工事',unit:'個',qty:8,reorder:5,price:680,supplier:'△△電設資材',memo:'',created:td},
+    {id:61,name:'エアコン配管セット 3m',partNo:'SPH-F23',maker:'因幡電工',kojiType:'エアコン工事',unit:'セット',qty:4,reorder:3,price:2400,supplier:'△△電設資材',memo:'ペアコイル+ドレン',created:td},
+    {id:62,name:'絶縁テープ 黒',partNo:'117-BK',maker:'ニチバン',kojiType:'その他',unit:'巻',qty:5,reorder:10,price:180,supplier:'〇〇電材',memo:'残少',created:td},
   ];
   D.stockLogs=[];
-  D.nextId=100;
+  D.teams=[
+    {id:70,name:'現場チームA',color:'#2980b9',memberIds:[30,31,40]},
+    {id:71,name:'エアコン班',color:'#e67e22',memberIds:[33,41]},
+  ];
+  D.nextId=200;
   save();_flush();
 }
 
@@ -440,6 +505,7 @@ function seed(){
 // NAVIGATION — no full re-render on modal input
 // ============================================================
 let page='dashboard',detCid=null,srch='',pView='card',calY=new Date().getFullYear(),calM=new Date().getMonth(),calWS=wkStart(new Date()),calV='week',calD=new Date().getDate();
+let _calTeamFilter=null; // null=全員, チームID=フィルター
 
 function nav(pg,cid){
   page=pg;detCid=cid||null;
@@ -454,7 +520,7 @@ function nav(pg,cid){
     const btn=document.getElementById('mbt-'+p);
     if(btn){btn.style.color=p===pg?'var(--accent)':'#888';btn.style.fontWeight=p===pg?'700':'400';}
   });
-  document.getElementById('pg-title').textContent=detCid?'顧客詳細':{dashboard:'ダッシュボード',customers:'顧客管理',projects:'案件・工事管理',quotes:'見積・請求管理',schedule:'スケジュール',staff:'スタッフ・協力会社',stock:'在庫管理',bizcards:'名刺管理',settings:'設定'}[pg]||pg;
+  document.getElementById('pg-title').textContent=detCid?'顧客詳細':{dashboard:'ダッシュボード',customers:'顧客管理',projects:'案件・工事管理',quotes:'見積・請求管理',schedule:'スケジュール',staff:'スタッフ・協力会社',stock:'在庫管理',timeshift:'タイムシフト管理',reservation:'予約管理',bizcards:'名刺管理',settings:'設定'}[pg]||pg;
   buildTopbar();
   buildPage();
 }
@@ -495,8 +561,15 @@ function buildTopbar(){
         oncompositionend="_stComposing=false;_stSrch=this.value;clearTimeout(_stDsrT);_stDsrT=setTimeout(buildPage,50)"
         oninput="if(!_stComposing){_stSrch=this.value;clearTimeout(_stDsrT);_stDsrT=setTimeout(buildPage,50)}">` +
       `<button class="btn bp" onclick="showStockItemMo()">＋ 品目登録</button>` +
-      `<button class="btn bb" onclick="printOrderSheet()" id="st-order-btn">🖨️ 発注書</button>` +
+      `<button class="btn bb" onclick="printOrderSheet()">🖨️ 発注書</button>` +
+      `<button class="btn bs" onclick="exportStockCSV()">📤 CSV出力</button>` +
       `</div>`;
+  }else if(page==='timeshift'){
+    el.innerHTML='<div style="display:flex;gap:7px;align-items:center;margin-right:40px">'+
+      '<button class="btn bsm '+(_tsView==='month'?'bp':'bs')+'" onclick="_tsView=\'month\';buildPage()">月</button>'+
+      '<button class="btn bsm '+(_tsView==='day'?'bp':'bs')+'" onclick="_tsView=\'day\';buildPage()">日</button>'+
+      '<button class="btn bp" onclick="showStaffMo(null,&quot;staff&quot;)">＋ スタッフ追加</button>'+
+      '</div>';
   }else if(page==='bizcards'){
     el.innerHTML=
       `<div style="display:flex;gap:7px;align-items:center;margin-right:40px">` +
@@ -505,6 +578,7 @@ function buildTopbar(){
         oncompositionend="_bcComposing=false;_bcSrch=this.value;clearTimeout(_bcDsrT);_bcDsrT=setTimeout(buildPage,50)"
         oninput="if(!_bcComposing){_bcSrch=this.value;clearTimeout(_bcDsrT);_bcDsrT=setTimeout(buildPage,50)}">` +
       `<button class="btn bp" onclick="showBizCardMo()">＋ 名刺登録</button>` +
+      `<button class="btn bb" onclick="window.open('bizlock_card_ocr.html','_blank')">📇 名刺OCR読取</button>` +
       `</div>`;
   }else if(detCid){
     el.innerHTML=`<button class="btn bs" onclick="nav('customers')">← 顧客一覧に戻る</button>`;
@@ -528,6 +602,8 @@ function buildPage(){
   else if(page==='schedule'){pgCal();}
   else if(page==='staff') pgStaff();
   else if(page==='stock') pgStock();
+  else if(page==='timeshift') pgTimeShift();
+  else if(page==='reservation') pgReservation();
   else if(page==='bizcards') pgBizCards();
   else if(page==='settings') pgSettings();
 }
@@ -848,15 +924,17 @@ const SH=48; // slot height px
 
 function pgCal(){
   if(window.innerWidth<=768){
-    // スマホ: calVに応じて切り替え
     if(calV==='week') mobCalWeek();
     else if(calV==='day') mobCalDay();
-    else mobCal(); // 月ビュー（デフォルト）
+    else mobCal();
   } else {
     if(calV==='month')calMonth();
     else if(calV==='day')calDay();
     else calWeek();
   }
+  // チームフィルタータブを先頭に挿入
+  const tabs=_calTeamTabsHtml();
+  if(tabs){const ct=document.getElementById('ct');if(ct)ct.insertAdjacentHTML('afterbegin',tabs);}
 }
 
 // ============================================================
@@ -1177,14 +1255,48 @@ function mtotBar(){
   const tot=D.projects.filter(p=>{if(!p.ed)return false;const d=new Date(p.ed);return d.getFullYear()===calY&&d.getMonth()===calM&&p.status==='完了';}).reduce((s,p)=>s+p.amount,0);
   return`<div class="mtbar"><div style="font-size:13px;color:var(--text2)">${calY}年${calM+1}月 完了案件売上</div><div class="amt" style="font-size:20px;color:var(--green)">${fmt(tot)}</div></div>`;
 }
+function _calTeamMemberIds(){
+  if(!_calTeamFilter) return null;
+  const t=(D.teams||[]).find(x=>x.id===_calTeamFilter);
+  return t?t.memberIds||[]:[];
+}
+function _calMatchesTeam(item){
+  const mids=_calTeamMemberIds();
+  if(!mids) return true; // 全員モード
+  // teamIdが一致するか、staffIdsがチームメンバーと重なるか
+  if(item.teamId===_calTeamFilter) return true;
+  const sids=item.staffIds||[];
+  return sids.some(sid=>mids.includes(sid));
+}
 function calADForDay(ds){
   const dd=new Date(ds);
+  const projs=D.projects.filter(p=>p.sd&&p.ed&&new Date(p.sd)<=dd&&new Date(p.ed)>=dd);
+  const scheds=D.schedules.filter(s=>s.date===ds&&s.allDay);
+  if(!_calTeamFilter) return[...projs,...scheds];
+  const mids=_calTeamMemberIds()||[];
   return[
-    ...D.projects.filter(p=>p.sd&&p.ed&&new Date(p.sd)<=dd&&new Date(p.ed)>=dd),
-    ...D.schedules.filter(s=>s.date===ds&&s.allDay)
+    ...projs.filter(p=>(p.staffIds||[]).some(sid=>mids.includes(sid))),
+    ...scheds.filter(s=>_calMatchesTeam(s))
   ];
 }
-function calSForDay(ds){return D.schedules.filter(s=>s.date===ds&&!s.allDay);}
+function calSForDay(ds){
+  const all=D.schedules.filter(s=>s.date===ds&&!s.allDay);
+  if(!_calTeamFilter) return all;
+  return all.filter(s=>_calMatchesTeam(s));
+}
+function _calTeamTabsHtml(){
+  const teams=D.teams||[];
+  if(!teams.length) return '';
+  const isAll=!_calTeamFilter;
+  let html='<div style="display:flex;gap:4px;padding:6px 10px;overflow-x:auto;border-bottom:1px solid var(--border);background:var(--bg3);flex-shrink:0">';
+  html+='<button class="btn bsm '+(isAll?'bp':'bs')+'" onclick="_calTeamFilter=null;buildPage()" style="white-space:nowrap;flex-shrink:0">全員</button>';
+  teams.forEach(t=>{
+    const on=_calTeamFilter===t.id;
+    html+='<button class="btn bsm '+(on?'bp':'bs')+'" onclick="_calTeamFilter='+t.id+';buildPage()" style="white-space:nowrap;flex-shrink:0;'+(on?'background:'+t.color+';border-color:'+t.color:'')+'">'+esc(t.name)+'</button>';
+  });
+  html+='</div>';
+  return html;
+}
 
 function calWeek(){
   const days=Array.from({length:7},function(_,i){const d=new Date(calWS);d.setDate(calWS.getDate()+i);return d;});
@@ -1296,7 +1408,7 @@ function calDay(){
   var evs=sc.map(function(s){
     const top=(function(t){const p=t.split(':').map(Number);return(p[0]*60+p[1])/60*SH2;})(s.st||'0:00');
     const ht=Math.max((function(st,et){return(function(t){const p=t.split(':').map(Number);return(p[0]*60+p[1])/60*SH2;})(et)-(function(t){const p=t.split(':').map(Number);return(p[0]*60+p[1])/60*SH2;})(st);})(s.st||'0:00',s.et||'0:00'),22);
-    return'<div style="position:absolute;left:'+(mob?'38':'58')+'px;right:4px;top:'+top+'px;height:'+ht+'px;background:'+(s.color||'var(--accent)')+';border-radius:4px;padding:2px 5px;font-size:11px;font-weight:700;cursor:pointer;overflow:hidden;color:#fff" onclick="event.stopPropagation();showSchedMo('+s.id+',\''+ds+'\')">'+esc(s.title)+'<div style="font-size:9px;opacity:.85">'+s.st+'–'+s.et+'</div><div style="display:flex;flex-wrap:wrap;gap:1px;margin-top:2px">'+(s.staffIds&&s.staffIds.length&&D.staff&&D.staff.length?s.staffIds.slice(0,6).map(function(sid){var st=(D.staff||[]).find(function(x){return x.id===sid;});if(!st)return '';var initial=st.type==='partner'?'協':(st.name||'?').slice(0,1);return '<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:'+(st.color||'#4a7c5f')+';font-size:9px;font-weight:700;color:#fff;flex-shrink:0;margin-right:1px">'+initial+'</span>';}).join(''):'')+'</div></div>';
+    return'<div draggable="true" ondragstart="event.stopPropagation();_calDragStart(event,'+s.id+')" style="position:absolute;left:'+(mob?'38':'58')+'px;right:4px;top:'+top+'px;height:'+ht+'px;background:'+(s.color||'var(--accent)')+';border-radius:4px;padding:2px 5px;font-size:11px;font-weight:700;cursor:grab;overflow:hidden;color:#fff" onclick="event.stopPropagation();showSchedMo('+s.id+',\''+ds+'\')">'+esc(s.title)+'<div style="font-size:9px;opacity:.85">'+s.st+'–'+s.et+'</div><div style="display:flex;flex-wrap:wrap;gap:1px;margin-top:2px">'+(s.staffIds&&s.staffIds.length&&D.staff&&D.staff.length?s.staffIds.slice(0,6).map(function(sid){var st=(D.staff||[]).find(function(x){return x.id===sid;});if(!st)return '';var initial=st.type==='partner'?'協':(st.name||'?').slice(0,1);return '<span style="display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;background:'+(st.color||'#4a7c5f')+';font-size:9px;font-weight:700;color:#fff;flex-shrink:0;margin-right:1px">'+initial+'</span>';}).join(''):'')+'</div></div>';
   }).join('');
 
   document.getElementById('ct').innerHTML=
@@ -1309,7 +1421,7 @@ function calDay(){
             '<span style="background:'+(it.color||'var(--accent)')+';color:#fff;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;margin-right:3px">'+esc(it.title)+'</span>';
         }).join(''):'<span style="color:var(--text3)">なし</span>')+
       '</div>'+
-      '<div style="flex:1;overflow-y:auto;position:relative;min-height:300px;'+(mob?'max-height:calc(100vh - 220px)':'')+'" onclick="clickCal(event,\''+ds+'\',this)">'+
+      '<div data-ds="'+ds+'" ondragover="event.preventDefault()" ondrop="_calDropDay(event,this)" style="flex:1;overflow-y:auto;position:relative;min-height:300px;'+(mob?'max-height:calc(100vh - 220px)':'')+'" onclick="clickCal(event,\''+ds+'\',this)">'+
         tlabs+
         (nowPx!==null?'<div style="position:absolute;left:0;right:0;height:2px;background:var(--red);z-index:10;top:'+nowPx+'px;left:'+(mob?'34':'52')+'px"><div style="position:absolute;left:-4px;top:-4px;width:9px;height:9px;border-radius:50%;background:var(--red)"></div></div>':'')+
         evs+
@@ -1346,11 +1458,11 @@ function calMonth(){
           '<div style="background:'+(it.color||'var(--accent)')+';color:#fff;border-radius:3px;padding:1px 3px;font-size:9px;margin-bottom:1px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">'+it.title+'</div>';
       });
       calSForDay(c.date).slice(0,mob?1:2).forEach(function(s){
-        ev+='<div style="background:'+(s.color||'var(--accent)')+'20;color:'+(s.color||'var(--accent)')+';border-left:2px solid '+(s.color||'var(--accent)')+';border-radius:2px;padding:1px 3px;font-size:9px;margin-bottom:1px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;cursor:pointer;font-weight:700" onclick="event.stopPropagation();showSchedMo('+s.id+',\''+c.date+'\')">'+s.st+' '+esc(s.title)+'</div>';
+        ev+='<div draggable="true" ondragstart="event.stopPropagation();_calDragStart(event,'+s.id+')" style="background:'+(s.color||'var(--accent)')+'20;color:'+(s.color||'var(--accent)')+';border-left:2px solid '+(s.color||'var(--accent)')+';border-radius:2px;padding:1px 3px;font-size:9px;margin-bottom:1px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;cursor:grab;font-weight:700" onclick="event.stopPropagation();showSchedMo('+s.id+',\''+c.date+'\')">'+s.st+' '+esc(s.title)+'</div>';
       });
     }
     const dnStyle=isT?'background:var(--accent);color:#fff;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:10px':(isRed?'color:var(--red)':dw===6?'color:var(--blue)':'');
-    return'<div id="mc-'+(c.date||idx)+'" style="min-height:'+cellH+'px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:3px;'+(!c.cur?'background:var(--bg3);opacity:.55':hol?'background:rgba(184,64,64,.03)':'')+';cursor:pointer;position:relative" onclick="'+(c.date?'_calDayTap(\''+c.date+'\')':'')+'" >'+
+    return'<div id="mc-'+(c.date||idx)+'" data-ds="'+(c.date||'')+'" ondragover="event.preventDefault()" ondrop="_calDropMonth(event,this)" style="min-height:'+cellH+'px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:3px;'+(!c.cur?'background:var(--bg3);opacity:.55':hol?'background:rgba(184,64,64,.03)':'')+';cursor:pointer;position:relative" onclick="'+(c.date?'_calDayTap(\''+c.date+'\')':'')+'" >'+
       '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1px">'+
         '<span style="'+dnStyle+';font-size:11px;font-weight:700">'+c.day+'</span>'+
         (!mob?'<span id="wx-m-'+(c.date||'x')+'" style="display:flex;flex-direction:column;align-items:flex-end;line-height:1"></span>':'')+
@@ -1383,6 +1495,9 @@ function calMonth(){
   }
 }
 
+function _calDayTap(ds){
+  showSchedMo(null,ds);
+}
 function clickCal(e,ds,col){
   const r=col.getBoundingClientRect();const y=e.clientY-r.top;
   const tot=Math.floor(y/SH*60);const hh=String(Math.floor(tot/60)).padStart(2,'0');
@@ -1573,6 +1688,7 @@ function showSchedMo(id,ds,st,et,allDay){
     <div class="fr"><label class="fl">終了時間</label><input type="time" id="sc-et" value="${s?.et||et||'10:00'}"></div>
   </div>
   <div class="fr"><label class="fl">関連案件（任意）</label><select id="sc-pi"><option value="">— 関連付けない —</option>${D.projects.map(p=>`<option value="${p.id}" ${s?.pid===p.id?'selected':''}>${p.title}</option>`).join('')}</select></div>
+  <div class="fr"><label class="fl">チームに紐付ける（任意）</label><select id="sc-tm" onchange="_scTeamSelect(this.value)"><option value="">— 紐付けない —</option>${(D.teams||[]).map(t=>`<option value="${t.id}" ${s?.teamId===t.id?'selected':''}>${esc(t.name)}</option>`).join('')}</select></div>
   <div class="fr"><label class="fl">カラー</label><div style="display:flex;gap:5px;flex-wrap:wrap">${cols.map(c=>`<div class="cc" data-c="${c}" onclick="document.querySelectorAll('.cc').forEach(e=>e.style.outline='none');this.style.outline='3px solid var(--text)'" style="width:22px;height:22px;background:${c};border-radius:50%;cursor:pointer;outline:${(s?.color||cols[0])===c?'3px solid var(--text)':'none'}"></div>`).join('')}</div></div>
   <div class="fr" style="grid-column:1/-1"><label class="fl">参加スタッフ・協力会社</label><div style="max-height:100px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:6px;display:flex;flex-wrap:wrap;gap:6px">${(D.staff&&D.staff.length)?(D.staff.map(st=>`<label style="display:flex;align-items:center;gap:4px;padding:3px 10px;background:var(--bg3);border-radius:4px;font-size:12px;cursor:pointer;white-space:nowrap;border-left:3px solid ${st.color||'#4a7c5f'}"><input type="checkbox" class="sc-staff-cb" value="${st.id}" ${(s?.staffIds||[]).includes(st.id)?"checked":""} style="accent-color:${st.color||'#4a7c5f'}">${esc(st.name)}<span style="font-size:10px;color:var(--text3);margin-left:2px">${st.type==="partner"?"[協]":"[社]"}</span></label>`).join("")):"<span style=\"font-size:12px;color:var(--text3)\">スタッフ未登録</span>"}</div></div>
   <div class="fr"><label class="fl">メモ</label><textarea id="sc-me" rows="2">${esc(s?.memo||'')}</textarea></div>
@@ -1581,11 +1697,21 @@ function showSchedMo(id,ds,st,et,allDay){
     <button class="btn bp" onclick="saveSched(${id||'null'})">💾 保存</button>
   </div>`);
 }
+function _scTeamSelect(tmId){
+  if(!tmId){return;}
+  const t=(D.teams||[]).find(x=>x.id===parseInt(tmId));
+  if(!t)return;
+  const mids=t.memberIds||[];
+  document.querySelectorAll('.sc-staff-cb').forEach(cb=>{
+    if(mids.includes(parseInt(cb.value))) cb.checked=true;
+  });
+}
 function saveSched(id){
   const ti=document.getElementById('sc-ti').value.trim();if(!ti){toast('タイトルを入力してください','er');return;}
   const al=gv('sc-al')==='1';
   const col=document.querySelector('.cc[style*="3px solid"]')?.dataset.c||'#4a7c5f';
-  const staffIds=[...document.querySelectorAll('.sc-staff-cb:checked')].map(cb=>parseInt(cb.value));const obj={title:ti,date:gv('sc-dt'),st:al?null:gv('sc-st'),et:al?null:gv('sc-et'),allDay:al,pid:parseInt(gv('sc-pi'))||null,color:col,memo:gv('sc-me'),staffIds:staffIds};
+  const tmId=parseInt(gv('sc-tm'))||null;
+  const staffIds=[...document.querySelectorAll('.sc-staff-cb:checked')].map(cb=>parseInt(cb.value));const obj={title:ti,date:gv('sc-dt'),st:al?null:gv('sc-st'),et:al?null:gv('sc-et'),allDay:al,pid:parseInt(gv('sc-pi'))||null,teamId:tmId,color:col,memo:gv('sc-me'),staffIds:staffIds};
   if(id&&id!=='null'){const i=D.schedules.findIndex(s=>s.id===id);D.schedules[i]={...D.schedules[i],...obj};toast('スケジュールを更新しました');}
   else{D.schedules.push({...obj,id:nid()});toast('スケジュールを追加しました');}
   save();_flush();cmo();buildPage();
@@ -1735,7 +1861,7 @@ function printQ(id){
     return`<tr><td style="white-space:pre-wrap">${esc(it.name)}</td><td style="text-align:right">${it.qty}</td><td style="text-align:center">${esc(it.unit||'')}</td><td style="text-align:right">¥${fmtN(parseFloat(it.price)||0)}</td><td style="text-align:right">¥${fmtN(a)}</td><td style="font-size:7.5pt;color:#666">${esc(it.note||'')}</td></tr>`;
   }).join('');
   const er=Array(Math.max(0,8-its.length)).fill('<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td></tr>').join('');
-  const logoHtml=cfg.logoData?`<img src="${cfg.logoData}" style="height:30px;width:30px;object-fit:contain;margin-right:5px">`:'<svg width="26" height="26" viewBox="0 0 36 36"><rect width="36" height="36" rx="8" fill="#4a7c5f"/><rect x="10" y="20" width="16" height="11" rx="1" fill="white"/><polygon points="18,7 7,20 29,20" fill="white"/><rect x="15" y="24" width="6" height="7" rx="1" fill="#4a7c5f"/></svg>';
+  const logoHtml=cfg.logoData?`<img src="${cfg.logoData}" style="height:30px;width:30px;object-fit:contain;margin-right:5px">`:'<svg width="26" height="26" viewBox="0 0 36 36"><rect width="36" height="36" rx="8" fill="#b08a18"/><rect x="4" y="4" width="12" height="12" rx="2" fill="white"/><rect x="20" y="4" width="12" height="12" rx="2" fill="white" opacity=".75"/><rect x="4" y="20" width="12" height="12" rx="2" fill="white" opacity=".45"/><rect x="20" y="20" width="12" height="12" rx="2" fill="white" opacity=".15"/></svg>';
   const pw=window.open('','_blank');if(!pw)return;
   pw.document.write(
     '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">'+
@@ -1813,7 +1939,7 @@ function _buildInvoicePrintHtml(id){
     return`<tr><td style="white-space:pre-wrap">${esc(it.name)}</td><td style="text-align:right">${it.qty}</td><td style="text-align:center">${esc(it.unit||'')}</td><td style="text-align:right">¥${fmtN(parseFloat(it.price)||0)}</td><td style="text-align:right">¥${fmtN(a)}</td><td style="font-size:7.5pt;color:#666">${esc(it.note||'')}</td></tr>`;
   }).join('');
   const er=Array(Math.max(0,8-its.length)).fill('<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td></tr>').join('');
-  const logoHtml=cfg.logoData?`<img src="${cfg.logoData}" style="height:30px;width:30px;object-fit:contain;margin-right:5px">`:'<svg width="26" height="26" viewBox="0 0 36 36"><rect width="36" height="36" rx="8" fill="#4a7c5f"/><rect x="10" y="20" width="16" height="11" rx="1" fill="white"/><polygon points="18,7 7,20 29,20" fill="white"/><rect x="15" y="24" width="6" height="7" rx="1" fill="#4a7c5f"/></svg>';
+  const logoHtml=cfg.logoData?`<img src="${cfg.logoData}" style="height:30px;width:30px;object-fit:contain;margin-right:5px">`:'<svg width="26" height="26" viewBox="0 0 36 36"><rect width="36" height="36" rx="8" fill="#b08a18"/><rect x="4" y="4" width="12" height="12" rx="2" fill="white"/><rect x="20" y="4" width="12" height="12" rx="2" fill="white" opacity=".75"/><rect x="4" y="20" width="12" height="12" rx="2" fill="white" opacity=".45"/><rect x="20" y="20" width="12" height="12" rx="2" fill="white" opacity=".15"/></svg>';
   const pw=window.open('','_blank');if(!pw)return;
   pw.document.write(
     '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">'+
@@ -1982,8 +2108,89 @@ function pgStaff(){
         '<thead><tr><th>会社名・氏名</th><th>担当・専門</th><th>電話番号</th><th>メール</th><th>メモ</th><th style="width:80px"></th></tr></thead>'+
         '<tbody>'+(pl.length?pl.map(mkRow).join(''):empty('協力会社が登録されていません'))+'</tbody>'+
       '</table></div>'+
+    '</div>'+
+    // チーム管理セクション
+    '<div style="margin-top:20px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'+
+        '<div style="font-size:16px;font-weight:900">🏷 チーム管理</div>'+
+        '<button class="btn bp" onclick="showTeamMo()">＋ チーム作成</button>'+
+      '</div>'+
+      (function(){
+        if(!D.teams||!D.teams.length) return '<div class="card" style="text-align:center;padding:24px;color:var(--text3)">チームが登録されていません</div>';
+        return D.teams.map(function(t){
+          const members=(t.memberIds||[]).map(function(mid){return(D.staff||[]).find(function(s){return s.id===mid;});}).filter(Boolean);
+          return '<div class="card" style="margin-bottom:8px;border-left:4px solid '+(t.color||'var(--accent)')+'">'+
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
+              '<div style="font-size:14px;font-weight:700">'+esc(t.name)+'</div>'+
+              '<div style="display:flex;gap:5px">'+
+                '<button class="btn bs bsm" onclick="showTeamMo('+t.id+')">✏️</button>'+
+                '<button class="btn bd bsm" onclick="delCon(&quot;team&quot;,'+t.id+')">🗑</button>'+
+              '</div>'+
+            '</div>'+
+            '<div style="display:flex;flex-wrap:wrap;gap:5px">'+
+              (members.length?members.map(function(m){
+                return '<span style="display:inline-flex;align-items:center;gap:4px;background:var(--bg3);border-radius:12px;padding:3px 10px;font-size:11px;border-left:3px solid '+(m.color||'#4a7c5f')+'">'+
+                  esc(m.name)+
+                  '<span style="font-size:9px;color:var(--text3)">'+(m.type==='partner'?'[協]':'[社]')+'</span>'+
+                '</span>';
+              }).join(''):'<span style="font-size:11px;color:var(--text3)">メンバー未登録</span>')+
+            '</div>'+
+          '</div>';
+        }).join('');
+      })()+
     '</div>';
 }
+
+// チームモーダル
+function showTeamMo(id){
+  if(!D.teams) D.teams=[];
+  var t=id?(D.teams||[]).find(function(x){return x.id===id;}):null;
+  var colors=['#2980b9','#e67e22','#27ae60','#e74c3c','#9b59b6','#1abc9c','#f1c40f','#4a7860','#3a60a0','#8b6f47'];
+  var staffList=(D.staff||[]).map(function(s){
+    var checked=t&&(t.memberIds||[]).indexOf(s.id)>=0;
+    return '<label style="display:flex;align-items:center;gap:5px;padding:4px 10px;background:var(--bg3);border-radius:5px;font-size:12px;cursor:pointer;border-left:3px solid '+(s.color||'#4a7c5f')+'">'+
+      '<input type="checkbox" class="tm-cb" value="'+s.id+'" '+(checked?'checked':'')+' style="accent-color:'+(s.color||'#4a7c5f')+'">'+
+      esc(s.name)+'<span style="font-size:9px;color:var(--text3);margin-left:2px">'+(s.type==='partner'?'[協]':'[社]')+'</span>'+
+    '</label>';
+  }).join('');
+  mo('<div class="mt">'+(t?'チームを編集':'新規チーム作成')+'</div>'+
+    '<div class="fg">'+
+      '<div class="fr" style="grid-column:1/-1"><label class="fl">チーム名 *</label><input id="tm-nm" value="'+esc(t?t.name:'')+'"></div>'+
+      '<div class="fr"><label class="fl">カラー</label>'+
+        '<div style="display:flex;gap:5px;flex-wrap:wrap">'+colors.map(function(c){
+          return '<div class="tm-cc" data-c="'+c+'" onclick="document.querySelectorAll(\'.tm-cc\').forEach(function(e){e.style.outline=\'none\'});this.style.outline=\'3px solid var(--text)\';this.style.outlineOffset=\'2px\'" style="width:22px;height:22px;background:'+c+';border-radius:50%;cursor:pointer;outline:'+((t?t.color:colors[0])===c?'3px solid var(--text)':'none')+';outline-offset:2px"></div>';
+        }).join('')+
+      '</div></div>'+
+      '<div class="fr" style="grid-column:1/-1"><label class="fl">メンバー</label>'+
+        '<div style="max-height:140px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:6px;display:flex;flex-wrap:wrap;gap:5px">'+
+          (staffList||'<span style="font-size:12px;color:var(--text3)">スタッフ未登録</span>')+
+        '</div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="mf">'+
+      (t?'<button class="btn bd" onclick="cmo();delCon(&quot;team&quot;,'+id+')">🗑 削除</button>':'')+
+      '<button class="btn bs" onclick="cmo()">キャンセル</button>'+
+      '<button class="btn bp" onclick="saveTeam('+(id||'null')+')">💾 保存</button>'+
+    '</div>');
+}
+
+function saveTeam(id){
+  if(!D.teams) D.teams=[];
+  var nm=document.getElementById('tm-nm')?.value.trim();
+  if(!nm){toast('チーム名を入力してください','er');return;}
+  var color=document.querySelector('.tm-cc[style*="3px solid var"]')?.dataset.c||'#2980b9';
+  var memberIds=[].slice.call(document.querySelectorAll('.tm-cb:checked')).map(function(cb){return parseInt(cb.value);});
+  var obj={name:nm,color:color,memberIds:memberIds};
+  var realId=(id&&id!=='null')?parseInt(id):null;
+  if(realId){
+    var i=D.teams.findIndex(function(t){return t.id===realId;});
+    if(i>=0){D.teams[i]={...D.teams[i],...obj};toast('チームを更新しました ✅');}
+  }else{
+    D.teams.push({...obj,id:nid()});toast('チームを作成しました ✅');
+  }
+  save();_flush();cmo();buildPage();
+}
+
 // ============================================================
 // BIZCARD 名刺管理
 // ============================================================
@@ -2068,132 +2275,582 @@ function saveBizCard(id){
   save();_flush();cmo();buildPage();
 }
 
+// ============================================================
+// RESERVATION 予約管理
+// ============================================================
+function pgReservation(){
+  if(!D.reservations) D.reservations=[];
+  var now=new Date();
+  var todayStr=now.toISOString().slice(0,10);
+  var DOW=['日','月','火','水','木','金','土'];
+
+  var _rsvView=window._rsvViewState||'today';
+  var _rsvCalY=window._rsvCalY||now.getFullYear();
+  var _rsvCalM=window._rsvCalM!==undefined?window._rsvCalM:now.getMonth();
+
+  function filtered(){return D.reservations||[];}
+  function todayList(){return filtered().filter(function(r){return r.date===todayStr;}).sort(function(a,b){return a.time.localeCompare(b.time);});}
+
+  function render(){
+    var tl=todayList();
+    var totalPeople=tl.filter(function(r){return r.status!=='キャンセル';}).reduce(function(s,r){return s+(r.people||0);},0);
+    var confirmed=tl.filter(function(r){return r.status==='予約中';}).length;
+    var arrived=tl.filter(function(r){return r.status==='来店済';}).length;
+    var cancelled=tl.filter(function(r){return r.status==='キャンセル';}).length;
+
+    var viewBtns='<div style="display:flex;gap:5px">'+
+      '<button class="btn '+(_rsvView==='today'?'bp':'bs')+' bsm" onclick="window._rsvSetView(\'today\')">今日</button>'+
+      '<button class="btn '+(_rsvView==='list'?'bp':'bs')+' bsm" onclick="window._rsvSetView(\'list\')">一覧</button>'+
+      '<button class="btn '+(_rsvView==='cal'?'bp':'bs')+' bsm" onclick="window._rsvSetView(\'cal\')">カレンダー</button>'+
+      '<button class="btn bp bsm" onclick="window._rsvOpenMo()">＋ 予約追加</button>'+
+    '</div>';
+
+    var html='<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">'+viewBtns+'</div>';
+
+    // サマリカード
+    html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px">'+
+      '<div class="card" style="padding:10px;text-align:center"><div style="font-size:20px;font-weight:700">'+tl.length+'</div><div style="font-size:10px;color:var(--text3)">今日の予約</div></div>'+
+      '<div class="card" style="padding:10px;text-align:center"><div style="font-size:20px;font-weight:700">'+totalPeople+'</div><div style="font-size:10px;color:var(--text3)">合計人数</div></div>'+
+      '<div class="card" style="padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--green)">'+arrived+'</div><div style="font-size:10px;color:var(--text3)">来店済</div></div>'+
+      '<div class="card" style="padding:10px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--red)">'+cancelled+'</div><div style="font-size:10px;color:var(--text3)">キャンセル</div></div>'+
+    '</div>';
+
+    if(_rsvView==='today'){
+      if(!tl.length){
+        html+='<div class="card" style="padding:30px;text-align:center;color:var(--text3)">今日の予約はありません<br><button class="btn bp bsm" onclick="window._rsvOpenMo()" style="margin-top:10px">＋ 予約を追加</button></div>';
+      }else{
+        tl.forEach(function(r){
+          var stCol=r.status==='来店済'?'var(--green)':r.status==='キャンセル'?'var(--red)':'var(--blue)';
+          html+='<div class="card" style="padding:12px 14px;margin-bottom:6px;cursor:pointer;border-left:3px solid '+stCol+'" onclick="window._rsvOpenMo('+r.id+')">'+
+            '<div style="display:flex;align-items:center;gap:10px">'+
+              '<div style="font-size:16px;font-weight:900;color:var(--accent);min-width:44px">'+esc(r.time)+'</div>'+
+              '<div style="flex:1">'+
+                '<div style="font-size:13px;font-weight:700">'+esc(r.name||'名無し')+' <span style="font-size:12px;font-weight:400;color:var(--text3)">'+esc(String(r.people||1))+'名</span></div>'+
+                (r.course?'<div style="font-size:11px;color:var(--text3)">'+esc(r.course)+'</div>':'')+
+                (r.note?'<div style="font-size:11px;color:var(--text3)">📝 '+esc(r.note)+'</div>':'')+
+              '</div>'+
+              '<div style="font-size:11px;font-weight:700;color:'+stCol+'">'+esc(r.status)+'</div>'+
+            '</div>'+
+          '</div>';
+        });
+      }
+    }else if(_rsvView==='list'){
+      var listData=filtered().filter(function(r){return r.date>=todayStr;}).sort(function(a,b){return a.date.localeCompare(b.date)||a.time.localeCompare(b.time);});
+      if(!listData.length){
+        html+='<div class="card" style="padding:30px;text-align:center;color:var(--text3)">予約データがありません</div>';
+      }else{
+        html+='<div class="tw"><table><thead><tr><th>日時</th><th>お名前</th><th>人数</th><th>コース</th><th>状況</th><th></th></tr></thead><tbody>';
+        listData.forEach(function(r){
+          var isToday=r.date===todayStr;
+          html+='<tr style="cursor:pointer'+(isToday?';background:rgba(74,124,95,.06)':'')+'" onclick="window._rsvOpenMo('+r.id+')">'+
+            '<td style="font-weight:'+(isToday?'700':'400')+'">'+esc(r.date.slice(5))+' '+esc(r.time)+'</td>'+
+            '<td>'+esc(r.name||'')+'</td>'+
+            '<td style="text-align:center">'+esc(String(r.people||1))+'名</td>'+
+            '<td style="color:var(--text3)">'+esc(r.course||'')+'</td>'+
+            '<td>'+bdg(r.status)+'</td>'+
+            '<td><button class="btn bs bsm" onclick="event.stopPropagation();window._rsvOpenMo('+r.id+')">編集</button></td>'+
+          '</tr>';
+        });
+        html+='</tbody></table></div>';
+      }
+    }else if(_rsvView==='cal'){
+      var y=_rsvCalY,m=_rsvCalM;
+      var firstDow=new Date(y,m,1).getDay();
+      var lastDay=new Date(y,m+1,0).getDate();
+      html+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">'+
+        '<button class="btn bs bsm" onclick="window._rsvChangeMonth(-1)">◀</button>'+
+        '<div style="font-size:13px;font-weight:700">'+y+'年'+(m+1)+'月</div>'+
+        '<button class="btn bs bsm" onclick="window._rsvChangeMonth(1)">▶</button>'+
+      '</div>';
+      html+='<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">';
+      DOW.forEach(function(d,i){
+        html+='<div style="text-align:center;font-size:10px;font-weight:700;padding:4px 0;color:'+(i===0?'var(--red)':i===6?'var(--blue)':'var(--text3)')+'">'+d+'</div>';
+      });
+      for(var i=0;i<firstDow;i++) html+='<div></div>';
+      for(var d=1;d<=lastDay;d++){
+        var ds=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+        var dow=new Date(y,m,d).getDay();
+        var dayRsvs=filtered().filter(function(r){return r.date===ds&&r.status!=='キャンセル';});
+        var isToday=ds===todayStr;
+        var totalP=dayRsvs.reduce(function(s,r){return s+(r.people||0);},0);
+        html+='<div onclick="window._rsvDayTap(\''+ds+'\')" style="min-height:52px;border-radius:6px;padding:4px;cursor:pointer;background:'+(isToday?'rgba(74,124,95,.12)':'var(--bg2)')+';border:'+(isToday?'1.5px solid var(--accent)':'0.5px solid var(--border)')+'">'+
+          '<div style="font-size:11px;font-weight:'+(isToday?'900':'500')+';color:'+(dow===0?'var(--red)':dow===6?'var(--blue)':'var(--text)')+'">'+d+'</div>'+
+          (dayRsvs.length>0?'<div style="font-size:9px;color:var(--accent);font-weight:700">'+dayRsvs.length+'件</div><div style="font-size:9px;color:var(--text3)">'+totalP+'名</div>':'')+
+        '</div>';
+      }
+      html+='</div>';
+    }
+
+    document.getElementById('ct').innerHTML=html;
+  }
+
+  // 予約モーダル
+  window._rsvOpenMo=function(id){
+    var r=id?(D.reservations||[]).find(function(x){return x.id===id;}):null;
+    var statusOpts=['予約中','来店済','キャンセル'].map(function(s){return '<option '+(r?.status===s?'selected':'')+'>'+s+'</option>';}).join('');
+    mo('<div class="mt">'+(r?'予約を編集':'予約を追加')+'</div>'+
+      '<div class="fg">'+
+        '<div class="fr"><label class="fl">日付</label><input type="date" id="rsv-date" value="'+(r?.date||todayStr)+'"></div>'+
+        '<div class="fr"><label class="fl">時間</label><input type="time" id="rsv-time" value="'+(r?.time||'18:00')+'"></div>'+
+        '<div class="fr"><label class="fl">お名前</label><input id="rsv-name" value="'+esc(r?.name||'')+'" placeholder="山田 花子"></div>'+
+        '<div class="fr"><label class="fl">人数</label><input type="number" id="rsv-people" value="'+(r?.people||2)+'" min="1" max="99" style="width:80px"> 名</div>'+
+        '<div class="fr"><label class="fl">コース</label><input id="rsv-course" value="'+esc(r?.course||'')+'" placeholder="コース名（任意）"></div>'+
+        '<div class="fr"><label class="fl">電話番号</label><input id="rsv-tel" value="'+esc(r?.tel||'')+'" placeholder="090-0000-0000"></div>'+
+        '<div class="fr" style="grid-column:1/-1"><label class="fl">状況</label><select id="rsv-status">'+statusOpts+'</select></div>'+
+        '<div class="fr" style="grid-column:1/-1"><label class="fl">メモ・特記事項</label><textarea id="rsv-note" rows="2" placeholder="アレルギー・記念日など">'+esc(r?.note||'')+'</textarea></div>'+
+      '</div>'+
+      '<div class="mf">'+
+        (r?'<button class="btn bd" onclick="window._rsvDel('+r.id+')">🗑 削除</button>':'')+
+        '<button class="btn bs" onclick="cmo()">キャンセル</button>'+
+        '<button class="btn bp" onclick="window._rsvSave('+(r?.id||'null')+')">💾 保存</button>'+
+      '</div>');
+  };
+
+  window._rsvSave=function(id){
+    if(!D.reservations)D.reservations=[];
+    var obj={
+      date:document.getElementById('rsv-date')?.value||todayStr,
+      time:document.getElementById('rsv-time')?.value||'18:00',
+      name:document.getElementById('rsv-name')?.value.trim()||'',
+      people:parseInt(document.getElementById('rsv-people')?.value)||1,
+      course:document.getElementById('rsv-course')?.value.trim()||'',
+      tel:document.getElementById('rsv-tel')?.value.trim()||'',
+      status:document.getElementById('rsv-status')?.value||'予約中',
+      note:document.getElementById('rsv-note')?.value.trim()||'',
+    };
+    if(!obj.name){toast('お名前を入力してください','er');return;}
+    if(id&&id!=='null'){
+      var idx=D.reservations.findIndex(function(r){return r.id===id;});
+      if(idx>=0)D.reservations[idx]={...D.reservations[idx],...obj};
+    }else{
+      D.reservations.push({...obj,id:nid(),created:new Date().toISOString()});
+    }
+    save();_flush();cmo();toast('予約を保存しました ✅');render();
+  };
+
+  window._rsvDel=function(id){
+    D.reservations=(D.reservations||[]).filter(function(r){return r.id!==id;});
+    save();_flush();cmo();toast('削除しました');render();
+  };
+
+  window._rsvSetView=function(v){_rsvView=v;window._rsvViewState=v;render();};
+  window._rsvDayTap=function(ds){_rsvView='today';window._rsvViewState='today';render();};
+  window._rsvChangeMonth=function(d){
+    _rsvCalM+=d;
+    if(_rsvCalM>11){_rsvCalM=0;_rsvCalY++;}
+    if(_rsvCalM<0){_rsvCalM=11;_rsvCalY--;}
+    window._rsvCalY=_rsvCalY;window._rsvCalM=_rsvCalM;
+    render();
+  };
+
+  render();
+}
+
+// ============================================================
+// TIMESHIFT タイムシフト管理
+// ============================================================
+let _tsView='month',_tsY=new Date().getFullYear(),_tsM=new Date().getMonth(),_tsD=new Date().getDate(),_tsStore='all';
+
+// スタッフ略称名を生成（3〜4文字、重複時はアルファベット付加）
+function _tsShortNames(staffList){
+  var result={};
+  // まず各スタッフの略称候補を生成
+  var candidates=staffList.map(function(s){
+    var nm=(s.name||'').replace(/\s+/g,'');
+    // 姓名を分離して姓3文字を基本候補に
+    var parts=(s.name||'').trim().split(/\s+/);
+    if(parts.length>=2){
+      var sei=parts[0];var mei=parts[1];
+      return {id:s.id, short:sei.slice(0,3), full:nm};
+    }
+    return {id:s.id, short:nm.slice(0,4), full:nm};
+  });
+  // 重複チェック→重複があれば名前1文字追加、それでもダメならA,B...付加
+  var used={};
+  candidates.forEach(function(c){
+    var key=c.short;
+    if(!used[key]){used[key]=[c];} else {used[key].push(c);}
+  });
+  Object.keys(used).forEach(function(key){
+    var group=used[key];
+    if(group.length===1){
+      result[group[0].id]=key;
+    }else{
+      // 名前の1文字目を追加して区別を試みる
+      var resolved={};
+      group.forEach(function(c){
+        var parts=((staffList.find(function(s){return s.id===c.id;})||{}).name||'').trim().split(/\s+/);
+        var longer=parts.length>=2?parts[0].slice(0,2)+parts[1].slice(0,1):c.full.slice(0,4);
+        if(!resolved[longer]){resolved[longer]=[c.id];}else{resolved[longer].push(c.id);}
+      });
+      var alpha=0;
+      Object.keys(resolved).forEach(function(lk){
+        var ids=resolved[lk];
+        if(ids.length===1){
+          result[ids[0]]=lk;
+        }else{
+          ids.forEach(function(id){
+            result[id]=lk+String.fromCharCode(65+alpha);
+            alpha++;
+          });
+        }
+      });
+    }
+  });
+  return result;
+}
+
+function _tsDaysInMonth(){return new Date(_tsY,_tsM+1,0).getDate();}
+function _tsDateStr(d){return _tsY+'-'+String(_tsM+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');}
+function _tsDayDateStr(){return _tsY+'-'+String(_tsM+1).padStart(2,'0')+'-'+String(_tsD).padStart(2,'0');}
+function _tsKey(staffId,ds){return 'main_'+staffId+'_'+ds;}
+function _tsGet(staffId,ds){return(D.timeShifts||{})[_tsKey(staffId,ds)]||null;}
+function _tsWorkHours(shift){
+  if(!shift||shift.type==='off')return 0;
+  var p=function(t){var a=(t||'0:00').split(':');return parseInt(a[0])*60+(parseInt(a[1])||0);};
+  var total=p(shift.et)-p(shift.st);
+  if(shift.brk){var bp=shift.brk.split('-');if(bp.length===2)total-=(p(bp[1])-p(bp[0]));}
+  return Math.max(0,total/60);
+}
+function _tsDow(ds){return['日','月','火','水','木','金','土'][new Date(ds).getDay()];}
+function _tsIsWeekend(ds){var d=new Date(ds).getDay();return d===0||d===6;}
+
+function pgTimeShift(){
+  if(!D.timeShifts)D.timeShifts={};
+  var staff=(D.staff||[]).filter(function(s){return s.type==='staff';});
+  if(_tsView==='day') return _tsRenderDay(staff);
+  _tsRenderMonth(staff);
+}
+
+// ── 月ビュー ──
+function _tsRenderMonth(staff){
+  var dim=_tsDaysInMonth();
+  var dayHeaders='';
+  for(var d=1;d<=dim;d++){
+    var ds=_tsDateStr(d);var dw=_tsDow(ds);var we=_tsIsWeekend(ds);
+    var isT=(ds===new Date().toISOString().slice(0,10));
+    dayHeaders+='<th style="min-width:36px;max-width:36px;font-size:9px;padding:3px 1px;text-align:center;position:relative;'+(we?'background:rgba(184,64,64,.05);':'')+(isT?'background:rgba(74,120,96,.12);':'')+'">'+
+      '<div style="font-size:8px;color:'+(we?'var(--red)':'var(--text3)')+'">'+dw+'</div>'+
+      '<div style="font-weight:700;'+(isT?'color:var(--accent)':'')+'">'+d+'</div></th>';
+  }
+
+  var shortNames=_tsShortNames(staff);
+  var mob=window.innerWidth<=768;
+  var rows='';
+  staff.forEach(function(s){
+    var cells='';var totalH=0;
+    for(var d=1;d<=dim;d++){
+      var ds=_tsDateStr(d);var sh=_tsGet(s.id,ds);var we=_tsIsWeekend(ds);
+      var bg='transparent';var bar='';var label='';
+      if(sh&&sh.type==='work'){
+        var h=_tsWorkHours(sh);totalH+=h;
+        var p=function(t){var a=(t||'0:00').split(':');return parseInt(a[0])*60+(parseInt(a[1])||0);};
+        var sMin=p(sh.st);var eMin=p(sh.et);
+        var left=Math.round(sMin/1440*100);var width=Math.round((eMin-sMin)/1440*100);
+        bar='<div style="position:absolute;top:4px;left:'+left+'%;width:'+width+'%;height:14px;background:'+(s.color||'var(--accent)')+';border-radius:2px;opacity:.8"></div>';
+        label='<div style="font-size:8px;color:var(--text3);text-align:center;margin-top:14px">'+h.toFixed(1)+'</div>';
+      }else if(sh&&sh.type==='off'){
+        bg='rgba(184,64,64,.06)';
+        bar='<div style="text-align:center;font-size:9px;color:var(--red);font-weight:700;padding-top:4px">休</div>';
+      }
+      cells+='<td style="min-width:36px;max-width:36px;height:34px;padding:0;position:relative;cursor:pointer;background:'+bg+';'+(we&&!sh?'background:rgba(184,64,64,.03);':'')+'" onclick="_tsOpenMo('+s.id+',\''+ds+'\')">'+bar+label+'</td>';
+    }
+    var monthTotal=totalH.toFixed(1);
+    var sn=shortNames[s.id]||esc(s.name).slice(0,4);
+    rows+='<tr>'+
+      '<td style="position:sticky;left:0;z-index:2;background:var(--bg2);min-width:'+(mob?'48':'70')+'px;white-space:nowrap;font-size:'+(mob?'10':'12')+'px;font-weight:700;padding:4px '+(mob?'3':'6')+'px;border-right:1px solid var(--border)">'+
+        esc(sn)+
+      '</td>'+
+      '<td style="position:sticky;left:'+(mob?'48':'70')+'px;z-index:2;background:var(--bg2);min-width:'+(mob?'32':'42')+'px;text-align:right;font-size:'+(mob?'9':'10')+'px;font-weight:700;color:var(--accent);padding:4px '+(mob?'2':'4')+'px;border-right:1px solid var(--border)">'+
+        monthTotal+'h'+
+      '</td>'+cells+'</tr>';
+  });
+
+  // 人員充足行
+  var coverRow='';
+  for(var d=1;d<=dim;d++){
+    var ds=_tsDateStr(d);
+    var count=0;
+    staff.forEach(function(s){var sh=_tsGet(s.id,ds);if(sh&&sh.type==='work')count++;});
+    var ratio=staff.length?count/staff.length:0;
+    var clr=ratio>=0.6?'var(--green)':ratio>=0.3?'var(--yellow)':'var(--red)';
+    coverRow+='<td style="min-width:36px;max-width:36px;text-align:center;padding:4px 0;font-size:10px;font-weight:700;color:'+clr+'">'+count+'</td>';
+  }
+
+  var navHtml='<div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px">'+
+    '<button class="btn bs bsm" onclick="_tsM--;if(_tsM<0){_tsM=11;_tsY--;}buildPage()">◀</button>'+
+    '<span style="font-size:15px;font-weight:900;min-width:120px;text-align:center">'+_tsY+'年'+(_tsM+1)+'月</span>'+
+    '<button class="btn bs bsm" onclick="_tsM++;if(_tsM>11){_tsM=0;_tsY++;}buildPage()">▶</button>'+
+    '<button class="btn bs bsm" onclick="var n=new Date();_tsY=n.getFullYear();_tsM=n.getMonth();buildPage()">今月</button>'+
+  '</div>';
+
+  document.getElementById('ct').innerHTML=
+    '<div style="max-width:100%;margin:0 auto">'+navHtml+
+      '<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg2);box-shadow:var(--shadow2)">'+
+        '<table style="border-collapse:collapse;width:max-content;min-width:100%">'+
+          '<thead><tr><th style="position:sticky;left:0;z-index:3;background:var(--bg3);min-width:'+(mob?'48':'70')+'px;padding:4px '+(mob?'3':'6')+'px;border-right:1px solid var(--border);font-size:10px;text-align:left">名前</th><th style="position:sticky;left:'+(mob?'48':'70')+'px;z-index:3;background:var(--bg3);min-width:'+(mob?'32':'42')+'px;padding:4px 2px;border-right:1px solid var(--border);font-size:9px;text-align:right">時間</th>'+dayHeaders+'</tr></thead>'+
+          '<tbody>'+rows+
+            '<tr style="border-top:2px solid var(--border)"><td style="position:sticky;left:0;z-index:2;background:var(--bg3);padding:4px '+(mob?'3':'6')+'px;border-right:1px solid var(--border);font-size:10px;font-weight:700;color:var(--text3)">人数</td><td style="position:sticky;left:'+(mob?'48':'70')+'px;z-index:2;background:var(--bg3);border-right:1px solid var(--border)"></td>'+coverRow+'</tr>'+
+          '</tbody>'+
+        '</table>'+
+      '</div>'+
+      (!staff.length?'<div class="card" style="text-align:center;padding:24px;margin-top:12px;color:var(--text3)">スタッフが登録されていません（スタッフ・協力会社メニューで登録）</div>':'')+
+    '</div>';
+}
+
+// ── 日ビュー ──
+function _tsRenderDay(staff){
+  var ds=_tsDayDateStr();
+  var navHtml='<div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:12px">'+
+    '<button class="btn bs bsm" onclick="var d=new Date(_tsY,_tsM,_tsD-1);_tsY=d.getFullYear();_tsM=d.getMonth();_tsD=d.getDate();buildPage()">◀</button>'+
+    '<span style="font-size:15px;font-weight:900;min-width:160px;text-align:center">'+_tsY+'年'+(_tsM+1)+'月'+_tsD+'日（'+_tsDow(ds)+'）</span>'+
+    '<button class="btn bs bsm" onclick="var d=new Date(_tsY,_tsM,_tsD+1);_tsY=d.getFullYear();_tsM=d.getMonth();_tsD=d.getDate();buildPage()">▶</button>'+
+    '<button class="btn bs bsm" onclick="var n=new Date();_tsY=n.getFullYear();_tsM=n.getMonth();_tsD=n.getDate();buildPage()">今日</button>'+
+  '</div>';
+
+  // 時間軸ヘッダー（6時〜22時）
+  var hours=[];for(var h=6;h<=22;h++)hours.push(h);
+  var thHtml=hours.map(function(h){return '<th style="min-width:40px;font-size:9px;padding:2px;text-align:center;border-left:1px solid var(--border)">'+h+'時</th>';}).join('');
+
+  var shortNames=_tsShortNames(staff);
+  var mob=window.innerWidth<=768;
+  var rows='';
+  staff.forEach(function(s){
+    var sh=_tsGet(s.id,ds);
+    var cells='';
+    if(sh&&sh.type==='work'){
+      var p=function(t){var a=(t||'0:00').split(':');return parseInt(a[0])*60+(parseInt(a[1])||0);};
+      var sMin=p(sh.st);var eMin=p(sh.et);
+      var brkS=-1,brkE=-1;
+      if(sh.brk){var bp=sh.brk.split('-');if(bp.length===2){brkS=p(bp[0]);brkE=p(bp[1]);}}
+      hours.forEach(function(h){
+        var hMin=h*60;var hEnd=(h+1)*60;
+        var inWork=sMin<hEnd&&eMin>hMin;
+        var inBrk=brkS>=0&&brkS<hEnd&&brkE>hMin;
+        var bg='transparent';
+        if(inWork&&inBrk)bg='repeating-linear-gradient(45deg,'+(s.color||'var(--accent)')+'33,'+(s.color||'var(--accent)')+'33 4px,rgba(200,146,42,.2) 4px,rgba(200,146,42,.2) 8px)';
+        else if(inWork)bg=(s.color||'var(--accent)')+'44';
+        cells+='<td style="min-width:40px;height:28px;border-left:1px solid var(--border);background:'+bg+';cursor:pointer" onclick="_tsOpenMo('+s.id+',\''+ds+'\')"></td>';
+      });
+    }else if(sh&&sh.type==='off'){
+      hours.forEach(function(){
+        cells+='<td style="min-width:40px;height:28px;border-left:1px solid var(--border);background:rgba(184,64,64,.06);text-align:center;cursor:pointer" onclick="_tsOpenMo('+s.id+',\''+ds+'\')"></td>';
+      });
+    }else{
+      hours.forEach(function(){
+        cells+='<td style="min-width:40px;height:28px;border-left:1px solid var(--border);cursor:pointer" onclick="_tsOpenMo('+s.id+',\''+ds+'\')"></td>';
+      });
+    }
+    var wh=_tsWorkHours(sh);
+    var whTxt=sh?(sh.type==='off'?'<span style="color:var(--red)">休</span>':wh.toFixed(1)+'h'):'<span style="color:var(--text3)">—</span>';
+    var sn=shortNames[s.id]||esc(s.name).slice(0,4);
+    var nameW=mob?'48':'70';var hW=mob?'32':'42';
+    rows+='<tr>'+
+      '<td style="position:sticky;left:0;z-index:2;background:var(--bg2);min-width:'+nameW+'px;white-space:nowrap;font-size:'+(mob?'10':'12')+'px;font-weight:700;padding:4px '+(mob?'3':'6')+'px;border-right:1px solid var(--border)">'+esc(sn)+'</td>'+
+      '<td style="position:sticky;left:'+nameW+'px;z-index:2;background:var(--bg2);min-width:'+hW+'px;text-align:right;font-size:'+(mob?'9':'10')+'px;font-weight:700;color:var(--accent);padding:4px '+(mob?'2':'4')+'px;border-right:1px solid var(--border)">'+whTxt+'</td>'+
+      cells+'</tr>';
+  });
+
+  // カバレッジバー
+  var coverCells='';
+  hours.forEach(function(h){
+    var hMin=h*60;var hEnd=(h+1)*60;
+    var count=0;
+    staff.forEach(function(s){
+      var sh=_tsGet(s.id,ds);
+      if(!sh||sh.type!=='work')return;
+      var p=function(t){var a=(t||'0:00').split(':');return parseInt(a[0])*60+(parseInt(a[1])||0);};
+      if(p(sh.st)<hEnd&&p(sh.et)>hMin)count++;
+    });
+    var ratio=staff.length?count/staff.length:0;
+    var clr=ratio>=0.5?'var(--green)':ratio>=0.25?'var(--yellow)':'var(--red)';
+    coverCells+='<td style="min-width:40px;text-align:center;padding:3px 0;font-size:10px;font-weight:700;border-left:1px solid var(--border);color:'+(count?clr:'var(--text3)')+'">'+count+'</td>';
+  });
+
+  document.getElementById('ct').innerHTML=
+    '<div style="max-width:100%;margin:0 auto">'+navHtml+
+      '<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg2);box-shadow:var(--shadow2)">'+
+        '<table style="border-collapse:collapse;width:max-content;min-width:100%">'+
+          '<thead><tr><th style="position:sticky;left:0;z-index:3;background:var(--bg3);min-width:'+(mob?'48':'70')+'px;padding:4px '+(mob?'3':'6')+'px;border-right:1px solid var(--border);font-size:10px;text-align:left">名前</th><th style="position:sticky;left:'+(mob?'48':'70')+'px;z-index:3;background:var(--bg3);min-width:'+(mob?'32':'42')+'px;padding:4px 2px;border-right:1px solid var(--border);font-size:9px;text-align:right">時間</th>'+thHtml+'</tr></thead>'+
+          '<tbody>'+rows+
+            '<tr style="border-top:2px solid var(--border)"><td style="position:sticky;left:0;z-index:2;background:var(--bg3);padding:4px '+(mob?'3':'6')+'px;border-right:1px solid var(--border);font-size:10px;font-weight:700;color:var(--text3)">人数</td><td style="position:sticky;left:'+(mob?'48':'70')+'px;z-index:2;background:var(--bg3);border-right:1px solid var(--border)"></td>'+coverCells+'</tr>'+
+          '</tbody>'+
+        '</table>'+
+      '</div>'+
+      (!staff.length?'<div class="card" style="text-align:center;padding:24px;margin-top:12px;color:var(--text3)">スタッフが登録されていません</div>':'')+
+    '</div>';
+}
+
+// ── シフト入力モーダル ──
+function _tsOpenMo(staffId,ds){
+  var s=(D.staff||[]).find(function(x){return x.id===staffId;});
+  if(!s)return;
+  var sh=_tsGet(staffId,ds);
+  var isWork=sh&&sh.type==='work';
+  var isOff=sh&&sh.type==='off';
+  var brk=isWork&&sh.brk?sh.brk.split('-'):['12:00','13:00'];
+
+  mo('<div class="mt">シフト設定</div>'+
+    '<div style="margin-bottom:12px">'+
+      '<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:'+(s.color||'var(--accent)')+';margin-right:5px"></span>'+
+      '<b>'+esc(s.name)+'</b> &nbsp; '+ds+' ('+_tsDow(ds)+')'+
+    '</div>'+
+    '<div class="fg">'+
+      '<div class="fr" style="grid-column:1/-1"><label class="fl">種別</label>'+
+        '<select id="ts-type" onchange="document.getElementById(\'ts-times\').style.display=this.value===\'work\'?\'grid\':\'none\'">'+
+          '<option value="none" '+((!sh)?'selected':'')+'>未設定</option>'+
+          '<option value="work" '+(isWork?'selected':'')+'>出勤</option>'+
+          '<option value="off" '+(isOff?'selected':'')+'>希望休</option>'+
+        '</select>'+
+      '</div>'+
+      '<div id="ts-times" class="fg" style="grid-column:1/-1;'+(isWork?'':'display:none')+'">'+
+        '<div class="fr"><label class="fl">開始時間</label><input type="time" id="ts-st" value="'+(isWork?sh.st:'09:00')+'"></div>'+
+        '<div class="fr"><label class="fl">終了時間</label><input type="time" id="ts-et" value="'+(isWork?sh.et:'18:00')+'"></div>'+
+        '<div class="fr"><label class="fl">休憩開始</label><input type="time" id="ts-bs" value="'+brk[0]+'"></div>'+
+        '<div class="fr"><label class="fl">休憩終了</label><input type="time" id="ts-be" value="'+brk[1]+'"></div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="mf">'+
+      (sh?'<button class="btn bd" onclick="_tsDel('+staffId+',\''+ds+'\')">🗑 削除</button>':'')+
+      '<button class="btn bs" onclick="cmo()">キャンセル</button>'+
+      '<button class="btn bp" onclick="_tsSave('+staffId+',\''+ds+'\')">💾 保存</button>'+
+    '</div>');
+}
+
+function _tsSave(staffId,ds){
+  if(!D.timeShifts)D.timeShifts={};
+  var type=document.getElementById('ts-type')?.value;
+  var key=_tsKey(staffId,ds);
+  if(type==='work'){
+    D.timeShifts[key]={
+      type:'work',
+      st:document.getElementById('ts-st')?.value||'09:00',
+      et:document.getElementById('ts-et')?.value||'18:00',
+      brk:(document.getElementById('ts-bs')?.value||'12:00')+'-'+(document.getElementById('ts-be')?.value||'13:00')
+    };
+    toast('シフトを保存しました ✅');
+  }else if(type==='off'){
+    D.timeShifts[key]={type:'off'};
+    toast('希望休を設定しました ✅');
+  }else{
+    delete D.timeShifts[key];
+    toast('シフトを解除しました');
+  }
+  save();_flush();cmo();buildPage();
+}
+
+function _tsDel(staffId,ds){
+  if(!D.timeShifts)D.timeShifts={};
+  delete D.timeShifts[_tsKey(staffId,ds)];
+  save();_flush();cmo();buildPage();
+  toast('シフトを削除しました');
+}
+
 // STOCK 発注書印刷
 // ============================================================
 function printOrderSheet(){
   if(!D.stockItems) D.stockItems=[];
-  const targets=(D.stockItems).filter(i=>i.qty<=(i.reorder||0));
+  var targets=D.stockItems.filter(function(i){return i.qty<=(i.reorder||0);});
   if(!targets.length){toast('発注点以下の品目はありません','in');return;}
 
-  const cfg=D.cfg||{};
-  const today_=new Date();
-  const ds=today_.getFullYear()+'年'+(today_.getMonth()+1)+'月'+today_.getDate()+'日';
+  var cfg=D.cfg||{};
+  var now=new Date();
+  var ds=now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日';
 
-  // 発注先ごとにグループ化（未設定は「未設定」）
-  const groups={};
-  targets.forEach(i=>{
-    const sup=i.supplier||'（発注先未設定）';
+  // 発注先ごとにグループ化
+  var groups={};
+  targets.forEach(function(i){
+    var sup=i.supplier||'（発注先未設定）';
     if(!groups[sup]) groups[sup]=[];
     groups[sup].push(i);
   });
 
-  const logoHtml=cfg.logoData?`<img src="${cfg.logoData}" style="height:28px;width:28px;object-fit:contain;margin-right:5px">`:'<svg width="24" height="24" viewBox="0 0 36 36"><rect width="36" height="36" rx="8" fill="#4a7c5f"/><rect x="10" y="20" width="16" height="11" rx="1" fill="white"/><polygon points="18,7 7,20 29,20" fill="white"/><rect x="15" y="24" width="6" height="7" rx="1" fill="#4a7c5f"/></svg>';
-
-  let sectionsHtml='';
-  Object.entries(groups).forEach(([sup,items],idx)=>{
-    const rows=items.map(i=>{
-      const isOut=i.qty<=0;
-      const orderQty=Math.max(1,(i.reorder||0)-i.qty+(i.reorder||0));// 発注推奨数 = 発注点×2 - 現在庫
-      const rowBg=isOut?'background:#fff5f5':'background:#fffbf0';
-      const warn=isOut?'⛔ 在庫なし':'⚠ 残少';
-      return`<tr style="${rowBg}">
-        <td>${esc(i.name)}<br><span style="font-size:7.5pt;color:#888">${esc([i.partNo,i.maker].filter(Boolean).join(' · '))}</span></td>
-        <td style="text-align:center">${esc(i.kojiType||'')}</td>
-        <td style="text-align:right;color:${isOut?'#c00':'#b36a00'};font-weight:700">${fmtN(i.qty)}</td>
-        <td style="text-align:right">${fmtN(i.reorder||0)}</td>
-        <td style="text-align:right;font-weight:900;color:#1a6e3c">${fmtN(orderQty)}</td>
-        <td style="text-align:center">${esc(i.unit||'')}</td>
-        <td style="text-align:right;color:#555">${fmt(i.price||0)}</td>
-        <td style="color:${isOut?'#c00':'#b36a00'};font-size:8pt;font-weight:700">${warn}</td>
-      </tr>`;
-    }).join('');
-    const totalRef=items.reduce((s,i)=>{
-      const oq=Math.max(1,(i.reorder||0)-i.qty+(i.reorder||0));
-      return s+oq*(i.price||0);
-    },0);
-    sectionsHtml+=`
-    <div class="sup-section" style="${idx>0?'page-break-before:auto;margin-top:18px':''}">
-      <div style="display:flex;align-items:center;justify-content:space-between;background:#333;color:#fff;padding:5px 10px;border-radius:4px 4px 0 0;margin-bottom:0">
-        <div style="font-size:10pt;font-weight:900">発注先：${esc(sup)}</div>
-        <div style="font-size:8pt">品目数：${items.length}件</div>
-      </div>
-      <table class="items">
-        <thead><tr>
-          <th style="text-align:left;min-width:130px">品名 / 型番・メーカー</th>
-          <th style="width:70px">工事種</th>
-          <th style="width:60px">現在庫</th>
-          <th style="width:50px">発注点</th>
-          <th style="width:60px">発注推奨数</th>
-          <th style="width:36px">単位</th>
-          <th style="width:75px">単価（参考）</th>
-          <th style="width:60px">状態</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-        <tfoot><tr>
-          <td colspan="6" style="text-align:right;font-weight:700;background:#f0f0f0">参考金額合計</td>
-          <td style="text-align:right;font-weight:900;background:#f0f0f0">${fmt(totalRef)}</td>
-          <td style="background:#f0f0f0"></td>
-        </tr></tfoot>
-      </table>
-    </div>`;
+  // テーブル行を生成
+  var tableRows='';
+  Object.keys(groups).forEach(function(sup){
+    var items=groups[sup];
+    tableRows+='<tr><td colspan="6" style="background:var(--bg3);font-weight:900;font-size:12px;padding:6px 10px;border-bottom:2px solid var(--border)">発注先：'+esc(sup)+' （'+items.length+'件）</td></tr>';
+    items.forEach(function(i){
+      var orderQty=Math.max(1,(i.reorder||0)-i.qty);
+      tableRows+='<tr>'+
+        '<td style="font-weight:700">'+esc(i.name)+'</td>'+
+        '<td style="text-align:center">'+esc(i.unit||'')+'</td>'+
+        '<td style="text-align:right;color:var(--red);font-weight:900">'+fmtN(i.qty)+'</td>'+
+        '<td style="text-align:right">'+fmtN(i.reorder||0)+'</td>'+
+        '<td style="text-align:right;font-weight:900;color:var(--green)">'+fmtN(orderQty)+'</td>'+
+        '<td style="color:var(--text3)">'+esc(i.supplier||'')+'</td>'+
+      '</tr>';
+    });
   });
 
-  const grandTotal=targets.reduce((s,i)=>{
-    const oq=Math.max(1,(i.reorder||0)-i.qty+(i.reorder||0));
-    return s+oq*(i.price||0);
-  },0);
-
-  const pw=window.open('','_blank');if(!pw)return;
-  pw.document.write(
-    '<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">'+
-    '<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&display=swap" rel="stylesheet">'+
-    '<style>@page{size:A4 portrait;margin:10mm}*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+
-    'body{font-family:"Noto Serif JP","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;color:#111;font-size:9pt;line-height:1.5}'+
-    'h1{text-align:center;font-size:18pt;font-weight:700;letter-spacing:.4em;margin-bottom:4px;padding-bottom:4px;border-bottom:2px solid #111}'+
-    '.meta{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px}'+
-    '.co-box{border:1px solid #ccc;padding:6px 8px;background:#fafafa;text-align:right}'+
-    '.co-name{font-size:11pt;font-weight:900}'+
-    '.co-info{font-size:7.5pt;color:#555;line-height:1.6;margin-top:2px}'+
-    '.summary{display:flex;gap:10px;margin-bottom:12px}'+
-    '.sum-box{flex:1;border:1px solid #ccc;border-radius:4px;padding:6px 10px;text-align:center}'+
-    '.sum-lbl{font-size:7.5pt;color:#666;font-weight:700}'+
-    '.sum-val{font-size:13pt;font-weight:900}'+
-    'table.items{width:100%;border-collapse:collapse;font-size:8pt;margin-bottom:0}'+
-    'table.items th{background:#555;color:#fff;padding:4px 5px;text-align:center;font-weight:700;border:1px solid #666}'+
-    'table.items td{border:1px solid #bbb;padding:3px 5px;vertical-align:middle}'+
-    'table.items tbody tr:nth-child(even){background:#f9f9f9}'+
-    'table.items tfoot td{border:1px solid #bbb}'+
-    '.note{font-size:7.5pt;color:#666;margin-top:8px;border-top:1px dashed #ccc;padding-top:6px}'+
-    '@media print{.no-print{display:none!important}}</style></head><body>'+
-    '<div class="no-print" style="padding:8px;background:#f0f0f0;border-bottom:1px solid #ccc">'+
-      '<div style="display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap">'+
-      '<button onclick="window.close()" style="background:#e74c3c;color:#fff;border:none;padding:10px 20px;font-size:14px;border-radius:6px;cursor:pointer;font-weight:700">✕ 閉じる</button>'+
-      '<button onclick="window.print()" style="background:#333;color:#fff;border:none;padding:10px 20px;font-size:14px;border-radius:6px;cursor:pointer;font-weight:700">🖨️ 印刷する（PDFも可）</button>'+
+  // 画面内プレビュー表示
+  mo('<div class="mt">🖨️ 発注書プレビュー</div>'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'+
+      '<div>'+
+        '<div style="font-size:13px;font-weight:700">'+esc(cfg.companyName||'セイノデンキ')+'</div>'+
+        '<div style="font-size:11px;color:var(--text3)">発注日：'+ds+'</div>'+
+      '</div>'+
+      '<div style="text-align:right">'+
+        '<div style="font-size:20px;font-weight:900;color:var(--red)">'+targets.length+'品目</div>'+
+        '<div style="font-size:11px;color:var(--text3)">'+Object.keys(groups).length+'社</div>'+
       '</div>'+
     '</div>'+
-    '<div style="padding:6mm 8mm">'+
-    `<h1>発　注　書</h1>
-    <div class="meta">
-      <div style="font-size:8pt;color:#555">発行日：${ds}</div>
-      <div class="co-box">
-        <div style="display:flex;align-items:center;justify-content:flex-end;gap:5px;margin-bottom:2px">${logoHtml}<div class="co-name">${esc(cfg.companyName||'セイノデンキ')}</div></div>
-        <div class="co-info">
-          ${cfg.address?esc(cfg.address)+'<br>':''}
-          ${cfg.tel?'TEL.'+esc(cfg.tel):''}
-          ${cfg.rep?'&nbsp;担当&nbsp;'+esc(cfg.rep):''}
-        </div>
-      </div>
-    </div>
-    <div class="summary">
-      <div class="sum-box"><div class="sum-lbl">発注対象品目</div><div class="sum-val" style="color:#c00">${targets.length}品目</div></div>
-      <div class="sum-box"><div class="sum-lbl">発注先数</div><div class="sum-val" style="color:#444">${Object.keys(groups).length}社</div></div>
-      <div class="sum-box"><div class="sum-lbl">参考合計金額</div><div class="sum-val" style="color:#1a6e3c;font-size:11pt">${fmt(grandTotal)}</div></div>
-    </div>
-    ${sectionsHtml}
-    <div class="note">※ 発注推奨数は「発注点×2 − 現在庫数」で算出した目安です。実際の発注数は状況に応じて調整してください。</div>`+
-    '</div></body></html>'
-  );
+    '<div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px">'+
+      '<table style="width:100%;border-collapse:collapse;font-size:12px">'+
+        '<thead><tr style="background:var(--bg3)">'+
+          '<th style="padding:6px 8px;text-align:left">品名</th>'+
+          '<th style="padding:6px 4px;text-align:center;width:40px">単位</th>'+
+          '<th style="padding:6px 4px;text-align:right;width:60px">現在庫</th>'+
+          '<th style="padding:6px 4px;text-align:right;width:60px">発注点</th>'+
+          '<th style="padding:6px 4px;text-align:right;width:60px">発注数</th>'+
+          '<th style="padding:6px 8px;text-align:left;width:100px">発注先</th>'+
+        '</tr></thead>'+
+        '<tbody>'+tableRows+'</tbody>'+
+      '</table>'+
+    '</div>'+
+    '<div style="font-size:10px;color:var(--text3);margin-bottom:12px">※ 発注数は「発注点 − 現在庫数」で算出した最低数量です。</div>'+
+    '<div class="mf">'+
+      '<button class="btn bs" onclick="cmo()">閉じる</button>'+
+      '<button class="btn bp" onclick="_printOrderSheetPrint()">🖨️ 印刷する</button>'+
+    '</div>',true);
+}
+
+function _printOrderSheetPrint(){
+  // プレビュー内容をそのまま印刷ウィンドウで開く
+  var moEl=document.querySelector('.mo-lg')||document.querySelector('.mo');
+  if(!moEl)return;
+  var pw=window.open('','_blank');if(!pw)return;
+  pw.document.write('<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8"><style>'+
+    '@page{size:A4;margin:10mm}*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+
+    'body{font-family:"Hiragino Kaku Gothic ProN",Meiryo,sans-serif;color:#111;font-size:10pt;line-height:1.5;padding:8mm}'+
+    'table{width:100%;border-collapse:collapse}th,td{padding:4px 6px;border:1px solid #bbb;font-size:9pt}'+
+    'th{background:#e8e8e8;font-weight:700}'+
+    '.no-print{text-align:center;padding:8px;background:#f0f0f0;border-bottom:1px solid #ccc}'+
+    '@media print{.no-print{display:none!important}}'+
+    '</style></head><body>'+
+    '<div class="no-print"><button onclick="window.print()" style="background:#333;color:#fff;border:none;padding:10px 20px;border-radius:6px;cursor:pointer;font-weight:700;font-size:14px">🖨️ 印刷する（PDFも可）</button> <button onclick="window.close()" style="background:#e74c3c;color:#fff;border:none;padding:10px 20px;border-radius:6px;cursor:pointer;font-weight:700;font-size:14px;margin-left:8px">✕ 閉じる</button></div>'+
+    '<h1 style="text-align:center;font-size:18pt;letter-spacing:.4em;border-bottom:2px solid #111;padding-bottom:6px;margin-bottom:12px">発　注　書</h1>'+
+    moEl.innerHTML.replace(/<div class="mt">.*?<\/div>/,'').replace(/<div class="mf">.*?<\/div>/,'')+
+    '</body></html>');
   pw.document.close();
+}
+
+function exportStockCSV(){
+  if(!D.stockItems||!D.stockItems.length){toast('在庫データがありません','er');return;}
+  var hdrs=['品名','単位','現在庫数','発注点','発注先','単価'];
+  var rows=D.stockItems.map(function(i){
+    return[i.name||'',i.unit||'',i.qty||0,i.reorder||0,i.supplier||'',i.price||0];
+  });
+  var bom='\uFEFF';
+  var csv=bom+[hdrs].concat(rows).map(function(r){
+    return r.map(function(v){return '"'+String(v).replace(/"/g,'""')+'"';}).join(',');
+  }).join('\r\n');
+  var now=new Date();
+  var fname='在庫一覧_'+now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+'.csv';
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download=fname;a.click();
+  toast('CSVをエクスポートしました ✅','in');
 }
 
 // STOCK 在庫管理
@@ -2774,7 +3431,7 @@ function restoreData(e){
   const r=new FileReader();r.onload=ev=>{
     try{
       const b=JSON.parse(ev.target.result);
-      D={customers:b.customers||[],projects:b.projects||[],quotes:b.quotes||[],schedules:b.schedules||[],nextId:b.nextId||200};
+      D={customers:b.customers||[],projects:b.projects||[],quotes:b.quotes||[],schedules:b.schedules||[],staff:b.staff||[],stockItems:b.stockItems||[],stockLogs:b.stockLogs||[],bizCards:b.bizCards||[],teams:b.teams||[],timeShifts:b.timeShifts||{},reservations:b.reservations||[],nextId:b.nextId||200,cfg:b.cfg||{}};
       // handle old field names (cid vs customerId, sd/ed vs startDate/endDate)
       D.projects=D.projects.map(p=>({...p,cid:p.cid||p.customerId,sd:p.sd||p.startDate,ed:p.ed||p.endDate,imgs:p.imgs||p.images||[]}));
       D.quotes=D.quotes.map(q=>({...q,cid:q.cid||q.customerId,qn:q.qn||q.quoteNo,cp:q.cp||q.contactPerson}));
@@ -2784,6 +3441,201 @@ function restoreData(e){
     }catch{toast('復元に失敗しました','er');}
   };r.readAsText(f);e.target.value='';
 }
+
+// ============================================================
+// GOOGLE DRIVE SYNC
+// ============================================================
+const GDRIVE_FILE_NAME='seino_crm_sync.json';
+const GDRIVE_CLIENT_ID_KEY='s5_gdrive_cid';
+let _gtoken=null;
+let _gautoSync=false;
+
+function _gdriveUpdateUI(){
+  const connected=!!_gtoken;
+  const lbl=document.getElementById('gdrive-label');
+  const sv=document.getElementById('gdrive-save-btn');
+  const ld=document.getElementById('gdrive-load-btn');
+  const st=document.getElementById('gdrive-status');
+  if(lbl) lbl.textContent=connected?'接続中 ✓ 切断する':'Google Drive 接続';
+  if(sv) sv.style.display=connected?'flex':'none';
+  if(ld) ld.style.display=connected?'flex':'none';
+  if(st){
+    if(connected){
+      st.style.display='block';
+      const auto=localStorage.getItem('s5_gdrive_auto')==='1';
+      st.innerHTML='<label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:10px"><input type="checkbox" id="gdrive-auto" '+(auto?'checked':'')+' onchange="_gSetAuto(this.checked)"> 自動同期</label>';
+      _gautoSync=auto;
+    }else{
+      st.style.display='none';
+    }
+  }
+}
+
+function _gSetAuto(v){
+  _gautoSync=v;
+  localStorage.setItem('s5_gdrive_auto',v?'1':'0');
+  toast(v?'自動同期を有効にしました':'自動同期を無効にしました','in');
+}
+
+function gdriveToggle(){
+  if(_gtoken){
+    _gtoken=null;
+    localStorage.removeItem('s5_gdrive_token');
+    _gautoSync=false;
+    _gdriveUpdateUI();
+    toast('Google Driveから切断しました','in');
+    return;
+  }
+  // Client ID チェック
+  let clientId=localStorage.getItem(GDRIVE_CLIENT_ID_KEY)||'';
+  if(!clientId){
+    mo(`<div class="mt">Google Drive 接続設定</div>
+    <div style="margin-bottom:12px">
+      <div style="font-size:13px;color:var(--text2);margin-bottom:10px">
+        Google Cloud ConsoleでOAuthクライアントIDを取得し、以下に入力してください。
+      </div>
+      <div style="background:var(--bg3);border-radius:7px;padding:10px 12px;font-size:11px;color:var(--text2);margin-bottom:10px">
+        <b>手順：</b><br>
+        1. Google Cloud Console → APIとサービス → 認証情報<br>
+        2.「＋認証情報を作成」→「OAuthクライアントID」<br>
+        3. アプリケーションの種類：「ウェブアプリケーション」<br>
+        4. 承認済みのJavaScriptオリジン：このページのURL<br>
+        5. クライアントIDをコピーしてここに貼り付け<br>
+        6. Drive APIを有効化（APIライブラリ → Google Drive API）
+      </div>
+      <div class="fr"><label class="fl">OAuthクライアントID</label><input id="gdrive-cid" placeholder="xxxx.apps.googleusercontent.com" style="width:100%"></div>
+    </div>
+    <div class="mf"><button class="btn bs" onclick="cmo()">キャンセル</button><button class="btn bp" onclick="_gSaveClientId()">接続する</button></div>`);
+    return;
+  }
+  _gAuth(clientId);
+}
+
+function _gSaveClientId(){
+  const cid=document.getElementById('gdrive-cid')?.value.trim();
+  if(!cid){toast('クライアントIDを入力してください','er');return;}
+  localStorage.setItem(GDRIVE_CLIENT_ID_KEY,cid);
+  cmo();
+  _gAuth(cid);
+}
+
+function _gAuth(clientId){
+  if(typeof google==='undefined'||!google.accounts){
+    toast('Google認証ライブラリを読み込み中...再度お試しください','er');
+    return;
+  }
+  const client=google.accounts.oauth2.initTokenClient({
+    client_id:clientId,
+    scope:'https://www.googleapis.com/auth/drive.file',
+    callback:(resp)=>{
+      if(resp.error){
+        toast('認証に失敗しました: '+resp.error,'er');
+        return;
+      }
+      _gtoken=resp.access_token;
+      localStorage.setItem('s5_gdrive_token',_gtoken);
+      _gdriveUpdateUI();
+      toast('Google Driveに接続しました ✓','in');
+    }
+  });
+  client.requestAccessToken();
+}
+
+// Drive API ヘルパー
+async function _gFindFile(){
+  const res=await fetch('https://www.googleapis.com/drive/v3/files?q=name%3D%27'+encodeURIComponent(GDRIVE_FILE_NAME)+'%27+and+trashed%3Dfalse&spaces=drive&fields=files(id,name,modifiedTime)',{
+    headers:{'Authorization':'Bearer '+_gtoken}
+  });
+  if(!res.ok) throw new Error('Drive検索失敗: '+res.status);
+  const data=await res.json();
+  return data.files&&data.files.length?data.files[0]:null;
+}
+
+async function _gUpload(content,fileId){
+  const metadata={name:GDRIVE_FILE_NAME,mimeType:'application/json'};
+  const boundary='----bizlock'+Date.now();
+  const body='--'+boundary+'\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n'+JSON.stringify(metadata)+'\r\n--'+boundary+'\r\nContent-Type: application/json\r\n\r\n'+content+'\r\n--'+boundary+'--';
+  const url=fileId
+    ?'https://www.googleapis.com/upload/drive/v3/files/'+fileId+'?uploadType=multipart'
+    :'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart';
+  const res=await fetch(url,{
+    method:fileId?'PATCH':'POST',
+    headers:{'Authorization':'Bearer '+_gtoken,'Content-Type':'multipart/related; boundary='+boundary},
+    body:body
+  });
+  if(!res.ok) throw new Error('アップロード失敗: '+res.status);
+  return await res.json();
+}
+
+async function _gDownload(fileId){
+  const res=await fetch('https://www.googleapis.com/drive/v3/files/'+fileId+'?alt=media',{
+    headers:{'Authorization':'Bearer '+_gtoken}
+  });
+  if(!res.ok) throw new Error('ダウンロード失敗: '+res.status);
+  return await res.json();
+}
+
+// 保存
+async function gdriveSave(){
+  if(!_gtoken){toast('Google Driveに接続してください','er');return;}
+  toast('Google Driveに保存中...','in');
+  try{
+    const content=JSON.stringify({...D,ver:'5.0',exportDate:new Date().toISOString(),syncSource:'gdrive'});
+    const existing=await _gFindFile();
+    await _gUpload(content,existing?.id||null);
+    const now=new Date().toLocaleTimeString('ja-JP');
+    toast('Google Driveに保存しました ✓ ('+now+')','in');
+    localStorage.setItem('s5_gdrive_lastSync',new Date().toISOString());
+  }catch(e){
+    if(e.message.includes('401')){
+      _gtoken=null;localStorage.removeItem('s5_gdrive_token');
+      _gdriveUpdateUI();
+      toast('認証が切れました。再接続してください','er');
+    }else{
+      toast('Drive保存エラー: '+e.message,'er');
+    }
+  }
+}
+
+// 読込
+async function gdriveLoad(){
+  if(!_gtoken){toast('Google Driveに接続してください','er');return;}
+  toast('Google Driveから読み込み中...','in');
+  try{
+    const file=await _gFindFile();
+    if(!file){toast('Driveにデータが見つかりません。先に保存してください','er');return;}
+    const b=await _gDownload(file.id);
+    D={
+      customers:b.customers||[],projects:b.projects||[],quotes:b.quotes||[],
+      schedules:b.schedules||[],staff:b.staff||[],
+      stockItems:b.stockItems||[],stockLogs:b.stockLogs||[],
+      bizCards:b.bizCards||[],teams:b.teams||[],timeShifts:b.timeShifts||{},reservations:b.reservations||[],nextId:b.nextId||200,cfg:b.cfg||{}
+    };
+    D.projects=D.projects.map(p=>({...p,cid:p.cid||p.customerId,sd:p.sd||p.startDate,ed:p.ed||p.endDate,imgs:p.imgs||p.images||[]}));
+    D.quotes=D.quotes.map(q=>({...q,cid:q.cid||q.customerId,qn:q.qn||q.quoteNo,cp:q.cp||q.contactPerson}));
+    D.schedules=D.schedules.map(s=>({...s,pid:s.pid||s.projectId,st:s.st||s.startTime,et:s.et||s.endTime}));
+    D.customers=D.customers.map(c=>({...c,cn:c.cn||c.custNo}));
+    _flush();buildPage();_bc();
+    toast('Google Driveからデータを読み込みました ✓','in');
+    localStorage.setItem('s5_gdrive_lastSync',new Date().toISOString());
+  }catch(e){
+    if(e.message.includes('401')){
+      _gtoken=null;localStorage.removeItem('s5_gdrive_token');
+      _gdriveUpdateUI();
+      toast('認証が切れました。再接続してください','er');
+    }else{
+      toast('Drive読込エラー: '+e.message,'er');
+    }
+  }
+}
+
+// 自動同期（save()から呼ばれる）
+function _gdriveAutoSync(){
+  if(!_gautoSync||!_gtoken) return;
+  clearTimeout(_gdriveAutoSync._t);
+  _gdriveAutoSync._t=setTimeout(()=>gdriveSave().catch(()=>{}),5000);
+}
+
 // ============================================================
 // ALERTS
 // ============================================================
@@ -3232,10 +4084,11 @@ function _del(type,id){
   else if(type==='quote'){D.quotes=D.quotes.filter(q=>q.id!==id);toast('見積を削除しました');}
   else if(type==='schedule'){D.schedules=D.schedules.filter(s=>s.id!==id);toast('スケジュールを削除しました');}
   else if(type==='bizcard'){D.bizCards=(D.bizCards||[]).filter(b=>b.id!==id);toast('名刺を削除しました');}
+  else if(type==='team'){D.teams=(D.teams||[]).filter(t=>t.id!==id);toast('チームを削除しました');}
   save();_flush();buildPage();
 }
 function delCon(type,id){
-  const lbl={customer:'顧客',project:'案件',quote:'見積',schedule:'スケジュール',bizcard:'名刺'};
+  const lbl={customer:'顧客',project:'案件',quote:'見積',schedule:'スケジュール',bizcard:'名刺',team:'チーム'};
   const ov=document.createElement('div');ov.className='cov';ov.id='cov';
   ov.innerHTML=`<div class="cb"><div style="font-size:34px;margin-bottom:9px">⚠️</div><div style="font-size:15px;font-weight:700;margin-bottom:6px">${lbl[type]}を削除しますか？</div><div style="font-size:13px;color:var(--text2);margin-bottom:18px">この操作は取り消せません。</div><div style="display:flex;gap:7px;justify-content:center"><button class="btn bs" onclick="document.getElementById('cov').remove()">キャンセル</button><button class="btn bd" onclick="_del('${type}',${id})">削除する</button></div></div>`;
   document.body.appendChild(ov);
@@ -3313,6 +4166,40 @@ function _calDragStart(ev,id){
   _calDragging=id;
   ev.dataTransfer.effectAllowed='move';
   ev.dataTransfer.setData('text/plain',String(id));
+}
+
+function _calDropDay(ev,container){
+  ev.preventDefault();ev.stopPropagation();
+  const ds=container.dataset.ds;if(!ds)return;
+  const id=parseInt(ev.dataTransfer.getData('text/plain')||_calDragging);
+  if(!id)return;
+  const s=D.schedules.find(function(s){return s.id===id;});if(!s)return;
+  const SH2=window.innerWidth<=768?40:SH;
+  const rect=container.getBoundingClientRect();
+  const scrollY=container.scrollTop||0;
+  const relY=Math.max(0,ev.clientY-rect.top+scrollY);
+  const totalMin=Math.round(relY/SH2*60/15)*15;
+  const dropH=Math.floor(totalMin/60);
+  const dropMm=totalMin%60;
+  const p=function(t){var a=(t||'0:00').split(':');return parseInt(a[0])*60+(parseInt(a[1])||0);};
+  const dur=Math.max(30,p(s.et)-p(s.st));
+  const em=dropH*60+dropMm+dur;
+  s.date=ds;
+  s.st=dropH+':'+String(dropMm).padStart(2,'0');
+  s.et=Math.floor(em/60)+':'+String(em%60).padStart(2,'0');
+  _calDragging=null;save();_flush();
+  toast('移動しました ✅');buildPage();
+}
+
+function _calDropMonth(ev,cell){
+  ev.preventDefault();ev.stopPropagation();
+  const ds=cell.dataset.ds;if(!ds)return;
+  const id=parseInt(ev.dataTransfer.getData('text/plain')||_calDragging);
+  if(!id)return;
+  const s=D.schedules.find(function(s){return s.id===id;});if(!s)return;
+  s.date=ds;
+  _calDragging=null;save();_flush();
+  toast('移動しました ✅');buildPage();
 }
 
 function _calDrop(ev,cell){
@@ -3418,6 +4305,11 @@ seed();
 (function applyCfg(){if(!D||!D.cfg)return;const c=D.cfg;if(c.accentColor&&document.documentElement)document.documentElement.style.setProperty('--accent',c.accentColor);})();
 nav('dashboard');
 setTimeout(_checkAlerts,1000);
+// Google Drive 接続状態復元
+(function(){
+  const t=localStorage.getItem('s5_gdrive_token');
+  if(t){_gtoken=t;_gautoSync=localStorage.getItem('s5_gdrive_auto')==='1';_gdriveUpdateUI();}
+})();
 </script>
 
 </body>
