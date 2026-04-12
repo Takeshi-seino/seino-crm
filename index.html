@@ -447,7 +447,10 @@ function seed(){
   ];
 
   D.projects=[
-    {id:10,cid:1,title:'オフィスビル電気設備更新工事',status:'進行中',phase:'施工中',amount:3500000,sd:'2026-03-01',ed:'2026-04-30',memo:'B1F〜5F全フロア 田中建設本社ビル',created:'2026-01-20',imgs:[],staffIds:[30,31,40]},
+    {id:10,cid:1,title:'オフィスビル電気設備更新工事',status:'進行中',phase:'施工中',amount:3500000,sd:'2026-03-01',ed:'2026-04-30',memo:'B1F〜5F全フロア 田中建設本社ビル',created:'2026-01-20',imgs:[],staffIds:[30,31,40],workRecords:[
+      {id:901,title:'B1F分電盤交換',date:'2026-03-15',description:'B1F既設分電盤を撤去し、新規分電盤（主幹100A/20回路）を設置。\n既存配線の絶縁抵抗測定を実施し、問題なしを確認。',beforeImgs:[],afterImgs:[],equipRefs:[],materials:'分電盤 主幹100A 20回路 1面\nVVFケーブル 2.0mm 2芯 30m\nブレーカー 20A 12個'},
+      {id:902,title:'3F LED照明交換',date:'2026-03-22',description:'3Fフロア全域の蛍光灯をLED照明に交換。\n既設安定器を撤去し、直結配線に変更。',beforeImgs:[],afterImgs:[],equipRefs:[],materials:'LED照明器具 LDA10D-G 24台\n配線ダクト 2m 6本'}
+    ]},
     {id:11,cid:2,title:'住宅分電盤交換工事',status:'完了',phase:'完了',amount:85000,sd:'2026-01-10',ed:'2026-01-10',memo:'古い分電盤→パナBQR8620に交換完了',created:'2026-01-05',imgs:[],staffIds:[30]},
     {id:12,cid:3,title:'倉庫LED照明全面切替',status:'見積中',phase:'見積提出',amount:780000,sd:'2026-03-15',ed:'2026-05-31',memo:'補助金申請検討 約200灯',created:'2026-02-20',imgs:[],staffIds:[30,33]},
     {id:13,cid:4,title:'マンション共用部LED化工事',status:'進行中',phase:'施工中',amount:1200000,sd:'2026-03-20',ed:'2026-04-15',memo:'ミライ不動産管理物件 全3棟',created:'2026-03-01',imgs:[],staffIds:[31,33]},
@@ -885,7 +888,7 @@ function swDTab(t){
 }
 function dtProjs(pjs){
   if(!pjs.length)return`<div class="emp"><div style="font-size:30px">📭</div><div>案件がありません</div></div>`;
-  return`<div class="tw"><table><thead><tr><th>案件名</th><th>金額</th><th>フェーズ</th><th>期間</th><th></th></tr></thead><tbody>${pjs.map(p=>`<tr><td style="font-weight:600">${p.title}</td><td class="amt">${fmt(p.amount)}</td><td>${bdg(p.phase)}</td><td style="font-size:11px;color:var(--text3)">${fmtD(p.sd)}〜${fmtD(p.ed)}</td><td><button class="btn bs bsm" onclick="showProjMo(${p.id})">✏️</button> <button class="btn bb bsm" onclick="showImgMo(${p.id})">🖼</button></td></tr>`).join('')}</tbody></table></div>`;
+  return`<div class="tw"><table><thead><tr><th>案件名</th><th>金額</th><th>フェーズ</th><th>期間</th><th></th></tr></thead><tbody>${pjs.map(p=>`<tr><td style="font-weight:600">${p.title}</td><td class="amt">${fmt(p.amount)}</td><td>${bdg(p.phase)}</td><td style="font-size:11px;color:var(--text3)">${fmtD(p.sd)}〜${fmtD(p.ed)}</td><td><button class="btn bs bsm" onclick="showProjMo(${p.id})">✏️</button> <button class="btn bb bsm" onclick="showImgMo(${p.id})">🖼</button> <button class="btn bg bsm" onclick="showWorkRecordList(${p.id})">📋</button></td></tr>`).join('')}</tbody></table></div>`;
 }
 function dtQuots(qts){
   if(!qts.length)return`<div class="emp"><div style="font-size:30px">📋</div><div>見積がありません</div></div>`;
@@ -908,9 +911,10 @@ function pgProjs(){
       ${p.imgs?.length?`<div class="ig" style="grid-template-columns:repeat(3,1fr);margin-bottom:6px">${p.imgs.slice(0,3).map(img=>`<div class="ith"><img src="${img.data}" alt=""></div>`).join('')}${p.imgs.length>3?`<div style="background:var(--bg3);border-radius:6px;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--text3)">+${p.imgs.length-3}</div>`:''}</div>`:''}
       <div style="display:flex;justify-content:space-between;align-items:center;margin-top:5px"><div style="font-size:11px;color:var(--text3)">${fmtD(p.sd)}〜${fmtD(p.ed)}</div><div class="amt" style="font-size:13px">${fmt(p.amount)}</div></div>
       <div style="display:flex;gap:4px;margin-top:8px">
-        <button class="btn bs bsm" onclick="showProjMo(${p.id})">✏️</button>
-        <button class="btn bb bsm" onclick="showImgMo(${p.id})">🖼</button>
-        <button class="btn bd bsm" onclick="delCon('project',${p.id})">🗑</button>
+        <button class="btn bs bsm" onclick="event.stopPropagation();showProjMo(${p.id})">✏️</button>
+        <button class="btn bb bsm" onclick="event.stopPropagation();showImgMo(${p.id})">🖼</button>
+        <button class="btn bg bsm" onclick="event.stopPropagation();showWorkRecordMo(${p.id},-1)">📸 施工</button>${(p.workRecords&&p.workRecords.length)?`<span style="font-size:10px;color:var(--accent);align-self:center">記録${p.workRecords.length}件</span>`:''}
+        <button class="btn bd bsm" onclick="event.stopPropagation();delCon('project',${p.id})">🗑</button>
       </div>
     </div>`).join(''):`<div class="emp" style="grid-column:1/-1"><div style="font-size:36px">📭</div><div>案件がありません</div></div>`}
   </div>
@@ -3746,6 +3750,320 @@ function showAllAlerts(){
 // ============================================================
 // PRINT PROJECT SHEET
 // ============================================================
+// ============================================================
+// WORK RECORDS (施工内容)
+// ============================================================
+function wrListInDetail(p){
+  if(!p.workRecords||!p.workRecords.length) return '<div style="color:var(--text3);font-size:11px;padding:4px 0">施工内容の記録はまだありません</div>';
+  return p.workRecords.map(function(wr,i){
+    var beforeCount=(wr.beforeImgs||[]).length;
+    var afterCount=(wr.afterImgs||[]).length;
+    return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">'+
+      '<div style="flex:1">'+
+        '<div style="font-size:12px;font-weight:600">'+esc(wr.title||'施工記録')+'</div>'+
+        '<div style="font-size:10px;color:var(--text3)">'+esc(wr.date||'')+(beforeCount||afterCount?' · 写真 施工前'+beforeCount+'枚 / 施工後'+afterCount+'枚':'')+'</div>'+
+      '</div>'+
+      '<button class="btn bs bsm" onclick="showWorkRecordMo('+p.id+','+i+')">✏️</button>'+
+      '<button class="btn bg bsm" onclick="printWorkReport('+p.id+','+i+')">🖨</button>'+
+    '</div>';
+  }).join('');
+}
+
+function showWorkRecordMo(pid,wrIdx){
+  var p=D.projects.find(function(pr){return pr.id===pid;});if(!p)return;
+  if(!p.workRecords) p.workRecords=[];
+  var wr=wrIdx>=0?p.workRecords[wrIdx]:null;
+  var isNew=!wr;
+  if(isNew) wr={title:'',date:today(),description:'',beforeImgs:[],afterImgs:[],equipRefs:[],materials:''};
+
+  // 顧客の保有機器リストを取得
+  var cust=p.cid?D.customers.find(function(c){return c.id===p.cid;}):null;
+  var equipList=(cust&&cust.equipment)?cust.equipment:[];
+  var equipCheckboxes=equipList.length?equipList.map(function(eq,ei){
+    var checked=(wr.equipRefs||[]).some(function(r){return r.idx===ei;});
+    return '<label style="display:flex;align-items:center;gap:4px;padding:3px 8px;background:var(--bg3);border-radius:4px;font-size:11px;cursor:pointer">'+
+      '<input type="checkbox" class="wr-eq-cb" value="'+ei+'" '+(checked?'checked':'')+' style="accent-color:var(--accent)">'+
+      esc(eq.name||'')+(eq.model?' <span style="color:var(--text3);font-size:10px">'+esc(eq.model)+'</span>':'')+
+    '</label>';
+  }).join(''):'<span style="font-size:11px;color:var(--text3)">顧客の保有機器が未登録です</span>';
+
+  // 施工前写真
+  var beforeGrid=(wr.beforeImgs||[]).length?
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">'+
+    (wr.beforeImgs||[]).map(function(img,i){
+      return '<div style="position:relative;width:70px;height:70px;border-radius:5px;overflow:hidden;border:1px solid var(--border)">'+
+        '<img src="'+img.data+'" style="width:100%;height:100%;object-fit:cover">'+
+        '<div onclick="wrDelImg('+pid+','+wrIdx+',\'before\','+i+')" style="position:absolute;top:2px;right:2px;width:16px;height:16px;background:rgba(184,64,64,.9);border-radius:50%;color:#fff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</div>'+
+      '</div>';
+    }).join('')+'</div>':'';
+
+  // 施工後写真
+  var afterGrid=(wr.afterImgs||[]).length?
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px">'+
+    (wr.afterImgs||[]).map(function(img,i){
+      return '<div style="position:relative;width:70px;height:70px;border-radius:5px;overflow:hidden;border:1px solid var(--border)">'+
+        '<img src="'+img.data+'" style="width:100%;height:100%;object-fit:cover">'+
+        '<div onclick="wrDelImg('+pid+','+wrIdx+',\'after\','+i+')" style="position:absolute;top:2px;right:2px;width:16px;height:16px;background:rgba(184,64,64,.9);border-radius:50%;color:#fff;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</div>'+
+      '</div>';
+    }).join('')+'</div>':'';
+
+  mo('<div class="mt">'+(isNew?'施工内容を追加':'施工内容を編集')+' — '+esc(p.title)+'</div>'+
+    '<div class="fg">'+
+      '<div class="fr"><label class="fl">タイトル *</label><input id="wr-title" value="'+esc(wr.title||'')+'" placeholder="例: LED交換工事"></div>'+
+      '<div class="fr"><label class="fl">施工日</label><input type="date" id="wr-date" value="'+(wr.date||today())+'"></div>'+
+    '</div>'+
+    '<div class="fr"><label class="fl">施工内容（説明）</label><textarea id="wr-desc" rows="3" placeholder="作業内容を記入...">'+esc(wr.description||'')+'</textarea></div>'+
+
+    // 施工前写真
+    '<div class="fr">'+
+      '<label class="fl">📸 施工前写真</label>'+
+      beforeGrid+
+      '<div style="margin-top:6px"><input type="file" id="wr-before-in" accept="image/*" multiple style="display:none" onchange="wrUploadImg('+pid+','+wrIdx+',\'before\',this)">'+
+      '<button class="btn bs bsm" onclick="document.getElementById(\'wr-before-in\').click()">＋ 施工前写真を追加</button></div>'+
+    '</div>'+
+
+    // 施工後写真
+    '<div class="fr">'+
+      '<label class="fl">📸 施工後写真</label>'+
+      afterGrid+
+      '<div style="margin-top:6px"><input type="file" id="wr-after-in" accept="image/*" multiple style="display:none" onchange="wrUploadImg('+pid+','+wrIdx+',\'after\',this)">'+
+      '<button class="btn bs bsm" onclick="document.getElementById(\'wr-after-in\').click()">＋ 施工後写真を追加</button></div>'+
+    '</div>'+
+
+    // 使用機器（保有から選択）
+    '<div class="fr">'+
+      '<label class="fl">🔧 対象機器（顧客の保有機器から選択）</label>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:6px;max-height:80px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:6px">'+equipCheckboxes+'</div>'+
+    '</div>'+
+
+    // 使用材料
+    '<div class="fr"><label class="fl">🔩 使用材料・型番</label><textarea id="wr-mat" rows="2" placeholder="VVFケーブル 2.0mm 2芯 50m&#10;LED照明 LDA10D 5個">'+esc(wr.materials||'')+'</textarea></div>'+
+
+    '<div class="mf">'+
+      (isNew?'':'<button class="btn bd" onclick="delWorkRecord('+pid+','+wrIdx+')">🗑 削除</button>')+
+      '<button class="btn bs" onclick="cmo()">キャンセル</button>'+
+      '<button class="btn bg bsm" onclick="printWorkReport('+pid+','+(isNew?-1:wrIdx)+')">🖨 印刷</button>'+
+      '<button class="btn bp" onclick="saveWorkRecord('+pid+','+(isNew?-1:wrIdx)+')">💾 保存</button>'+
+    '</div>',true);
+}
+
+function saveWorkRecord(pid,wrIdx){
+  var p=D.projects.find(function(pr){return pr.id===pid;});if(!p)return;
+  if(!p.workRecords) p.workRecords=[];
+  var title=document.getElementById('wr-title').value.trim();
+  if(!title){toast('タイトルを入力してください','er');return;}
+
+  var equipRefs=[].slice.call(document.querySelectorAll('.wr-eq-cb:checked')).map(function(cb){
+    return {idx:parseInt(cb.value)};
+  });
+
+  var obj={
+    title:title,
+    date:document.getElementById('wr-date').value||today(),
+    description:document.getElementById('wr-desc').value.trim(),
+    equipRefs:equipRefs,
+    materials:document.getElementById('wr-mat').value.trim()
+  };
+
+  if(wrIdx>=0&&p.workRecords[wrIdx]){
+    // 既存の写真データを保持
+    obj.beforeImgs=p.workRecords[wrIdx].beforeImgs||[];
+    obj.afterImgs=p.workRecords[wrIdx].afterImgs||[];
+    obj.id=p.workRecords[wrIdx].id;
+    p.workRecords[wrIdx]=obj;
+    toast('施工内容を更新しました ✅');
+  } else {
+    obj.beforeImgs=[];
+    obj.afterImgs=[];
+    obj.id=nid();
+    p.workRecords.push(obj);
+    toast('施工内容を登録しました ✅');
+  }
+  save();_flush();cmo();buildPage();
+}
+
+function delWorkRecord(pid,wrIdx){
+  var p=D.projects.find(function(pr){return pr.id===pid;});if(!p||!p.workRecords)return;
+  p.workRecords.splice(wrIdx,1);
+  save();_flush();cmo();toast('施工内容を削除しました');buildPage();
+}
+
+function wrUploadImg(pid,wrIdx,phase,inp){
+  var p=D.projects.find(function(pr){return pr.id===pid;});if(!p)return;
+  if(!p.workRecords) p.workRecords=[];
+  // 新規の場合、まず仮保存する
+  if(wrIdx<0){
+    var title=document.getElementById('wr-title').value.trim()||'施工記録';
+    var obj={
+      id:nid(),title:title,date:document.getElementById('wr-date').value||today(),
+      description:document.getElementById('wr-desc').value.trim(),
+      beforeImgs:[],afterImgs:[],equipRefs:[],
+      materials:document.getElementById('wr-mat').value.trim()
+    };
+    p.workRecords.push(obj);
+    wrIdx=p.workRecords.length-1;
+    save();
+  }
+  var wr=p.workRecords[wrIdx];if(!wr)return;
+  var key=phase==='before'?'beforeImgs':'afterImgs';
+  if(!wr[key])wr[key]=[];
+  var files=Array.from(inp.files);if(!files.length)return;
+  var done=0;
+  files.forEach(function(f){
+    if(f.size>5*1024*1024){toast(f.name+'は5MB超のためスキップ','er');done++;return;}
+    var r=new FileReader();
+    r.onload=function(e){
+      wr[key].push({data:e.target.result,name:f.name,added:today()});
+      done++;
+      if(done===files.length){
+        save();cmo();
+        showWorkRecordMo(pid,wrIdx);
+        toast(files.length+'枚追加しました ✅');
+      }
+    };
+    r.readAsDataURL(f);
+  });
+}
+
+function wrDelImg(pid,wrIdx,phase,imgIdx){
+  var p=D.projects.find(function(pr){return pr.id===pid;});if(!p||!p.workRecords)return;
+  var wr=p.workRecords[wrIdx];if(!wr)return;
+  var key=phase==='before'?'beforeImgs':'afterImgs';
+  if(wr[key])wr[key].splice(imgIdx,1);
+  save();cmo();showWorkRecordMo(pid,wrIdx);
+  toast('写真を削除しました');
+}
+
+function printWorkReport(pid,wrIdx){
+  var p=D.projects.find(function(pr){return pr.id===pid;});if(!p)return;
+  var wr;
+  if(wrIdx>=0&&p.workRecords&&p.workRecords[wrIdx]){
+    wr=p.workRecords[wrIdx];
+  } else {
+    // モーダルから直接印刷（未保存状態）
+    wr={
+      title:document.getElementById('wr-title')?document.getElementById('wr-title').value.trim():'',
+      date:document.getElementById('wr-date')?document.getElementById('wr-date').value:'',
+      description:document.getElementById('wr-desc')?document.getElementById('wr-desc').value.trim():'',
+      materials:document.getElementById('wr-mat')?document.getElementById('wr-mat').value.trim():'',
+      beforeImgs:[],afterImgs:[],equipRefs:[]
+    };
+  }
+  var cust=p.cid?D.customers.find(function(c){return c.id===p.cid;}):null;
+  var cfg=D.cfg||{};
+  var now=new Date();
+  var dateStr=now.getFullYear()+'年'+(now.getMonth()+1)+'月'+now.getDate()+'日';
+  var logoHtml=cfg.logoData?'<img src="'+cfg.logoData+'" style="max-height:40px;max-width:80px;object-fit:contain;margin-right:8px">':'';
+
+  // 対象機器の情報
+  var equipInfo='';
+  if(wr.equipRefs&&wr.equipRefs.length&&cust&&cust.equipment){
+    equipInfo=wr.equipRefs.map(function(ref){
+      var eq=cust.equipment[ref.idx];
+      if(!eq)return '';
+      return '<tr><td style="padding:4px 8px;font-weight:600">'+esc(eq.name||'')+'</td>'+
+        '<td style="padding:4px 8px;color:#666">'+esc(eq.maker||'')+'</td>'+
+        '<td style="padding:4px 8px;color:#666">'+esc(eq.model||'')+'</td>'+
+        '<td style="padding:4px 8px;color:#666;font-size:9pt">'+esc(eq.location||'')+'</td></tr>';
+    }).filter(Boolean).join('');
+  }
+
+  // 施工前写真
+  var beforeHtml=(wr.beforeImgs||[]).length?
+    (wr.beforeImgs||[]).map(function(img){
+      return '<img src="'+img.data+'" style="width:180px;height:135px;object-fit:cover;border-radius:4px;border:1px solid #ddd">';
+    }).join(''):'<span style="color:#999;font-size:9pt">なし</span>';
+
+  // 施工後写真
+  var afterHtml=(wr.afterImgs||[]).length?
+    (wr.afterImgs||[]).map(function(img){
+      return '<img src="'+img.data+'" style="width:180px;height:135px;object-fit:cover;border-radius:4px;border:1px solid #ddd">';
+    }).join(''):'<span style="color:#999;font-size:9pt">なし</span>';
+
+  var html='<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">'+
+    '<style>'+
+    '@page{size:A4 portrait;margin:10mm 12mm}'+
+    '*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+
+    'body{font-family:"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;color:#222;font-size:10pt;line-height:1.6}'+
+    'h2{font-size:11pt;font-weight:700;background:#4a7c5f;color:#fff;padding:4px 8px;margin-bottom:0}'+
+    'table{width:100%;border-collapse:collapse;font-size:9.5pt}'+
+    'th{background:#e8e8e8;padding:4px 6px;text-align:left;font-size:9pt;border-bottom:1px solid #ccc}'+
+    '.section{margin-bottom:10px;border:1px solid #ddd;border-radius:3px;overflow:hidden}'+
+    '.photo-grid{display:flex;gap:8px;flex-wrap:wrap;padding:8px}'+
+    '@media print{.no-print{display:none!important}}'+
+    '</style></head><body>'+
+
+    // ヘッダー
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #4a7c5f;padding-bottom:8px;margin-bottom:12px">'+
+      '<div style="flex:1">'+
+        '<div style="font-size:8pt;color:#888;margin-bottom:2px">完了報告書 / 発行日: '+dateStr+'</div>'+
+        '<div style="font-size:16pt;font-weight:900;color:#222;line-height:1.2">'+esc(wr.title||'施工記録')+'</div>'+
+        '<div style="margin-top:4px;display:flex;gap:12px;font-size:9.5pt;color:#444">'+
+          '<span>案件: '+esc(p.title)+'</span>'+
+          (cust?'<span>顧客: '+esc(cust.name)+'</span>':'')+
+          '<span>施工日: '+esc(wr.date||'')+'</span>'+
+        '</div>'+
+      '</div>'+
+      '<div style="text-align:right;flex-shrink:0;padding-left:12px">'+
+        logoHtml+
+        '<div style="font-size:11pt;font-weight:700">'+esc(cfg.companyName||'セイノデンキ')+'</div>'+
+        '<div style="font-size:8.5pt;color:#666">'+esc(cfg.tel||'')+'</div>'+
+      '</div>'+
+    '</div>'+
+
+    // 施工内容
+    '<div class="section">'+
+      '<h2>施工内容</h2>'+
+      '<div style="padding:8px;font-size:10pt;white-space:pre-wrap">'+esc(wr.description||'記載なし')+'</div>'+
+    '</div>'+
+
+    // 対象機器
+    (equipInfo?
+    '<div class="section">'+
+      '<h2>対象機器</h2>'+
+      '<table><thead><tr><th>機器名</th><th>メーカー</th><th>型番</th><th>設置場所</th></tr></thead>'+
+      '<tbody>'+equipInfo+'</tbody></table>'+
+    '</div>':'')+
+
+    // 使用材料
+    (wr.materials?
+    '<div class="section">'+
+      '<h2>使用材料・型番</h2>'+
+      '<div style="padding:8px;font-size:9.5pt;white-space:pre-wrap">'+esc(wr.materials)+'</div>'+
+    '</div>':'')+
+
+    // 施工前写真
+    '<div class="section">'+
+      '<h2>施工前</h2>'+
+      '<div class="photo-grid">'+beforeHtml+'</div>'+
+    '</div>'+
+
+    // 施工後写真
+    '<div class="section">'+
+      '<h2>施工後</h2>'+
+      '<div class="photo-grid">'+afterHtml+'</div>'+
+    '</div>'+
+
+    // 署名欄
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:14px">'+
+      ['確認','担当','顧客'].map(function(l){
+        return '<div style="border:1px solid #ccc;border-radius:3px;padding:6px;min-height:50px;font-size:9pt;color:#888">'+l+'</div>';
+      }).join('')+
+    '</div>'+
+
+    '<div class="no-print" style="margin-top:12px">'+
+    '<button onclick="window.print()" style="padding:8px 20px;background:#4a7c5f;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11pt">🖨 印刷する</button>'+
+    '<button onclick="window.close()" style="background:#e74c3c;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11pt;margin-left:8px;padding:8px 16px">✕ 閉じる</button>'+
+    '</div>'+
+    '</body></html>';
+
+  var blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var pw=window.open(url,'_blank');
+  if(!pw){var a=document.createElement('a');a.href=url;a.target='_blank';a.click();}
+  setTimeout(function(){URL.revokeObjectURL(url);},60000);
+}
+
 function printProjSheet(id){
   const p=D.projects.find(p=>p.id===id);if(!p)return;
   const cust=p.cid?D.customers.find(c=>c.id===p.cid):null;
@@ -3954,12 +4272,379 @@ function showProjDetail(id){
       '<div><div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px">材料・部材</div>'+mtHtml+'</div>'+
     '</div>'+
     (p.memo?'<div style="padding:8px;background:var(--bg3);border-radius:6px;font-size:12px;margin-bottom:12px;white-space:pre-wrap">'+esc(p.memo)+'</div>':'')+
+    '<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:6px">📸 施工内容</div>'+wrListInDetail(p)+'</div>'+
     '<div class="mf">'+
       '<button class="btn bs" onclick="cmo()">閉じる</button>'+
-      '<button class="btn bg bsm" onclick="printProjSheet('+id+')">印刷</button>'+
+      '<button class="btn bg bsm" onclick="printProjSheet('+id+')">指示書</button>'+
+      '<button class="btn bb bsm" onclick="showWorkRecordMo('+id+',-1)">＋ 施工内容</button>'+
       '<button class="btn bp" onclick="cmo();showProjMo('+id+')" style="margin-left:auto">編集</button>'+
     '</div>';
   mo(html,true);
+}
+
+// ============================================================
+// 施工内容（WORK RECORDS）
+// ============================================================
+function showWorkRecordList(projId){
+  const p=D.projects.find(p=>p.id===projId);if(!p)return;
+  if(!p.workRecords)p.workRecords=[];
+  const cust=p.cid?D.customers.find(c=>c.id===p.cid):null;
+  const records=p.workRecords;
+  const listHtml=records.length?records.map(function(r,i){
+    const thumbs=[];
+    if(r.beforePhotos&&r.beforePhotos.length) thumbs.push('<img src="'+r.beforePhotos[0].data+'" style="width:40px;height:40px;object-fit:cover;border-radius:4px;border:2px solid var(--blue)">');
+    if(r.afterPhotos&&r.afterPhotos.length) thumbs.push('<img src="'+r.afterPhotos[0].data+'" style="width:40px;height:40px;object-fit:cover;border-radius:4px;border:2px solid var(--green)">');
+    return '<div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);align-items:center">'+
+      '<div style="display:flex;gap:4px">'+thumbs.join('')+'</div>'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(r.title||'施工記録 '+(i+1))+'</div>'+
+        '<div style="font-size:11px;color:var(--text3)">'+esc(r.date||'')+(r.modelNumbers&&r.modelNumbers.length?' · 型番'+r.modelNumbers.length+'件':'')+'</div>'+
+        (r.description?'<div style="font-size:11px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px">'+esc(r.description.slice(0,60))+'</div>':'')+
+      '</div>'+
+      '<div style="display:flex;gap:4px;flex-shrink:0">'+
+        '<button class="btn bs bsm" onclick="showWorkRecordMo('+projId+','+i+')">✏️</button>'+
+        '<button class="btn bg bsm" onclick="printWorkRecord('+projId+','+i+')">🖨️</button>'+
+        '<button class="btn bd bsm" onclick="deleteWorkRecord('+projId+','+i+')">🗑</button>'+
+      '</div>'+
+    '</div>';
+  }).join(''):'<div style="text-align:center;padding:24px;color:var(--text3)">📋 施工内容がまだ登録されていません</div>';
+
+  mo('<div class="mt">📋 施工内容 — '+esc(p.title)+'</div>'+
+    (cust?'<div style="font-size:11px;color:var(--text2);margin-bottom:10px">顧客: '+esc(cust.name)+' ('+esc(cust.cn||'')+')</div>':'')+
+    '<div style="max-height:400px;overflow-y:auto">'+listHtml+'</div>'+
+    '<div class="mf">'+
+      '<button class="btn bs" onclick="cmo()">閉じる</button>'+
+      '<button class="btn bp" onclick="showWorkRecordMo('+projId+',-1)">＋ 施工内容を追加</button>'+
+    '</div>',true);
+}
+
+function showWorkRecordMo(projId,idx){
+  const p=D.projects.find(p=>p.id===projId);if(!p)return;
+  if(!p.workRecords)p.workRecords=[];
+  const r=(idx>=0&&idx<p.workRecords.length)?p.workRecords[idx]:null;
+  const cust=p.cid?D.customers.find(c=>c.id===p.cid):null;
+  const equipList=(cust&&cust.equipment)?cust.equipment:[];
+
+  // 施工前写真グリッド
+  const beforeGrid=(r&&r.beforePhotos&&r.beforePhotos.length)?
+    '<div class="ig" style="grid-template-columns:repeat(4,1fr);margin-top:6px" id="wr-before-grid">'+
+    r.beforePhotos.map(function(ph,pi){
+      return '<div class="ith"><img src="'+ph.data+'" alt=""><button class="idl" onclick="event.stopPropagation();_wrDelPhoto('+projId+','+idx+',\'before\','+pi+')" style="display:flex">×</button></div>';
+    }).join('')+'</div>':
+    '<div id="wr-before-grid" style="font-size:11px;color:var(--text3);margin-top:4px">写真なし</div>';
+
+  // 施工後写真グリッド
+  const afterGrid=(r&&r.afterPhotos&&r.afterPhotos.length)?
+    '<div class="ig" style="grid-template-columns:repeat(4,1fr);margin-top:6px" id="wr-after-grid">'+
+    r.afterPhotos.map(function(ph,pi){
+      return '<div class="ith"><img src="'+ph.data+'" alt=""><button class="idl" onclick="event.stopPropagation();_wrDelPhoto('+projId+','+idx+',\'after\','+pi+')" style="display:flex">×</button></div>';
+    }).join('')+'</div>':
+    '<div id="wr-after-grid" style="font-size:11px;color:var(--text3);margin-top:4px">写真なし</div>';
+
+  // 型番リスト
+  const modelHtml=(r&&r.modelNumbers&&r.modelNumbers.length)?
+    r.modelNumbers.map(function(m,mi){
+      return '<div style="display:flex;gap:4px;margin-bottom:4px" class="wr-model-row">'+
+        '<input value="'+esc(m.name||'')+'" placeholder="型番・品名" style="flex:1;font-size:12px" class="wr-mn">'+
+        '<input value="'+esc(m.spec||'')+'" placeholder="仕様" style="width:100px;font-size:12px" class="wr-ms">'+
+        '<button class="btn bd bsm" onclick="this.parentElement.remove()">×</button>'+
+      '</div>';
+    }).join(''):'';
+
+  // 保有機器チェックボックス
+  const equipCb=equipList.length?
+    '<div style="margin-top:6px;max-height:80px;overflow-y:auto;border:1px solid var(--border);border-radius:6px;padding:6px">'+
+    equipList.map(function(eq,ei){
+      const checked=(r&&r.equipmentIds&&r.equipmentIds.includes(ei))?'checked':'';
+      return '<label style="display:flex;align-items:center;gap:5px;font-size:11px;padding:2px 0;cursor:pointer"><input type="checkbox" class="wr-eq-cb" value="'+ei+'" '+checked+' style="accent-color:var(--accent)">'+esc(eq.name||'')+(eq.model?' ('+esc(eq.model)+')':'')+'</label>';
+    }).join('')+'</div>':'<div style="font-size:11px;color:var(--text3);margin-top:4px">顧客に保有機器が登録されていません</div>';
+
+  mo('<div class="mt">'+(r?'施工内容を編集':'施工内容を追加')+' — '+esc(p.title)+'</div>'+
+    '<div class="fg">'+
+      '<div class="fr" style="grid-column:1/-1"><label class="fl">タイトル</label><input id="wr-title" value="'+esc(r?r.title:'')+'" placeholder="例: LED照明交換工事"></div>'+
+      '<div class="fr"><label class="fl">施工日</label><input type="date" id="wr-date" value="'+(r?r.date||'':today())+'"></div>'+
+      '<div class="fr"><label class="fl">担当者</label><input id="wr-worker" value="'+esc(r?r.worker||'':'')+'" placeholder="担当者名"></div>'+
+    '</div>'+
+
+    // 施工前写真
+    '<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center">'+
+        '<div style="font-size:12px;font-weight:700;color:var(--blue)">📷 施工前写真</div>'+
+        '<div><input type="file" id="wr-before-in" accept="image/*" multiple style="display:none" onchange="_wrUpload('+projId+','+idx+',\'before\',this)"><button class="btn bb bsm" onclick="document.getElementById(\'wr-before-in\').click()">写真追加</button></div>'+
+      '</div>'+
+      beforeGrid+
+    '</div>'+
+
+    // 施工後写真
+    '<div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center">'+
+        '<div style="font-size:12px;font-weight:700;color:var(--green)">📷 施工後写真</div>'+
+        '<div><input type="file" id="wr-after-in" accept="image/*" multiple style="display:none" onchange="_wrUpload('+projId+','+idx+',\'after\',this)"><button class="btn bg bsm" onclick="document.getElementById(\'wr-after-in\').click()">写真追加</button></div>'+
+      '</div>'+
+      afterGrid+
+    '</div>'+
+
+    // 作業内容
+    '<div class="fr" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">'+
+      '<label class="fl">作業内容</label>'+
+      '<textarea id="wr-desc" rows="3" placeholder="施工内容の詳細を入力...">'+esc(r?r.description||'':'')+'</textarea>'+
+    '</div>'+
+
+    // 型番・品名
+    '<div style="margin-top:8px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">'+
+        '<label class="fl" style="margin:0">型番・使用機材</label>'+
+        '<button class="btn bs bsm" onclick="_wrAddModel()">＋ 追加</button>'+
+      '</div>'+
+      '<div id="wr-models">'+modelHtml+'</div>'+
+    '</div>'+
+
+    // 保有機器との紐付け
+    (equipList.length?
+      '<div style="margin-top:8px">'+
+        '<label class="fl">顧客の保有機器と紐付け</label>'+
+        equipCb+
+      '</div>':'')
+    +
+
+    // メモ
+    '<div class="fr" style="margin-top:8px">'+
+      '<label class="fl">メモ</label>'+
+      '<textarea id="wr-memo" rows="2" placeholder="補足・注意事項など">'+esc(r?r.memo||'':'')+'</textarea>'+
+    '</div>'+
+
+    '<div class="mf">'+
+      '<button class="btn bs" onclick="showWorkRecordList('+projId+')">← 戻る</button>'+
+      '<button class="btn bp" onclick="saveWorkRecord('+projId+','+idx+')">💾 保存</button>'+
+    '</div>',true);
+}
+
+function _wrAddModel(){
+  const box=document.getElementById('wr-models');if(!box)return;
+  const row=document.createElement('div');
+  row.style.cssText='display:flex;gap:4px;margin-bottom:4px';
+  row.className='wr-model-row';
+  row.innerHTML='<input placeholder="型番・品名" style="flex:1;font-size:12px" class="wr-mn">'+
+    '<input placeholder="仕様" style="width:100px;font-size:12px" class="wr-ms">'+
+    '<button class="btn bd bsm" onclick="this.parentElement.remove()">×</button>';
+  box.appendChild(row);
+}
+
+function _wrUpload(projId,idx,type,inp){
+  const files=Array.from(inp.files);if(!files.length)return;
+  const p=D.projects.find(p=>p.id===projId);if(!p)return;
+  if(!p.workRecords)p.workRecords=[];
+  // 新規作成中の場合、仮レコードを作る
+  if(idx<0||idx>=p.workRecords.length){
+    p.workRecords.push({title:'',date:today(),description:'',beforePhotos:[],afterPhotos:[],modelNumbers:[],equipmentIds:[],worker:'',memo:''});
+    idx=p.workRecords.length-1;
+  }
+  const r=p.workRecords[idx];
+  if(!r.beforePhotos)r.beforePhotos=[];
+  if(!r.afterPhotos)r.afterPhotos=[];
+  const arr=type==='before'?r.beforePhotos:r.afterPhotos;
+  let done=0;
+  files.forEach(function(f){
+    if(f.size>5*1024*1024){toast(f.name+'は5MB超のためスキップ','er');done++;return;}
+    const reader=new FileReader();
+    reader.onload=function(e){
+      arr.push({data:e.target.result,name:f.name,added:today()});
+      done++;
+      if(done===files.length){
+        save();
+        showWorkRecordMo(projId,idx);
+        toast(files.length+'枚追加しました ✅');
+      }
+    };
+    reader.readAsDataURL(f);
+  });
+}
+
+function _wrDelPhoto(projId,idx,type,photoIdx){
+  const p=D.projects.find(p=>p.id===projId);if(!p||!p.workRecords||!p.workRecords[idx])return;
+  const r=p.workRecords[idx];
+  const arr=type==='before'?r.beforePhotos:r.afterPhotos;
+  arr.splice(photoIdx,1);
+  save();
+  showWorkRecordMo(projId,idx);
+  toast('写真を削除しました');
+}
+
+function saveWorkRecord(projId,idx){
+  const p=D.projects.find(p=>p.id===projId);if(!p)return;
+  if(!p.workRecords)p.workRecords=[];
+
+  const title=document.getElementById('wr-title')?.value.trim()||'';
+  const date=document.getElementById('wr-date')?.value||today();
+  const worker=document.getElementById('wr-worker')?.value.trim()||'';
+  const description=document.getElementById('wr-desc')?.value.trim()||'';
+  const memo=document.getElementById('wr-memo')?.value.trim()||'';
+
+  // 型番収集
+  const modelNumbers=[];
+  document.querySelectorAll('.wr-model-row').forEach(function(row){
+    const mn=row.querySelector('.wr-mn')?.value.trim()||'';
+    const ms=row.querySelector('.wr-ms')?.value.trim()||'';
+    if(mn) modelNumbers.push({name:mn,spec:ms});
+  });
+
+  // 保有機器チェック
+  const equipmentIds=[];
+  document.querySelectorAll('.wr-eq-cb:checked').forEach(function(cb){
+    equipmentIds.push(parseInt(cb.value));
+  });
+
+  const isNew=(idx<0||idx>=p.workRecords.length);
+  if(isNew){
+    // 新規（写真アップロードで仮作成された場合はそれを更新）
+    if(idx>=0&&idx<p.workRecords.length){
+      // 既存を更新
+    }else{
+      p.workRecords.push({beforePhotos:[],afterPhotos:[]});
+      idx=p.workRecords.length-1;
+    }
+  }
+
+  const r=p.workRecords[idx];
+  r.title=title;
+  r.date=date;
+  r.worker=worker;
+  r.description=description;
+  r.memo=memo;
+  r.modelNumbers=modelNumbers;
+  r.equipmentIds=equipmentIds;
+  if(!r.beforePhotos)r.beforePhotos=[];
+  if(!r.afterPhotos)r.afterPhotos=[];
+
+  save();_flush();
+  toast('施工内容を保存しました ✅');
+  showWorkRecordList(projId);
+}
+
+function deleteWorkRecord(projId,idx){
+  const p=D.projects.find(p=>p.id===projId);
+  if(!p||!p.workRecords||!p.workRecords[idx])return;
+  if(!confirm('この施工内容を削除しますか？'))return;
+  p.workRecords.splice(idx,1);
+  save();_flush();
+  toast('施工内容を削除しました');
+  showWorkRecordList(projId);
+}
+
+function printWorkRecord(projId,idx){
+  const p=D.projects.find(p=>p.id===projId);
+  if(!p||!p.workRecords||!p.workRecords[idx])return;
+  const r=p.workRecords[idx];
+  const cust=p.cid?D.customers.find(c=>c.id===p.cid):null;
+  const cfg=D.cfg||{};
+  const logoHtml=cfg.logoData?'<img src="'+cfg.logoData+'" style="max-height:40px;max-width:80px;object-fit:contain;margin-right:8px">':'';
+
+  // 施工前写真
+  const beforeImgs=(r.beforePhotos||[]).map(function(ph){
+    return '<div style="width:140px;flex-shrink:0"><img src="'+ph.data+'" style="width:140px;height:105px;object-fit:cover;border-radius:4px;border:2px solid #3a60a0"><div style="font-size:8pt;color:#888;margin-top:2px">'+esc(ph.name||'')+'</div></div>';
+  }).join('')||'<div style="color:#999;font-size:9pt">なし</div>';
+
+  // 施工後写真
+  const afterImgs=(r.afterPhotos||[]).map(function(ph){
+    return '<div style="width:140px;flex-shrink:0"><img src="'+ph.data+'" style="width:140px;height:105px;object-fit:cover;border-radius:4px;border:2px solid #4a7860"><div style="font-size:8pt;color:#888;margin-top:2px">'+esc(ph.name||'')+'</div></div>';
+  }).join('')||'<div style="color:#999;font-size:9pt">なし</div>';
+
+  // 型番
+  const modelHtml=(r.modelNumbers||[]).length?
+    '<table style="width:100%;border-collapse:collapse;font-size:9.5pt"><thead><tr><th style="background:#e8e8e8;padding:4px 8px;text-align:left;border-bottom:1px solid #ccc">型番・品名</th><th style="background:#e8e8e8;padding:4px 8px;text-align:left;border-bottom:1px solid #ccc">仕様</th></tr></thead><tbody>'+
+    r.modelNumbers.map(function(m){return '<tr><td style="padding:4px 8px;border-bottom:1px solid #eee">'+esc(m.name)+'</td><td style="padding:4px 8px;border-bottom:1px solid #eee;color:#666">'+esc(m.spec||'')+'</td></tr>';}).join('')+
+    '</tbody></table>':'<div style="color:#999;font-size:9pt;padding:4px">なし</div>';
+
+  // 保有機器
+  const equipHtml=(r.equipmentIds||[]).length&&cust&&cust.equipment?
+    r.equipmentIds.map(function(ei){
+      const eq=cust.equipment[ei];
+      return eq?'<div style="padding:3px 0;font-size:9.5pt">'+esc(eq.name||'')+(eq.maker?' / '+esc(eq.maker):'')+(eq.model?' / '+esc(eq.model):'')+'</div>':'';
+    }).join(''):'';
+
+  const html='<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">'+
+    '<style>'+
+    '@page{size:A4 portrait;margin:12mm 14mm}'+
+    '*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+
+    'body{font-family:"MS Gothic","Hiragino Kaku Gothic ProN",sans-serif;color:#222;font-size:10pt;line-height:1.5}'+
+    'h2{font-size:11pt;font-weight:700;background:#4a7c5f;color:#fff;padding:4px 8px;margin-bottom:6px}'+
+    '.section{margin-bottom:12px;border:1px solid #ddd;border-radius:3px;overflow:hidden}'+
+    '@media print{button{display:none}}'+
+    '</style></head><body>'+
+
+    // ヘッダー
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #4a7c5f;padding-bottom:8px;margin-bottom:14px">'+
+      '<div style="flex:1">'+
+        '<div style="font-size:8pt;color:#888;margin-bottom:2px">施工完了報告書</div>'+
+        '<div style="font-size:16pt;font-weight:900;color:#222;line-height:1.2">'+esc(r.title||p.title)+'</div>'+
+        '<div style="margin-top:4px;display:flex;gap:12px;font-size:9.5pt;color:#444">'+
+          (cust?'<span>顧客: '+esc(cust.name)+'</span>':'')+
+          '<span>施工日: '+esc(r.date||'')+'</span>'+
+          (r.worker?'<span>担当: '+esc(r.worker)+'</span>':'')+
+        '</div>'+
+        '<div style="margin-top:2px;font-size:9pt;color:#666">案件: '+esc(p.title)+(p.amount?' / '+fmtN(p.amount)+'円':'')+'</div>'+
+      '</div>'+
+      '<div style="text-align:right;flex-shrink:0;padding-left:12px">'+
+        logoHtml+
+        '<div style="font-size:11pt;font-weight:700">'+esc(cfg.companyName||'セイノデンキ')+'</div>'+
+        '<div style="font-size:8.5pt;color:#666">'+esc(cfg.tel||'')+'</div>'+
+      '</div>'+
+    '</div>'+
+
+    // 施工前写真
+    '<div class="section">'+
+      '<h2 style="background:#3a60a0">📷 施工前</h2>'+
+      '<div style="padding:8px;display:flex;gap:8px;flex-wrap:wrap">'+beforeImgs+'</div>'+
+    '</div>'+
+
+    // 施工後写真
+    '<div class="section">'+
+      '<h2>📷 施工後</h2>'+
+      '<div style="padding:8px;display:flex;gap:8px;flex-wrap:wrap">'+afterImgs+'</div>'+
+    '</div>'+
+
+    // 作業内容
+    '<div class="section">'+
+      '<h2>📝 作業内容</h2>'+
+      '<div style="padding:8px;font-size:9.5pt;white-space:pre-wrap;min-height:40px">'+esc(r.description||'')+'</div>'+
+    '</div>'+
+
+    // 型番・使用機材
+    '<div class="section">'+
+      '<h2>🔧 使用機材・型番</h2>'+
+      '<div style="padding:4px">'+modelHtml+'</div>'+
+    '</div>'+
+
+    // 保有機器紐付け
+    (equipHtml?
+      '<div class="section">'+
+        '<h2>📋 関連保有機器</h2>'+
+        '<div style="padding:8px">'+equipHtml+'</div>'+
+      '</div>':'')+
+
+    // メモ
+    (r.memo?
+      '<div class="section">'+
+        '<h2>💬 メモ・備考</h2>'+
+        '<div style="padding:8px;font-size:9.5pt;white-space:pre-wrap">'+esc(r.memo)+'</div>'+
+      '</div>':'')+
+
+    // 署名欄
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:14px">'+
+      ['施工担当','確認者','顧客確認'].map(function(l){
+        return '<div style="border:1px solid #ccc;border-radius:3px;padding:6px;min-height:50px;font-size:9pt;color:#888">'+l+'</div>';
+      }).join('')+
+    '</div>'+
+
+    '<button onclick="window.print()" style="margin-top:12px;padding:8px 20px;background:#4a7c5f;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11pt">🖨️ 印刷する</button>'+
+    '<button onclick="window.close()" style="margin-top:12px;margin-left:8px;padding:8px 16px;background:#e74c3c;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11pt">✕ 閉じる</button>'+
+    '</body></html>';
+
+  const blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const pw=window.open(url,'_blank');
+  if(!pw){const a=document.createElement('a');a.href=url;a.target='_blank';a.click();}
+  setTimeout(function(){URL.revokeObjectURL(url);},60000);
 }
 
 function dtHistory(pjs, qts){
@@ -4068,13 +4753,48 @@ function swCTab(key){
 }
 
 function dtReport(pjs){
-  if(!pjs.length) return '<div class="emp"><div style="font-size:30px">📝</div><div>レポートなし</div></div>';
-  return pjs.filter(p=>p.memo).map(p=>`
-    <div class="card" style="margin-bottom:8px">
-      <div style="font-weight:700;margin-bottom:4px">${esc(p.title)}</div>
-      <div style="font-size:11px;color:var(--text3);margin-bottom:6px">${fmtD(p.sd||'')} 〜 ${fmtD(p.ed||'')} &nbsp;${bdg(p.phase)}</div>
-      <div style="font-size:12px;white-space:pre-wrap;color:var(--text2)">${esc(p.memo)}</div>
-    </div>`).join('') || '<div class="emp"><div>メモ付き案件なし</div></div>';
+  var allRecords=[];
+  pjs.forEach(function(p){
+    if(p.workRecords&&p.workRecords.length){
+      p.workRecords.forEach(function(wr,i){
+        allRecords.push({wr:wr,wrIdx:i,proj:p});
+      });
+    }
+  });
+  allRecords.sort(function(a,b){return (b.wr.date||'').localeCompare(a.wr.date||'');});
+
+  if(!allRecords.length){
+    var memoReport=pjs.filter(function(p){return p.memo;}).map(function(p){
+      return '<div class="card" style="margin-bottom:8px">'+
+        '<div style="font-weight:700;margin-bottom:4px">'+esc(p.title)+'</div>'+
+        '<div style="font-size:11px;color:var(--text3);margin-bottom:6px">'+fmtD(p.sd||'')+' 〜 '+fmtD(p.ed||'')+' &nbsp;'+bdg(p.phase)+'</div>'+
+        '<div style="font-size:12px;white-space:pre-wrap;color:var(--text2)">'+esc(p.memo)+'</div>'+
+      '</div>';
+    }).join('');
+    return memoReport||'<div class="emp"><div style="font-size:30px">📝</div><div>施工記録・レポートなし</div></div>';
+  }
+
+  return allRecords.map(function(item){
+    var wr=item.wr;var p=item.proj;var wrIdx=item.wrIdx;
+    var thumbs=[];
+    if(wr.beforePhotos&&wr.beforePhotos.length) thumbs.push('<img src="'+wr.beforePhotos[0].data+'" style="width:44px;height:44px;object-fit:cover;border-radius:4px;border:2px solid var(--blue)" title="施工前">');
+    if(wr.afterPhotos&&wr.afterPhotos.length) thumbs.push('<img src="'+wr.afterPhotos[0].data+'" style="width:44px;height:44px;object-fit:cover;border-radius:4px;border:2px solid var(--green)" title="施工後">');
+    return '<div class="card" style="margin-bottom:8px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start">'+
+        '<div>'+
+          '<div style="font-weight:700;font-size:13px">'+esc(wr.title||'施工記録')+'</div>'+
+          '<div style="font-size:11px;color:var(--text3);margin-top:2px">'+esc(p.title)+' · '+esc(wr.date||'')+(wr.worker?' · '+esc(wr.worker):'')+'</div>'+
+        '</div>'+
+        '<div style="display:flex;gap:4px;flex-shrink:0">'+
+          '<button class="btn bs bsm" onclick="showWorkRecordMo('+p.id+','+wrIdx+')">✏️</button>'+
+          '<button class="btn bg bsm" onclick="printWorkRecord('+p.id+','+wrIdx+')">🖨️</button>'+
+        '</div>'+
+      '</div>'+
+      (thumbs.length?'<div style="display:flex;gap:6px;margin-top:6px">'+thumbs.join('')+'</div>':'')+
+      (wr.description?'<div style="font-size:12px;color:var(--text2);margin-top:6px;white-space:pre-wrap;max-height:60px;overflow:hidden">'+esc(wr.description)+'</div>':'')+
+      (wr.modelNumbers&&wr.modelNumbers.length?'<div style="font-size:11px;color:var(--accent);margin-top:4px">🔧 '+wr.modelNumbers.map(function(m){return esc(m.name);}).join(', ')+'</div>':'')+
+    '</div>';
+  }).join('');
 }
 
 function _del(type,id){
