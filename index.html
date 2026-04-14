@@ -3943,6 +3943,8 @@ function docOcrScanExisting(docId){
 
 // Claude Vision API呼び出し（画像＋PDF対応）
 function _callDocOcr(apiKey,base64,mime,isImage,onSuccess,onError){
+  apiKey=apiKey.replace(/[^\x20-\x7E]/g,'').trim();
+  if(!apiKey){onError('APIキーが無効です');return;}
   var prompt='この書類を読み取り、以下のJSON形式のみで返してください。マークダウンやコードブロックは不要です。JSONのみ返してください。\n'+
     '{\n'+
     '  "text": "書類の全文テキスト（読み取れた内容をそのまま）",\n'+
@@ -4950,7 +4952,7 @@ function saveCfg(){
   D.cfg.address        = document.getElementById('cfg-addr')?.value||'';
   D.cfg.rep            = document.getElementById('cfg-rep')?.value||'';
   D.cfg.aiType         = document.getElementById('cfg-ai-type')?.value||'none';
-  D.cfg.aiKey          = document.getElementById('cfg-ai-key')?.value||'';
+  D.cfg.aiKey          = (document.getElementById('cfg-ai-key')?.value||'').trim();
   D.cfg.alertDays      = parseInt(document.getElementById('cfg-alert-days')?.value)||14;
   D.cfg.alertPopup     = document.querySelector('input[name="cfg-popup"]:checked')?.value!=='0';
   D.cfg.accentColor    = document.getElementById('cfg-ac')?.value||'#4a7c5f';
