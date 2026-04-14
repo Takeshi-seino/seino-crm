@@ -291,6 +291,7 @@ tbody tr:hover td{background:var(--bg3)}
     <button class="nb" data-page="staff"><span class="ni">👷</span>スタッフ・協力会社</button>
     <button class="nb" data-page="stock"><span class="ni">📦</span>在庫管理</button>
     <button class="nb" data-page="docbox"><span class="ni">📁</span>書類ボックス</button>
+    <button class="nb" data-page="dailyreport"><span class="ni">📝</span>日報・作業報告</button>
     <button class="nb" data-page="timeshift"><span class="ni">🕐</span>タイムシフト管理</button>
     <button class="nb" data-page="reservation"><span class="ni">📋</span>予約管理</button>
     <button class="nb" data-page="bizcards"><span class="ni">🪪</span>名刺管理<span class="nbc" id="bc-bc">0</span></button>
@@ -348,7 +349,7 @@ tbody tr:hover td{background:var(--bg3)}
 // ============================================================
 // DATA — single in-memory object, flush to localStorage on debounce
 // ============================================================
-const K={c:'s5c',p:'s5p',q:'s5q',s:'s5s',id:'s5id',st:'s5st',si:'s5si',sl:'s5sl',bc:'s5bc',tm:'s5tm',ts:'s5ts',rsv:'s5rsv',db:'s5db'};
+const K={c:'s5c',p:'s5p',q:'s5q',s:'s5s',id:'s5id',st:'s5st',si:'s5si',sl:'s5sl',bc:'s5bc',tm:'s5tm',ts:'s5ts',rsv:'s5rsv',db:'s5db',dr:'s5dr'};
 let D=null; // THE single data object
 
 function initD(){
@@ -366,6 +367,7 @@ function initD(){
     timeShifts: JSON.parse(localStorage.getItem(K.ts)||'{}'),
     reservations: JSON.parse(localStorage.getItem(K.rsv)||'[]'),
     docbox:     JSON.parse(localStorage.getItem(K.db)||'[]'),
+    dailyReports: JSON.parse(localStorage.getItem(K.dr)||'[]'),
     nextId:     parseInt(localStorage.getItem(K.id)||'1'),
     cfg:        JSON.parse(localStorage.getItem('s5cfg')||'{}'),
   };
@@ -395,6 +397,7 @@ function _flush(){
     localStorage.setItem(K.ts,JSON.stringify(D.timeShifts||{}));
     localStorage.setItem(K.rsv,JSON.stringify(D.reservations||[]));
     localStorage.setItem(K.db,JSON.stringify(D.docbox||[]));
+    localStorage.setItem(K.dr,JSON.stringify(D.dailyReports||[]));
     localStorage.setItem(K.id,D.nextId);
     if(D.cfg) localStorage.setItem('s5cfg',JSON.stringify(D.cfg));
     const el=document.getElementById('sv-time');
@@ -529,7 +532,7 @@ function nav(pg,cid){
     const btn=document.getElementById('mbt-'+p);
     if(btn){btn.style.color=p===pg?'var(--accent)':'#888';btn.style.fontWeight=p===pg?'700':'400';}
   });
-  document.getElementById('pg-title').textContent=detCid?'顧客詳細':{dashboard:'ダッシュボード',customers:'顧客管理',projects:'案件・工事管理',quotes:'見積・請求管理',schedule:'スケジュール',staff:'スタッフ・協力会社',stock:'在庫管理',docbox:'書類ボックス',timeshift:'タイムシフト管理',reservation:'予約管理',bizcards:'名刺管理',settings:'設定'}[pg]||pg;
+  document.getElementById('pg-title').textContent=detCid?'顧客詳細':{dashboard:'ダッシュボード',customers:'顧客管理',projects:'案件・工事管理',quotes:'見積・請求管理',schedule:'スケジュール',staff:'スタッフ・協力会社',stock:'在庫管理',docbox:'書類ボックス',dailyreport:'日報・作業報告',timeshift:'タイムシフト管理',reservation:'予約管理',bizcards:'名刺管理',settings:'設定'}[pg]||pg;
   buildTopbar();
   buildPage();
 }
@@ -572,6 +575,11 @@ function buildTopbar(){
       `<button class="btn bp" onclick="showStockItemMo()">＋ 品目登録</button>` +
       `<button class="btn bb" onclick="printOrderSheet()">🖨️ 発注書</button>` +
       `<button class="btn bs" onclick="exportStockCSV()">📤 CSV出力</button>` +
+      `</div>`;
+  }else if(page==='dailyreport'){
+    el.innerHTML=
+      `<div style="display:flex;gap:7px;align-items:center">` +
+      `<button class="btn bp bsm" onclick="showDailyReportMo()">＋ 日報を書く</button>` +
       `</div>`;
   }else if(page==='docbox'){
     el.innerHTML=
@@ -621,6 +629,7 @@ function buildPage(){
   else if(page==='staff') pgStaff();
   else if(page==='stock') pgStock();
   else if(page==='docbox') pgDocBox();
+  else if(page==='dailyreport') pgDailyReport();
   else if(page==='timeshift') pgTimeShift();
   else if(page==='reservation') pgReservation();
   else if(page==='bizcards') pgBizCards();
@@ -2467,6 +2476,299 @@ function pgReservation(){
 }
 
 // ============================================================
+// ============================================================
+// DAILY REPORT 日報・作業報告
+// ============================================================
+var _drMonth=new Date().getFullYear()+'-'+String(new Date().getMonth()+1).padStart(2,'0');
+
+function pgDailyReport(){
+  if(!D.dailyReports) D.dailyReports=[];
+
+  // 月選択
+  var ym=_drMonth.split('-');
+  var year=parseInt(ym[0]),month=parseInt(ym[1]);
+  var prevM=month===1?year-1+'-12':year+'-'+String(month-1).padStart(2,'0');
+  var nextM=month===12?(year+1)+'-01':year+'-'+String(month+1).padStart(2,'0');
+
+  // その月の日報を抽出
+  var monthPrefix=_drMonth;
+  var reports=D.dailyReports.filter(function(r){return (r.date||'').startsWith(monthPrefix);});
+  reports.sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
+
+  // 月間サマリー
+  var totalEntries=0;
+  reports.forEach(function(r){totalEntries+=(r.entries||[]).length;});
+
+  var headerHtml=
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">'+
+      '<button class="btn bs bsm" onclick="_drMonth=\''+prevM+'\';buildPage()">← 前月</button>'+
+      '<div style="font-size:16px;font-weight:900">'+year+'年'+month+'月</div>'+
+      '<button class="btn bs bsm" onclick="_drMonth=\''+nextM+'\';buildPage()">翌月 →</button>'+
+    '</div>'+
+    '<div style="display:flex;gap:12px;margin-bottom:14px">'+
+      '<div class="sc" style="flex:1;text-align:center"><div class="sl">日報数</div><div class="sv" style="color:var(--accent)">'+reports.length+'</div></div>'+
+      '<div class="sc" style="flex:1;text-align:center"><div class="sl">作業件数</div><div class="sv" style="color:var(--blue)">'+totalEntries+'</div></div>'+
+    '</div>';
+
+  // 日報リスト
+  var listHtml='';
+  if(!reports.length){
+    listHtml='<div class="emp" style="padding:40px 0"><div style="font-size:36px">📝</div><div>この月の日報はありません</div></div>';
+  } else {
+    listHtml=reports.map(function(r){
+      var entrySummary=(r.entries||[]).map(function(e){
+        return esc(e.location||e.content||'').slice(0,20);
+      }).join('、');
+      var weatherIcon={晴れ:'☀️',曇り:'☁️',雨:'🌧',雪:'❄️'}[r.weather]||'';
+      return '<div class="card" style="margin-bottom:8px;cursor:pointer" onclick="showDailyReportDetail('+r.id+')">'+
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start">'+
+          '<div>'+
+            '<div style="font-size:14px;font-weight:700">'+fmtD(r.date)+' '+weatherIcon+'</div>'+
+            '<div style="font-size:11px;color:var(--text3);margin-top:2px">作業 '+(r.entries||[]).length+'件'+(entrySummary?' — '+entrySummary:'')+'</div>'+
+          '</div>'+
+          '<div style="display:flex;gap:4px">'+
+            '<button class="btn bs bsm" onclick="event.stopPropagation();showDailyReportMo('+r.id+')">✏️</button>'+
+            '<button class="btn bg bsm" onclick="event.stopPropagation();printDailyReport('+r.id+')">🖨</button>'+
+          '</div>'+
+        '</div>'+
+        (r.memo?'<div style="font-size:11px;color:var(--text2);margin-top:4px;background:var(--bg3);padding:4px 8px;border-radius:4px">'+esc(r.memo)+'</div>':'')+
+      '</div>';
+    }).join('');
+  }
+
+  document.getElementById('ct').innerHTML=headerHtml+listHtml;
+}
+
+function showDailyReportDetail(id){
+  var r=D.dailyReports.find(function(rp){return rp.id===id;});if(!r)return;
+  var weatherIcon={晴れ:'☀️',曇り:'☁️',雨:'🌧',雪:'❄️'}[r.weather]||'';
+
+  var entriesHtml=(r.entries||[]).length?(r.entries||[]).map(function(e,i){
+    var custName=e.cid?cname(e.cid):'';
+    var projName=e.pid?pname(e.pid):'';
+    return '<div style="padding:8px 0;border-bottom:1px solid var(--border)">'+
+      '<div style="display:flex;justify-content:space-between">'+
+        '<div style="font-weight:600;font-size:13px">'+(i+1)+'. '+esc(e.location||custName||'作業'+(i+1))+'</div>'+
+        (e.startTime?'<div style="font-size:11px;color:var(--text3)">'+esc(e.startTime)+(e.endTime?'〜'+esc(e.endTime):'')+'</div>':'')+
+      '</div>'+
+      (custName?'<div style="font-size:11px;color:var(--blue)">👥 '+esc(custName)+'</div>':'')+
+      (projName?'<div style="font-size:11px;color:var(--accent)">⚡ '+esc(projName)+'</div>':'')+
+      (e.content?'<div style="font-size:12px;color:var(--text2);margin-top:4px;white-space:pre-wrap">'+esc(e.content)+'</div>':'')+
+      (e.note?'<div style="font-size:11px;color:var(--text3);margin-top:2px">備考: '+esc(e.note)+'</div>':'')+
+    '</div>';
+  }).join(''):'<div style="color:var(--text3);font-size:12px">作業記録なし</div>';
+
+  mo('<div class="mt">📝 日報 — '+fmtD(r.date)+' '+weatherIcon+'</div>'+
+    '<div style="margin-bottom:12px">'+entriesHtml+'</div>'+
+    (r.memo?'<div style="padding:8px;background:var(--bg3);border-radius:6px;font-size:12px;margin-bottom:12px"><div style="font-size:10px;color:var(--text3);margin-bottom:2px">全体メモ</div>'+esc(r.memo)+'</div>':'')+
+    '<div class="mf">'+
+      '<button class="btn bd" onclick="delDailyReport('+r.id+')">🗑 削除</button>'+
+      '<button class="btn bs" onclick="cmo()">閉じる</button>'+
+      '<button class="btn bg bsm" onclick="cmo();printDailyReport('+r.id+')">🖨 印刷</button>'+
+      '<button class="btn bp" onclick="cmo();showDailyReportMo('+r.id+')">✏️ 編集</button>'+
+    '</div>',true);
+}
+
+function showDailyReportMo(id){
+  var r=id?D.dailyReports.find(function(rp){return rp.id===id;}):null;
+  var isNew=!r;
+  if(isNew) r={date:today(),weather:'',entries:[{cid:null,pid:null,location:'',startTime:'',endTime:'',content:'',note:''}],memo:''};
+
+  var entriesHtml=(r.entries||[]).map(function(e,i){
+    return _drEntryHtml(e,i,r.entries.length);
+  }).join('');
+
+  mo('<div class="mt">'+(isNew?'日報を作成':'日報を編集')+'</div>'+
+    '<div class="fg">'+
+      '<div class="fr"><label class="fl">日付 *</label><input type="date" id="dr-date" value="'+(r.date||today())+'"></div>'+
+      '<div class="fr"><label class="fl">天気</label><select id="dr-weather">'+
+        ['','晴れ','曇り','雨','雪'].map(function(w){return '<option '+(r.weather===w?'selected':'')+'>'+w+'</option>';}).join('')+
+      '</select></div>'+
+    '</div>'+
+    '<div style="margin-bottom:12px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
+        '<label class="fl" style="margin:0">作業内容</label>'+
+        '<button class="btn bs bsm" onclick="drAddEntry()">＋ 作業を追加</button>'+
+      '</div>'+
+      '<div id="dr-entries">'+entriesHtml+'</div>'+
+    '</div>'+
+    '<div class="fr"><label class="fl">全体メモ・所感</label><textarea id="dr-memo" rows="2" placeholder="今日の振り返りなど...">'+esc(r.memo||'')+'</textarea></div>'+
+    '<div class="mf">'+
+      (isNew?'':'<button class="btn bd" onclick="delDailyReport('+id+')">🗑 削除</button>')+
+      '<button class="btn bs" onclick="cmo()">キャンセル</button>'+
+      '<button class="btn bp" onclick="saveDailyReport('+(id||'null')+')">💾 保存</button>'+
+    '</div>',true);
+}
+
+function _drEntryHtml(e,i,total){
+  return '<div class="dr-entry" style="background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:8px;position:relative">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
+      '<div style="font-size:12px;font-weight:700;color:var(--accent)">作業 '+(i+1)+'</div>'+
+      (total>1?'<button class="btn bd bsm" onclick="drRemoveEntry('+i+')" style="font-size:10px">✕</button>':'')+
+    '</div>'+
+    '<div class="fg">'+
+      '<div class="fr"><label class="fl">場所・現場名</label><input class="dr-e-loc" value="'+esc(e.location||'')+'"></div>'+
+      '<div class="fr"><label class="fl">顧客</label><select class="dr-e-cid"><option value="">—</option>'+
+        D.customers.map(function(c){return '<option value="'+c.id+'" '+(e.cid===c.id?'selected':'')+'>'+esc(c.name)+'</option>';}).join('')+
+      '</select></div>'+
+      '<div class="fr"><label class="fl">案件</label><select class="dr-e-pid"><option value="">—</option>'+
+        D.projects.map(function(p){return '<option value="'+p.id+'" '+(e.pid===p.id?'selected':'')+'>'+esc(p.title)+'</option>';}).join('')+
+      '</select></div>'+
+      '<div class="fr"><label class="fl">時間</label><div style="display:flex;gap:4px;align-items:center"><input type="time" class="dr-e-st" value="'+esc(e.startTime||'')+'" style="flex:1"><span>〜</span><input type="time" class="dr-e-et" value="'+esc(e.endTime||'')+'" style="flex:1"></div></div>'+
+    '</div>'+
+    '<div class="fr"><label class="fl">作業内容</label><textarea class="dr-e-content" rows="2" placeholder="何をしたか...">'+esc(e.content||'')+'</textarea></div>'+
+    '<div class="fr"><label class="fl">備考</label><input class="dr-e-note" value="'+esc(e.note||'')+'"></div>'+
+  '</div>';
+}
+
+function drAddEntry(){
+  var container=document.getElementById('dr-entries');if(!container)return;
+  var count=container.querySelectorAll('.dr-entry').length;
+  var div=document.createElement('div');
+  div.innerHTML=_drEntryHtml({cid:null,pid:null,location:'',startTime:'',endTime:'',content:'',note:''},count,count+1);
+  container.appendChild(div.firstChild);
+  // 削除ボタンを全エントリに反映
+  _drUpdateRemoveButtons();
+}
+
+function drRemoveEntry(idx){
+  var container=document.getElementById('dr-entries');if(!container)return;
+  var entries=container.querySelectorAll('.dr-entry');
+  if(entries.length<=1)return;
+  if(entries[idx])entries[idx].remove();
+  _drUpdateRemoveButtons();
+}
+
+function _drUpdateRemoveButtons(){
+  var container=document.getElementById('dr-entries');if(!container)return;
+  var entries=container.querySelectorAll('.dr-entry');
+  entries.forEach(function(el,i){
+    var header=el.querySelector('div:first-child');
+    if(header){
+      var label=header.querySelector('div');
+      if(label)label.textContent='作業 '+(i+1);
+    }
+  });
+}
+
+function _drCollectEntries(){
+  var container=document.getElementById('dr-entries');if(!container)return[];
+  var entries=[];
+  container.querySelectorAll('.dr-entry').forEach(function(el){
+    entries.push({
+      location:el.querySelector('.dr-e-loc')?.value?.trim()||'',
+      cid:parseInt(el.querySelector('.dr-e-cid')?.value)||null,
+      pid:parseInt(el.querySelector('.dr-e-pid')?.value)||null,
+      startTime:el.querySelector('.dr-e-st')?.value||'',
+      endTime:el.querySelector('.dr-e-et')?.value||'',
+      content:el.querySelector('.dr-e-content')?.value?.trim()||'',
+      note:el.querySelector('.dr-e-note')?.value?.trim()||''
+    });
+  });
+  return entries;
+}
+
+function saveDailyReport(id){
+  var date=document.getElementById('dr-date').value;
+  if(!date){toast('日付を入力してください','er');return;}
+  var entries=_drCollectEntries();
+  var obj={
+    date:date,
+    weather:document.getElementById('dr-weather').value,
+    entries:entries,
+    memo:document.getElementById('dr-memo').value.trim()
+  };
+
+  if(!D.dailyReports) D.dailyReports=[];
+  if(id&&id!=='null'){
+    var i=D.dailyReports.findIndex(function(r){return r.id===id;});
+    if(i>=0){D.dailyReports[i]={...D.dailyReports[i],...obj};toast('日報を更新しました ✅');}
+    else{obj.id=nid();obj.created=today();D.dailyReports.push(obj);toast('日報を登録しました ✅');}
+  } else {
+    obj.id=nid();obj.created=today();D.dailyReports.push(obj);toast('日報を登録しました ✅');
+  }
+  save();_flush();cmo();buildPage();
+}
+
+function delDailyReport(id){
+  if(!D.dailyReports)return;
+  D.dailyReports=D.dailyReports.filter(function(r){return r.id!==id;});
+  save();_flush();cmo();buildPage();
+  toast('日報を削除しました');
+}
+
+function printDailyReport(id){
+  var r=D.dailyReports.find(function(rp){return rp.id===id;});if(!r)return;
+  var cfg=D.cfg||{};
+  var weatherIcon={晴れ:'☀️',曇り:'☁️',雨:'🌧',雪:'❄️'}[r.weather]||'';
+  var logoHtml=cfg.logoData?'<img src="'+cfg.logoData+'" style="max-height:40px;max-width:80px;object-fit:contain;margin-right:8px">':'';
+
+  var entriesHtml=(r.entries||[]).map(function(e,i){
+    var custName=e.cid?cname(e.cid):'';
+    var projName=e.pid?pname(e.pid):'';
+    return '<tr>'+
+      '<td style="padding:6px 8px;font-weight:700;text-align:center;width:30px">'+(i+1)+'</td>'+
+      '<td style="padding:6px 8px">'+esc(e.location||custName||'')+'</td>'+
+      '<td style="padding:6px 8px;font-size:9pt;color:#666">'+(e.startTime?(e.startTime+(e.endTime?'〜'+e.endTime:'')):'')+'</td>'+
+      '<td style="padding:6px 8px;white-space:pre-wrap">'+esc(e.content||'')+'</td>'+
+      '<td style="padding:6px 8px;font-size:9pt;color:#666">'+esc(e.note||'')+'</td>'+
+    '</tr>';
+  }).join('')||'<tr><td colspan="5" style="padding:8px;color:#999">作業記録なし</td></tr>';
+
+  var html='<!DOCTYPE html><html lang="ja"><head><meta charset="UTF-8">'+
+    '<style>'+
+    '@page{size:A4 portrait;margin:10mm 12mm}'+
+    '*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+
+    'body{font-family:"Hiragino Kaku Gothic ProN","Meiryo",sans-serif;color:#222;font-size:10pt;line-height:1.6}'+
+    'table{width:100%;border-collapse:collapse}'+
+    'th{background:#e8e8e8;padding:6px 8px;text-align:left;font-size:9pt;border-bottom:1px solid #ccc}'+
+    'td{border-bottom:1px solid #eee}'+
+    'tr:nth-child(even){background:#f9f9f9}'+
+    '.section{margin-bottom:12px;border:1px solid #ddd;border-radius:3px;overflow:hidden}'+
+    '.section h2{font-size:11pt;font-weight:700;background:#4a7c5f;color:#fff;padding:4px 8px;margin:0}'+
+    '@media print{.no-print{display:none!important}}'+
+    '</style></head><body>'+
+
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #4a7c5f;padding-bottom:8px;margin-bottom:12px">'+
+      '<div style="flex:1">'+
+        '<div style="font-size:8pt;color:#888;margin-bottom:2px">日報・作業報告</div>'+
+        '<div style="font-size:18pt;font-weight:900;color:#222">'+esc(r.date||'')+' '+weatherIcon+'</div>'+
+        '<div style="font-size:10pt;color:#444;margin-top:4px">作業件数: '+(r.entries||[]).length+'件</div>'+
+      '</div>'+
+      '<div style="text-align:right;flex-shrink:0;padding-left:12px">'+
+        logoHtml+
+        '<div style="font-size:11pt;font-weight:700">'+esc(cfg.companyName||'セイノデンキ')+'</div>'+
+        '<div style="font-size:8.5pt;color:#666">'+esc(cfg.tel||'')+'</div>'+
+      '</div>'+
+    '</div>'+
+
+    '<div class="section">'+
+      '<h2>作業内容</h2>'+
+      '<table><thead><tr><th style="width:30px">No</th><th>場所・現場</th><th style="width:90px">時間</th><th>作業内容</th><th style="width:100px">備考</th></tr></thead>'+
+      '<tbody>'+entriesHtml+'</tbody></table>'+
+    '</div>'+
+
+    (r.memo?'<div class="section"><h2>メモ・所感</h2><div style="padding:8px;white-space:pre-wrap">'+esc(r.memo)+'</div></div>':'')+
+
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:14px">'+
+      ['確認','承認','担当'].map(function(l){
+        return '<div style="border:1px solid #ccc;border-radius:3px;padding:6px;min-height:50px;font-size:9pt;color:#888">'+l+'</div>';
+      }).join('')+
+    '</div>'+
+
+    '<div class="no-print" style="margin-top:12px">'+
+    '<button onclick="window.print()" style="padding:8px 20px;background:#4a7c5f;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11pt">🖨 印刷する</button>'+
+    '<button onclick="window.close()" style="background:#e74c3c;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11pt;margin-left:8px;padding:8px 16px">✕ 閉じる</button>'+
+    '</div>'+
+    '</body></html>';
+
+  var blob=new Blob([html],{type:'text/html;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var pw=window.open(url,'_blank');
+  if(!pw){var a=document.createElement('a');a.href=url;a.target='_blank';a.click();}
+  setTimeout(function(){URL.revokeObjectURL(url);},60000);
+}
+
 // ============================================================
 // DOCBOX 書類ボックス
 // ============================================================
