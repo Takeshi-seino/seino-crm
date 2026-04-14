@@ -4014,7 +4014,6 @@ function _getAlerts(){
     const ct = c.contracts||{};
     (ct.warranty||[]).forEach(item  => { if(item.expire) addAlert('contract', `${name}｜保証期限 ${item.title}`, item.expire, c.id, name, '保証'); });
     (ct.maintenance||[]).forEach(item => { if(item.renew)  addAlert('contract', `${name}｜保守契約更新 ${item.title}`, item.renew, c.id, name, '保守契約'); });
-    (ct.aircleaning||[]).forEach(item => { if(item.next)   addAlert('contract', `${name}｜エアクリ予定 ${item.title}`, item.next, c.id, name, 'エアクリ'); });
     (ct.inspection||[]).forEach(item  => { if(item.next)   addAlert('contract', `${name}｜点検予定 ${item.title}`, item.next, c.id, name, '点検契約'); });
     (ct.lease||[]).forEach(item       => { if(item.end)    addAlert('contract', `${name}｜リース終了 ${item.title}`, item.end, c.id, name, 'リース'); });
   });
@@ -5065,8 +5064,8 @@ function dtEquip(c){
 
 function dtContracts(){
   const c=D.customers.find(c=>c.id===detCid);if(!c)return'';
-  if(!c.contracts)c.contracts={warranty:[],maintenance:[],aircon:[],inspection:[],lease:[]};
-  const tabs=[['warranty','保証'],['maintenance','保守'],['aircon','エアクリ'],['inspection','点検'],['lease','リース']];
+  if(!c.contracts)c.contracts={warranty:[],maintenance:[],inspection:[],lease:[]};
+  const tabs=[['warranty','保証'],['maintenance','保守'],['inspection','点検'],['lease','リース']];
   let html='<div style="display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap">';
   tabs.forEach(([key,label])=>{
     html+=`<button class="btn bs bsm" onclick="swCTab('${key}')" id="ct-${key}">${label}</button>`;
@@ -5083,7 +5082,7 @@ function dtContracts(){
 }
 function swCTab(key){
   const c=D.customers.find(c=>c.id===detCid);if(!c)return;
-  if(!c.contracts)c.contracts={warranty:[],maintenance:[],aircon:[],inspection:[],lease:[]};
+  if(!c.contracts)c.contracts={warranty:[],maintenance:[],inspection:[],lease:[]};
   const items=c.contracts[key]||[];
   const body=document.getElementById('ct-body');
   if(!body)return;
