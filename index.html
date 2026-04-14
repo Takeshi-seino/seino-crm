@@ -4346,6 +4346,7 @@ function _alertCount(){
   return _getAlerts().filter(a=>!a.overdue||a.diff>=-7).length;
 }
 function _checkAlerts(){
+  if(D.cfg && D.cfg.alertPopup===false) return;
   const alerts = _getAlerts().filter(a => a.diff >= 0 && a.diff <= 3); // 3日以内のみ起動時表示
   if(!alerts.length) return;
   const html = alerts.slice(0,5).map(a=>`
@@ -5665,7 +5666,8 @@ document.getElementById('sb-nav').addEventListener('click',e=>{
 // INIT
 // ============================================================
 seed();
-(function applyCfg(){if(!D||!D.cfg)return;const c=D.cfg;if(c.accentColor&&document.documentElement)document.documentElement.style.setProperty('--accent',c.accentColor);})();
+function applyCfg(){if(!D||!D.cfg)return;const c=D.cfg;if(c.accentColor&&document.documentElement)document.documentElement.style.setProperty('--accent',c.accentColor);}
+applyCfg();
 nav('dashboard');
 setTimeout(_checkAlerts,1000);
 // Google Drive 接続状態復元
