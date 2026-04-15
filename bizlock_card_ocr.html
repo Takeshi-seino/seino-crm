@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BizLock — 名刺読み取り</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Noto+Sans+JP:wght@300;400;500;700&family=Noto+Serif+JP:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#f4f2ed; --bg1:#fff; --bg2:#eceae4; --bg3:#e2e0d8;
+  --ink:#1a2236; --ink2:rgba(26,34,54,.52); --ink3:rgba(26,34,54,.28);
+  --bdr:rgba(26,34,54,.1); --bdr2:rgba(26,34,54,.2);
+  --gold:#b08a18; --gold-bg:rgba(176,138,24,.07); --gold-bdr:rgba(176,138,24,.28);
+  --sage:#4a7860; --navy:#3a60a0;
+  --red:#c04040;
+  --mono:'IBM Plex Mono',monospace;
+  --serif:'Noto Serif JP',serif;
+  --sans:'Noto Sans JP',sans-serif;
+  --r:8px; --r2:12px;
+}
+body{ font-family:var(--sans); background:var(--bg); color:var(--ink); min-height:100vh; padding:24px; }
+
+/* —— HEADER —— */
+.header{ display:flex; align-items:center; gap:10px; margin-bottom:24px; }
+.logo-mark{
+  width:32px; height:32px; background:var(--gold); border-radius:6px;
+  display:grid; grid-template-columns:1fr 1fr; gap:2.5px; padding:7px; flex-shrink:0;
+}
+.logo-mark span{ background:#fff; border-radius:1px; }
+.logo-mark span:nth-child(2),.logo-mark span:nth-child(3){ opacity:.45; }
+.logo-mark span:nth-child(4){ opacity:.15; }
+.logo-name{ font-family:var(--serif); font-size:18px; color:var(--ink); }
+.logo-name b{ color:var(--gold); }
+.header-tag{
+  margin-left:auto; font-family:var(--mono); font-size:9px;
+  letter-spacing:.12em; color:var(--ink3); text-transform:uppercase;
+  border:1px solid var(--bdr); padding:4px 10px; border-radius:20px;
+}
+.back-link{
+  font-size:12px; color:var(--ink2); text-decoration:none; border:1px solid var(--bdr2);
+  padding:5px 12px; border-radius:6px; transition:all .13s;
+}
+.back-link:hover{ background:var(--bg2); color:var(--ink); }
+
+/* —— LAYOUT —— */
+.layout{ display:grid; grid-template-columns:1fr 1fr; gap:16px; max-width:960px; margin:0 auto; }
+@media(max-width:700px){ .layout{ grid-template-columns:1fr; } }
+
+/* —— PANEL —— */
+.panel{
+  background:var(--bg1); border:1px solid var(--bdr2); border-radius:var(--r2);
+  overflow:hidden; box-shadow:0 2px 12px rgba(26,34,54,.06);
+}
+.panel-head{
+  background:var(--bg2); border-bottom:1px solid var(--bdr);
+  padding:10px 16px; display:flex; align-items:center; gap:8px;
+}
+.panel-title{ font-family:var(--mono); font-size:10px; letter-spacing:.1em; color:var(--ink2); text-transform:uppercase; }
+.panel-title b{ color:var(--gold); }
+.panel-body{ padding:16px; }
+
+/* —— DROP ZONE —— */
+.dropzone{
+  border:2px dashed var(--bdr2); border-radius:var(--r);
+  padding:32px 16px; text-align:center; cursor:pointer;
+  transition:all .15s; background:var(--bg);
+  position:relative;
+}
+.dropzone:hover,.dropzone.drag{ border-color:var(--gold); background:var(--gold-bg); }
+.dropzone input{ position:absolute; inset:0; opacity:0; cursor:pointer; }
+.dz-icon{ font-size:28px; margin-bottom:8px; }
+.dz-main{ font-size:13px; font-weight:500; color:var(--ink2); margin-bottom:4px; }
+.dz-sub{ font-family:var(--mono); font-size:9px; color:var(--ink3); letter-spacing:.06em; }
+
+/* —— CARD PREVIEW —— */
+.card-preview-wrap{ margin-top:14px; }
+.preview-label{ font-family:var(--mono); font-size:9px; letter-spacing:.1em; color:var(--ink3); text-transform:uppercase; margin-bottom:6px; display:flex; justify-content:space-between; }
+.preview-label span{ color:var(--gold); }
+
+.orig-frame{
+  border:1px solid var(--bdr2); border-radius:6px; overflow:hidden;
+  background:#111; display:flex; align-items:center; justify-content:center;
+  min-height:80px;
+}
+.orig-frame img{ width:100%; display:block; }
+
+.canvas-wrap{
+  margin-top:10px; border:1px solid var(--bdr2); border-radius:6px; overflow:hidden;
+  background:#fff; display:flex; align-items:center; justify-content:center; min-height:80px;
+}
+#cardCanvas{ display:block; width:100%; }
+
+.size-info{
+  margin-top:6px; font-family:var(--mono); font-size:8.5px; color:var(--ink3);
+  letter-spacing:.06em; display:flex; gap:12px;
+}
+
+/* —— READ BUTTON —— */
+.read-btn{
+  width:100%; margin-top:14px; padding:11px;
+  background:var(--gold); color:#fff; border:none; border-radius:var(--r);
+  font-family:var(--mono); font-size:11px; font-weight:600; letter-spacing:.08em;
+  cursor:pointer; transition:all .13s; display:flex; align-items:center; justify-content:center; gap:8px;
+}
+.read-btn:hover{ filter:brightness(1.1); transform:translateY(-1px); }
+.read-btn:disabled{ opacity:.45; transform:none; cursor:not-allowed; }
+
+/* —— API KEY —— */
+.apikey-section{
+  margin-top:10px; padding:10px; background:var(--bg); border:1px solid var(--bdr);
+  border-radius:6px;
+}
+.apikey-section summary{
+  font-family:var(--mono); font-size:9px; letter-spacing:.08em; color:var(--ink3);
+  cursor:pointer; user-select:none;
+}
+.apikey-section input{
+  width:100%; margin-top:6px; background:var(--bg1); border:1px solid var(--bdr2);
+  color:var(--ink); border-radius:5px; padding:6px 8px; font-size:11px;
+  font-family:var(--mono); outline:none;
+}
+.apikey-section input:focus{ border-color:var(--gold); }
+
+/* —— STATUS —— */
+.status{
+  margin-top:10px; font-family:var(--mono); font-size:10px;
+  letter-spacing:.06em; color:var(--ink3); min-height:20px;
+  display:flex; align-items:center; gap:6px;
+}
+.status.loading{ color:var(--gold); }
+.status.ok{ color:var(--sage); }
+.status.err{ color:var(--red); }
+.spin{ animation:spin .8s linear infinite; display:inline-block; }
+@keyframes spin{ to{ transform:rotate(360deg); } }
+
+/* —— FORM FIELDS —— */
+.field-grid{ display:flex; flex-direction:column; gap:10px; }
+.field{ display:flex; flex-direction:column; gap:3px; }
+.field-label{
+  font-family:var(--mono); font-size:8.5px; letter-spacing:.1em;
+  color:var(--ink3); text-transform:uppercase;
+}
+.field-label b{ color:var(--gold); }
+.field input, .field textarea{
+  background:var(--bg); border:1px solid var(--bdr2);
+  color:var(--ink); border-radius:6px; padding:8px 10px;
+  font-size:13px; font-family:var(--sans); outline:none;
+  transition:border-color .15s;
+}
+.field input:focus, .field textarea:focus{
+  border-color:var(--gold); box-shadow:0 0 0 3px rgba(176,138,24,.1);
+}
+.field textarea{ resize:vertical; min-height:52px; }
+.field-row{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+
+/* —— SAVE BUTTONS —— */
+.save-btns{ display:flex; gap:8px; margin-top:16px; }
+.save-btn{
+  flex:1; padding:11px;
+  background:var(--ink); color:#fff; border:none; border-radius:var(--r);
+  font-family:var(--mono); font-size:11px; font-weight:600; letter-spacing:.08em;
+  cursor:pointer; transition:all .13s; display:flex; align-items:center; justify-content:center; gap:8px;
+}
+.save-btn:hover{ background:#2a3a56; }
+.save-btn.sage{ background:var(--sage); }
+.save-btn.sage:hover{ background:#3d6550; }
+
+/* —— TOAST —— */
+.toast{
+  position:fixed; bottom:20px; right:20px; z-index:999;
+  background:var(--ink); color:#fff; font-family:var(--mono); font-size:11px;
+  padding:10px 16px; border-radius:8px; letter-spacing:.04em;
+  opacity:0; transform:translateY(8px); transition:all .2s;
+  pointer-events:none;
+}
+.toast.show{ opacity:1; transform:none; }
+.toast.ok{ background:var(--sage); }
+
+/* —— HIGHLIGHT ANIMATION —— */
+@keyframes fieldIn{ from{ background:#fff9e6; } to{ background:var(--bg); } }
+.field-highlight input, .field-highlight textarea{
+  animation:fieldIn 1.2s ease forwards;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo-mark"><span></span><span></span><span></span><span></span></div>
+  <div class="logo-name">Biz<b>Lock</b></div>
+  <a class="back-link" href="index.html">← CRMに戻る</a>
+  <div class="header-tag">// 名刺読み取り · OCR</div>
+</div>
+
+<div class="layout">
+
+  <!-- LEFT: IMAGE + SCAN -->
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title"><b>01</b> &nbsp;名刺をスキャン</div>
+    </div>
+    <div class="panel-body">
+
+      <div class="dropzone" id="dropzone">
+        <input type="file" accept="image/*" id="fileInput">
+        <div class="dz-icon">📇</div>
+        <div class="dz-main">名刺画像をドロップまたはクリックして選択</div>
+        <div class="dz-sub">JPG · PNG · WEBP &nbsp;|&nbsp; 縦横自動判定</div>
+      </div>
+
+      <div class="card-preview-wrap" id="previewWrap" style="display:none;">
+        <div class="preview-label">元の画像 <span id="orientLabel"></span></div>
+        <div class="orig-frame"><img id="origImg" alt="名刺"></div>
+
+        <div class="preview-label" style="margin-top:10px;">クリーン描画（標準サイズ変換済み）<span id="sizeLabel"></span></div>
+        <div class="canvas-wrap"><canvas id="cardCanvas"></canvas></div>
+        <div class="size-info">
+          <span id="origSize"></span>
+          <span>→</span>
+          <span id="outSize"></span>
+        </div>
+      </div>
+
+      <button class="read-btn" id="readBtn" disabled>
+        <span id="readBtnIcon">▶</span>
+        <span id="readBtnText">名刺を読み取る</span>
+      </button>
+
+      <details class="apikey-section">
+        <summary>API KEY 設定</summary>
+        <input type="password" id="apiKey" placeholder="sk-ant-..." value="">
+        <div style="font-size:9px;color:var(--ink3);margin-top:4px;">Anthropic API Key（ブラウザに保存されます）</div>
+      </details>
+
+      <div class="status" id="status"></div>
+
+    </div>
+  </div>
+
+  <!-- RIGHT: EXTRACTED DATA FORM -->
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title"><b>02</b> &nbsp;読み取り結果 · データ登録</div>
+    </div>
+    <div class="panel-body">
+      <div class="field-grid">
+        <div class="field" id="f-company">
+          <div class="field-label"><b>会社名</b></div>
+          <input type="text" id="i-company" placeholder="—">
+        </div>
+        <div class="field-row">
+          <div class="field" id="f-dept">
+            <div class="field-label">部署</div>
+            <input type="text" id="i-dept" placeholder="—">
+          </div>
+          <div class="field" id="f-title">
+            <div class="field-label">役職</div>
+            <input type="text" id="i-title" placeholder="—">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field" id="f-name">
+            <div class="field-label"><b>氏名</b></div>
+            <input type="text" id="i-name" placeholder="—">
+          </div>
+          <div class="field" id="f-kana">
+            <div class="field-label">ふりがな</div>
+            <input type="text" id="i-kana" placeholder="—">
+          </div>
+        </div>
+        <div class="field" id="f-address">
+          <div class="field-label"><b>住所</b>（郵便番号含む）</div>
+          <textarea id="i-address" placeholder="—"></textarea>
+        </div>
+        <div class="field-row">
+          <div class="field" id="f-tel">
+            <div class="field-label"><b>電話番号</b></div>
+            <input type="text" id="i-tel" placeholder="—">
+          </div>
+          <div class="field" id="f-fax">
+            <div class="field-label">FAX</div>
+            <input type="text" id="i-fax" placeholder="—">
+          </div>
+        </div>
+        <div class="field" id="f-mobile">
+          <div class="field-label">携帯</div>
+          <input type="text" id="i-mobile" placeholder="—">
+        </div>
+        <div class="field" id="f-email">
+          <div class="field-label"><b>メールアドレス</b></div>
+          <input type="email" id="i-email" placeholder="—">
+        </div>
+        <div class="field" id="f-url">
+          <div class="field-label">ウェブサイト</div>
+          <input type="text" id="i-url" placeholder="—">
+        </div>
+        <div class="field" id="f-memo">
+          <div class="field-label">メモ</div>
+          <textarea id="i-memo" placeholder="—" style="min-height:38px;"></textarea>
+        </div>
+      </div>
+      <button class="save-btn" id="nextCardBtn" style="width:100%;margin-top:16px;background:var(--gold)">📇 次の名刺を読み取る</button>
+      <div class="save-btns">
+        <button class="save-btn" id="saveCustBtn">👥 顧客として登録</button>
+        <button class="save-btn sage" id="saveBcBtn">🪪 名刺として登録</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+// —— localStorage keys（CRM index.html と共通） ——
+const LS_CUSTOMERS = 's5c';
+const LS_BIZCARDS  = 's5bc';
+const LS_NEXT_ID   = 's5id';
+const LS_API_KEY   = 'bizlock_ocr_apikey';
+
+// —— 標準名刺サイズ ——
+const CARD_W_MM = 91, CARD_H_MM = 55;
+const SCALE = 3;
+const STD_W = Math.round(CARD_W_MM * SCALE);
+const STD_H = Math.round(CARD_H_MM * SCALE);
+
+let imageBase64 = null;
+let imageMime = 'image/jpeg';
+
+const dropzone  = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+const readBtn   = document.getElementById('readBtn');
+const statusEl  = document.getElementById('status');
+const previewWrap = document.getElementById('previewWrap');
+
+// API Key 復元
+const apiKeyEl = document.getElementById('apiKey');
+apiKeyEl.value = localStorage.getItem(LS_API_KEY) || '';
+apiKeyEl.addEventListener('change', () => localStorage.setItem(LS_API_KEY, apiKeyEl.value.trim()));
+
+// —— ドロップ ——
+dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault(); dropzone.classList.remove('drag');
+  if(e.dataTransfer.files[0]) loadImage(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e => { if(e.target.files[0]) loadImage(e.target.files[0]); });
+
+function loadImage(file) {
+  imageMime = file.type || 'image/jpeg';
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const dataUrl = ev.target.result;
+    imageBase64 = dataUrl.split(',')[1];
+    const img = new Image();
+    img.onload = () => {
+      const isLandscape = img.width >= img.height;
+      document.getElementById('origImg').src = dataUrl;
+      document.getElementById('orientLabel').textContent =
+        isLandscape ? '横向き（ランドスケープ）' : '縦向き（ポートレート）';
+      document.getElementById('origSize').textContent =
+        `元サイズ: ${img.width}×${img.height}px`;
+      drawCleanCard(img, isLandscape);
+      previewWrap.style.display = 'block';
+      readBtn.disabled = false;
+      setStatus('');
+    };
+    img.src = dataUrl;
+  };
+  reader.readAsDataURL(file);
+}
+
+function drawCleanCard(img, landscape) {
+  const canvas = document.getElementById('cardCanvas');
+  const outW = landscape ? STD_W : STD_H;
+  const outH = landscape ? STD_H : STD_W;
+  canvas.width = outW; canvas.height = outH;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, outW, outH);
+  const scale = Math.min(outW / img.width, outH / img.height);
+  const drawW = img.width * scale, drawH = img.height * scale;
+  const ox = (outW - drawW) / 2, oy = (outH - drawH) / 2;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(img, ox, oy, drawW, drawH);
+  ctx.strokeStyle = 'rgba(26,34,54,.12)';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(1, 1, outW - 2, outH - 2);
+  const mmW = landscape ? CARD_W_MM : CARD_H_MM;
+  const mmH = landscape ? CARD_H_MM : CARD_W_MM;
+  document.getElementById('sizeLabel').textContent = `${mmW}×${mmH}mm`;
+  document.getElementById('outSize').textContent = `標準: ${outW}×${outH}px (${SCALE}x)`;
+}
+
+// —— OCR: Claude Vision API ——
+readBtn.addEventListener('click', async () => {
+  if(!imageBase64) return;
+  const apiKey = apiKeyEl.value.trim();
+  if(!apiKey) { setStatus('err', '✕ API Keyを設定してください'); return; }
+
+  readBtn.disabled = true;
+  document.getElementById('readBtnIcon').textContent = '⟳';
+  document.getElementById('readBtnIcon').classList.add('spin');
+  document.getElementById('readBtnText').textContent = '読み取り中...';
+  setStatus('loading', '⏳ Claude Vision で名刺を解析中...');
+
+  try {
+    const prompt = `この名刺画像から情報を抽出し、以下のJSONフォーマットのみで返してください。
+マークダウンやコードブロックは不要です。JSONのみ返してください。
+情報がない項目は空文字列にしてください。
+
+{
+  "company": "会社名",
+  "dept": "部署名",
+  "title": "役職",
+  "name": "氏名（漢字）",
+  "kana": "氏名（ふりがな・ローマ字）",
+  "address": "住所（郵便番号を含む全体）",
+  "tel": "電話番号（代表）",
+  "fax": "FAX番号",
+  "mobile": "携帯番号",
+  "email": "メールアドレス",
+  "url": "ウェブサイトURL",
+  "memo": "その他気になる情報"
+}`;
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: imageMime, data: imageBase64 } },
+            { type: 'text', text: prompt }
+          ]
+        }]
+      })
+    });
+
+    if(!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error?.message || `API Error ${res.status}`);
+    }
+
+    const data = await res.json();
+    const text = data.content?.[0]?.text || '';
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if(!jsonMatch) throw new Error('JSON抽出失敗');
+    fillFields(JSON.parse(jsonMatch[0]));
+    setStatus('ok', '✓ 読み取り完了');
+    showToast('名刺データを読み取りました ✓', 'ok');
+
+  } catch(e) {
+    setStatus('err', '✕ エラー: ' + e.message);
+    showToast('読み取りに失敗しました', '');
+  } finally {
+    readBtn.disabled = false;
+    document.getElementById('readBtnIcon').textContent = '▶';
+    document.getElementById('readBtnIcon').classList.remove('spin');
+    document.getElementById('readBtnText').textContent = '名刺を読み取る';
+  }
+});
+
+function fillFields(d) {
+  const map = {
+    'i-company': d.company, 'i-dept': d.dept, 'i-title': d.title,
+    'i-name': d.name, 'i-kana': d.kana, 'i-address': d.address,
+    'i-tel': d.tel, 'i-fax': d.fax, 'i-mobile': d.mobile,
+    'i-email': d.email, 'i-url': d.url, 'i-memo': d.memo,
+  };
+  Object.entries(map).forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    if(el && val) {
+      el.value = val;
+      const wrapper = el.closest('.field');
+      wrapper.classList.remove('field-highlight');
+      void wrapper.offsetWidth;
+      wrapper.classList.add('field-highlight');
+      setTimeout(() => wrapper.classList.remove('field-highlight'), 1400);
+    }
+  });
+}
+
+// —— CRM localStorage 書き込みヘルパー ——
+function getNextId() {
+  const id = parseInt(localStorage.getItem(LS_NEXT_ID) || '1');
+  localStorage.setItem(LS_NEXT_ID, String(id + 1));
+  return id;
+}
+
+function genCustomerNumber() {
+  const customers = JSON.parse(localStorage.getItem(LS_CUSTOMERS) || '[]');
+  const nums = customers.map(c => parseInt((c.cn || 'C-0000').slice(2)) || 0);
+  return 'C-' + String((nums.length ? Math.max(...nums) : 0) + 1).padStart(4, '0');
+}
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function collectFormData() {
+  const gv = id => document.getElementById(id)?.value?.trim() || '';
+  return {
+    company: gv('i-company'), dept: gv('i-dept'), title: gv('i-title'),
+    name: gv('i-name'), kana: gv('i-kana'), address: gv('i-address'),
+    tel: gv('i-tel'), fax: gv('i-fax'), mobile: gv('i-mobile'),
+    email: gv('i-email'), url: gv('i-url'), memo: gv('i-memo'),
+  };
+}
+
+// —— 顧客として登録（D.customers → localStorage s5c） ——
+document.getElementById('saveCustBtn').addEventListener('click', () => {
+  const d = collectFormData();
+  if(!d.name && !d.company) { showToast('氏名または会社名を入力してください', ''); return; }
+
+  const customers = JSON.parse(localStorage.getItem(LS_CUSTOMERS) || '[]');
+
+  // OCR項目 → CRM顧客フィールドにマッピング
+  const memoLines = [];
+  if(d.dept)   memoLines.push('部署: ' + d.dept);
+  if(d.title)  memoLines.push('役職: ' + d.title);
+  if(d.kana)   memoLines.push('ふりがな: ' + d.kana);
+  if(d.fax)    memoLines.push('FAX: ' + d.fax);
+  if(d.mobile) memoLines.push('携帯: ' + d.mobile);
+  if(d.url)    memoLines.push('Web: ' + d.url);
+  if(d.memo)   memoLines.push(d.memo);
+
+  const customer = {
+    id:      getNextId(),
+    cn:      genCustomerNumber(),
+    name:    d.company || d.name,
+    contact: d.company ? d.name : '',
+    phone:   d.tel || d.mobile,
+    email:   d.email,
+    address: d.address,
+    type:    d.company ? '法人' : '個人',
+    status:  'アクティブ',
+    memo:    memoLines.join(' / '),
+    created: todayStr(),
+  };
+
+  customers.push(customer);
+  localStorage.setItem(LS_CUSTOMERS, JSON.stringify(customers));
+  showToast(`「${customer.name}」を顧客に登録しました ✓ (${customer.cn})`, 'ok');
+});
+
+// —— 名刺として登録（D.bizCards → localStorage s5bc） ——
+document.getElementById('saveBcBtn').addEventListener('click', () => {
+  const d = collectFormData();
+  if(!d.name && !d.company) { showToast('氏名または会社名を入力してください', ''); return; }
+
+  const bizCards = JSON.parse(localStorage.getItem(LS_BIZCARDS) || '[]');
+
+  const extras = [];
+  if(d.dept)   extras.push('部署: ' + d.dept);
+  if(d.kana)   extras.push('ふりがな: ' + d.kana);
+  if(d.fax)    extras.push('FAX: ' + d.fax);
+  if(d.mobile) extras.push('携帯: ' + d.mobile);
+  if(d.url)    extras.push('Web: ' + d.url);
+  if(d.memo)   extras.push(d.memo);
+
+  const card = {
+    id:       getNextId(),
+    name:     d.name || d.company,
+    company:  d.company,
+    position: [d.dept, d.title].filter(Boolean).join(' / '),
+    phone:    d.tel || d.mobile,
+    email:    d.email,
+    address:  d.address,
+    memo:     extras.join(' / '),
+    created:  todayStr(),
+  };
+
+  bizCards.push(card);
+  localStorage.setItem(LS_BIZCARDS, JSON.stringify(bizCards));
+  showToast(`「${d.name || d.company}」を名刺に登録しました ✓`, 'ok');
+});
+
+// —— ユーティリティ ——
+// —— 次の名刺 ——
+document.getElementById('nextCardBtn').addEventListener('click', () => {
+  imageBase64 = null;
+  imageMime = 'image/jpeg';
+  previewWrap.style.display = 'none';
+  readBtn.disabled = true;
+  fileInput.value = '';
+  setStatus('');
+  ['i-company','i-dept','i-title','i-name','i-kana','i-address','i-tel','i-fax','i-mobile','i-email','i-url','i-memo'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value = '';
+  });
+  dropzone.scrollIntoView({ behavior: 'smooth', block: 'center' });
+});
+
+function setStatus(type, msg) {
+  statusEl.className = 'status' + (type ? ' ' + type : '');
+  statusEl.textContent = msg || '';
+}
+
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' ' + type : '');
+  setTimeout(() => t.className = 'toast', 2800);
+}
+</script>
+</body>
+</html>
