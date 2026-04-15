@@ -3634,22 +3634,27 @@ function _tpRouteView(td){
         html+='<div style="position:relative;padding:8px 0;'+(isDone?'opacity:.6':'')+'">'+
           // ドット
           '<div style="position:absolute;left:-'+(parseInt(dotSize)/2+11)+'px;top:12px;width:'+dotSize+';height:'+dotSize+';border-radius:50%;background:'+dotColor+';border:2px solid var(--bg2)"></div>'+
-          '<div style="display:flex;justify-content:space-between;align-items:center">'+
-            '<div>'+
-              '<div style="font-size:12px;font-weight:'+(isCurrent?'700':'500')+'">'+
-                '<span style="color:var(--text3);margin-right:4px">'+(si+1)+'.</span>'+
-                esc(u.name)+
-                (isDone?' <span style="color:var(--accent)">✓</span>':'')+
-                (stop.guardianConfirmed?' <span style="color:var(--blue);font-size:10px">👪確認済</span>':'')+
-              '</div>'+
-              '<div style="font-size:10px;color:var(--text3)">'+
-                esc(u.address||'')+
-                (stop.arrivedTime?' · '+esc(stop.arrivedTime):'')+
-              '</div>'+
+          '<div>'+
+            '<div style="font-size:12px;font-weight:'+(isCurrent?'700':'500')+';margin-bottom:3px">'+
+              '<span style="color:var(--text3);margin-right:4px">'+(si+1)+'.</span>'+
+              esc(u.name)+
             '</div>'+
-            '<div style="display:flex;gap:4px;flex-shrink:0">'+
-              (isCurrent&&route.startedAt?'<button class="btn bp bsm" onclick="tpCompleteStop('+route.id+','+si+')" style="font-size:10px">'+(type==='pickup'?'👤 乗車':'🏠 到着')+'</button>':'')+
-              (!isDone?'<button class="btn bb bsm" onclick="tpGuardianConfirm('+route.id+','+si+')" style="font-size:10px">👪 確認</button>':'')+
+            '<div style="font-size:10px;color:var(--text3);margin-bottom:5px">'+
+              esc(u.address||'')+
+              (stop.arrivedTime?' · '+esc(stop.arrivedTime):'')+
+            '</div>'+
+            // ドライバーチェック・保護者チェック横並び
+            '<div style="display:flex;gap:6px;flex-wrap:wrap">'+
+              // ドライバーチェック
+              (isDone?
+                '<span style="font-size:10px;padding:3px 8px;border-radius:4px;background:rgba(74,120,96,.1);color:var(--accent)">🚐 ドライバー ✓'+(stop.arrivedTime?' '+esc(stop.arrivedTime):'')+'</span>':
+                (isCurrent&&route.startedAt?
+                  '<button class="btn bp bsm" onclick="tpCompleteStop('+route.id+','+si+')" style="font-size:10px;padding:3px 10px">🚐 '+(type==='pickup'?'乗車チェック':'降車チェック')+'</button>':
+                  '<span style="font-size:10px;padding:3px 8px;border-radius:4px;background:var(--bg3);color:var(--text3)">🚐 ドライバー —</span>'))+
+              // 保護者チェック
+              (stop.guardianConfirmed?
+                '<span style="font-size:10px;padding:3px 8px;border-radius:4px;background:rgba(58,96,160,.1);color:var(--blue)">👪 保護者 ✓'+(stop.guardianConfirmTime?' '+esc(stop.guardianConfirmTime):'')+'</span>':
+                '<button class="btn bb bsm" onclick="tpGuardianConfirm('+route.id+','+si+')" style="font-size:10px;padding:3px 10px">👪 保護者 確認</button>')+
             '</div>'+
           '</div>'+
         '</div>';
