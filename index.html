@@ -297,6 +297,7 @@ tbody tr:hover td{background:var(--bg3)}
     <button class="nb" data-page="dailyreport"><span class="ni">📝</span>日報・作業報告</button>
     <button class="nb" data-page="timeshift"><span class="ni">🕐</span>タイムシフト管理</button>
     <button class="nb" data-page="reservation"><span class="ni">📋</span>予約管理</button>
+    <button class="nb" data-page="transport"><span class="ni">🚐</span>送迎管理</button>
     <button class="nb" data-page="bizcards"><span class="ni">🪪</span>名刺管理<span class="nbc" id="bc-bc">0</span></button>
     <button class="nb" data-page="settings"><span class="ni">⚙️</span>設定</button>
     <div class="nsec" style="cursor:pointer;display:flex;justify-content:space-between" onclick="toggleDM()">
@@ -352,7 +353,7 @@ tbody tr:hover td{background:var(--bg3)}
 // ============================================================
 // DATA — single in-memory object, flush to localStorage on debounce
 // ============================================================
-const K={c:'s5c',p:'s5p',q:'s5q',s:'s5s',id:'s5id',st:'s5st',si:'s5si',sl:'s5sl',bc:'s5bc',tm:'s5tm',ts:'s5ts',rsv:'s5rsv',db:'s5db',dr:'s5dr'};
+const K={c:'s5c',p:'s5p',q:'s5q',s:'s5s',id:'s5id',st:'s5st',si:'s5si',sl:'s5sl',bc:'s5bc',tm:'s5tm',ts:'s5ts',rsv:'s5rsv',db:'s5db',dr:'s5dr',tu:'s5tu',tl:'s5tl',td:'s5td',tr:'s5tr'};
 let D=null; // THE single data object
 
 function initD(){
@@ -371,6 +372,10 @@ function initD(){
     reservations: JSON.parse(localStorage.getItem(K.rsv)||'[]'),
     docbox:     JSON.parse(localStorage.getItem(K.db)||'[]'),
     dailyReports: JSON.parse(localStorage.getItem(K.dr)||'[]'),
+    transportUsers: JSON.parse(localStorage.getItem(K.tu)||'[]'),
+    transportLogs: JSON.parse(localStorage.getItem(K.tl)||'[]'),
+    transportDrivers: JSON.parse(localStorage.getItem(K.td)||'[]'),
+    transportRoutes: JSON.parse(localStorage.getItem(K.tr)||'[]'),
     nextId:     parseInt(localStorage.getItem(K.id)||'1'),
     cfg:        JSON.parse(localStorage.getItem('s5cfg')||'{}'),
   };
@@ -401,6 +406,10 @@ function _flush(){
     localStorage.setItem(K.rsv,JSON.stringify(D.reservations||[]));
     localStorage.setItem(K.db,JSON.stringify(D.docbox||[]));
     localStorage.setItem(K.dr,JSON.stringify(D.dailyReports||[]));
+    localStorage.setItem(K.tu,JSON.stringify(D.transportUsers||[]));
+    localStorage.setItem(K.tl,JSON.stringify(D.transportLogs||[]));
+    localStorage.setItem(K.td,JSON.stringify(D.transportDrivers||[]));
+    localStorage.setItem(K.tr,JSON.stringify(D.transportRoutes||[]));
     localStorage.setItem(K.id,D.nextId);
     if(D.cfg) localStorage.setItem('s5cfg',JSON.stringify(D.cfg));
     const el=document.getElementById('sv-time');
@@ -542,6 +551,53 @@ function seed(){
       {location:'田中建設ビル 3F',cid:1,pid:10,startTime:'08:30',endTime:'17:00',content:'3F LED照明交換工事 完了\n安定器撤去→直結配線→器具取付→点灯確認',note:''}
     ],memo:'3F工事完了。明日から4Fに移行。',created:dOff(-1)},
   ];
+  // 送迎管理 サンプル
+  D.transportDrivers=[
+    {id:250,name:'佐藤 太郎',phone:'090-1111-2222',vehicle:'白 ハイエース（仙台 300 あ 1234）'},
+    {id:251,name:'鈴木 花子',phone:'090-3333-4444',vehicle:'シルバー キャラバン（仙台 300 い 5678）'},
+  ];
+  D.transportUsers=[
+    {id:260,name:'山田 太一',kana:'やまだ たいち',guardianName:'山田 幸子',guardianPhone:'090-5555-6666',address:'仙台市青葉区一番町1-1-1',pickupTime:'08:30',returnTime:'16:00',defaultDriverId:250,medicalNotes:'高血圧（降圧剤服用中）',memo:''},
+    {id:261,name:'佐々木 ハナ',kana:'ささき はな',guardianName:'佐々木 一郎',guardianPhone:'090-7777-8888',address:'仙台市宮城野区榴岡2-2-2',pickupTime:'08:45',returnTime:'16:00',defaultDriverId:250,medicalNotes:'',memo:'車いす使用'},
+    {id:262,name:'高橋 勇太',kana:'たかはし ゆうた',guardianName:'高橋 美恵',guardianPhone:'090-9999-0000',address:'仙台市太白区長町3-3-3',pickupTime:'09:00',returnTime:'16:30',defaultDriverId:251,medicalNotes:'糖尿病（インスリン 昼食前）',memo:''},
+    {id:263,name:'伊藤 キヨ',kana:'いとう きよ',guardianName:'伊藤 正男',guardianPhone:'022-111-2222',address:'仙台市泉区中央4-4-4',pickupTime:'09:00',returnTime:'16:30',defaultDriverId:251,medicalNotes:'',memo:''},
+    {id:264,name:'渡辺 ミツル',kana:'わたなべ みつる',guardianName:'渡辺 京子',guardianPhone:'022-333-4444',address:'仙台市若林区荒井5-5-5',pickupTime:'08:30',returnTime:'15:30',defaultDriverId:250,medicalNotes:'認知症（要見守り）',memo:'月水金のみ利用'},
+  ];
+  // 今日のログをいくつか作成
+  D.transportLogs=[
+    {id:270,userId:260,date:td,driverId:250,status:'active',
+      statusHistory:[
+        {status:'attending',time:'07:30',memo:''},
+        {status:'pickup_start',time:'08:20',memo:''},
+        {status:'pickup_done',time:'08:35',memo:''},
+        {status:'arrived',time:'09:00',memo:''},
+        {status:'active',time:'09:10',memo:'朝の体操参加'}
+      ],activities:[
+        {time:'09:10',content:'朝の体操'},
+        {time:'10:00',content:'入浴'},
+        {time:'12:00',content:'昼食（完食）'},
+      ],notes:'今日も元気です。入浴時に少し血圧高め（150/90）でした。',guardianMessage:'',guardianReply:''},
+    {id:271,userId:261,date:td,driverId:250,status:'arrived',
+      statusHistory:[
+        {status:'attending',time:'07:45',memo:''},
+        {status:'pickup_start',time:'08:20',memo:''},
+        {status:'pickup_done',time:'08:50',memo:''},
+        {status:'arrived',time:'09:00',memo:''}
+      ],activities:[],notes:'',guardianMessage:'今日は少し咳が出ています。様子を見てください。',guardianReply:''},
+    {id:272,userId:262,date:td,driverId:251,status:'pickup_start',
+      statusHistory:[
+        {status:'attending',time:'08:00',memo:''},
+        {status:'pickup_start',time:'08:50',memo:''}
+      ],activities:[],notes:'',guardianMessage:'',guardianReply:''},
+    {id:273,userId:263,date:td,driverId:251,status:'attending',
+      statusHistory:[
+        {status:'attending',time:'08:15',memo:''}
+      ],activities:[],notes:'',guardianMessage:'',guardianReply:''},
+    {id:274,userId:264,date:td,driverId:null,status:'absent',
+      statusHistory:[
+        {status:'absent',time:'07:00',memo:'体調不良のため欠席'}
+      ],activities:[],notes:'',guardianMessage:'熱が37.8度あるので今日は休ませます。',guardianReply:''},
+  ];
   D.nextId=300;
   save();_flush();
 }
@@ -562,6 +618,7 @@ const BLOCKS=[
   {id:'dailyreport',  label:'日報・作業報告',    icon:'📝', core:false},
   {id:'timeshift',    label:'タイムシフト管理',  icon:'🕐', core:false},
   {id:'reservation',  label:'予約管理',          icon:'📋', core:false},
+  {id:'transport',    label:'送迎管理',          icon:'🚐', core:false},
   {id:'bizcards',     label:'名刺管理',          icon:'🪪', core:false},
   {id:'settings',     label:'設定',              icon:'⚙️', core:true},
 ];
@@ -580,8 +637,8 @@ const PRESETS=[
   {id:'kouri',     label:'小売業',           icon:'🛍️',  blocks:['dashboard','customers','quotes','staff','stock','docbox','timeshift','reservation','settings']},
   {id:'inshoku',   label:'飲食業',           icon:'🍜',  blocks:['dashboard','customers','quotes','staff','stock','docbox','dailyreport','timeshift','reservation','settings']},
   {id:'kojyo',     label:'小規模工場',       icon:'🏭',  blocks:['dashboard','customers','quotes','staff','stock','schedule','docbox','dailyreport','timeshift','settings']},
-  {id:'dayservice',label:'デイサービス',     icon:'🏥',  blocks:['dashboard','customers','quotes','schedule','staff','docbox','dailyreport','timeshift','reservation','settings']},
-  {id:'houmon',    label:'訪問介護',         icon:'🩺',  blocks:['dashboard','customers','quotes','schedule','staff','docbox','dailyreport','timeshift','settings']},
+  {id:'dayservice',label:'デイサービス',     icon:'🏥',  blocks:['dashboard','customers','quotes','schedule','staff','docbox','dailyreport','timeshift','reservation','transport','settings']},
+  {id:'houmon',    label:'訪問介護',         icon:'🩺',  blocks:['dashboard','customers','quotes','schedule','staff','docbox','dailyreport','timeshift','transport','settings']},
   {id:'seijika',   label:'議員・政治活動',   icon:'🏛️',  blocks:['dashboard','customers','schedule','docbox','dailyreport','reservation','bizcards','settings']},
   {id:'event',     label:'イベント・催事',   icon:'🎪',  blocks:['dashboard','customers','quotes','schedule','staff','docbox','dailyreport','timeshift','reservation','bizcards','settings']},
   {id:'zeirishi',  label:'税理士・会計事務所',icon:'🧮',  blocks:['dashboard','customers','quotes','schedule','docmanage','bizcards','settings']},
@@ -623,6 +680,7 @@ function renderSidebar(){
     {id:'dailyreport',  label:'日報・作業報告',      icon:'📝', badge:''},
     {id:'timeshift',    label:'タイムシフト管理',    icon:'🕐', badge:''},
     {id:'reservation',  label:'予約管理',            icon:'📋', badge:''},
+    {id:'transport',    label:'送迎管理',            icon:'🚐', badge:''},
     {id:'bizcards',     label:'名刺管理',            icon:'🪪', badge:'<span class="nbc" id="bc-bc">'+cntBC+'</span>'},
     {id:'settings',     label:'設定',                icon:'⚙️', badge:''},
   ];
@@ -717,7 +775,7 @@ function nav(pg,cid){
     const btn=document.getElementById('mbt-'+p);
     if(btn){btn.style.color=p===pg?'var(--accent)':'#888';btn.style.fontWeight=p===pg?'700':'400';}
   });
-  document.getElementById('pg-title').textContent=detCid?'顧客詳細':{dashboard:'ダッシュボード',customers:'顧客管理',projects:'案件・工事管理',quotes:'見積・請求管理',schedule:'スケジュール',staff:'スタッフ・協力会社',stock:'在庫管理',docbox:'書類ボックス',docmanage:'書類管理',dailyreport:'日報・作業報告',timeshift:'タイムシフト管理',reservation:'予約管理',bizcards:'名刺管理',settings:'設定'}[pg]||pg;
+  document.getElementById('pg-title').textContent=detCid?'顧客詳細':{dashboard:'ダッシュボード',customers:'顧客管理',projects:'案件・工事管理',quotes:'見積・請求管理',schedule:'スケジュール',staff:'スタッフ・協力会社',stock:'在庫管理',docbox:'書類ボックス',docmanage:'書類管理',dailyreport:'日報・作業報告',timeshift:'タイムシフト管理',reservation:'予約管理',transport:'送迎管理',bizcards:'名刺管理',settings:'設定'}[pg]||pg;
   buildTopbar();
   buildPage();
 }
@@ -790,6 +848,12 @@ function buildTopbar(){
       '<button class="btn bsm '+(_tsView==='day'?'bp':'bs')+'" onclick="_tsView=\'day\';buildPage()">日</button>'+
       '<button class="btn bp" onclick="showStaffMo(null,&quot;staff&quot;)">＋ スタッフ追加</button>'+
       '</div>';
+  }else if(page==='transport'){
+    el.innerHTML=
+      `<div style="display:flex;gap:7px;align-items:center">` +
+      `<button class="btn bp bsm" onclick="showTransportUserMo()">＋ 利用者登録</button>` +
+      `<button class="btn bb bsm" onclick="showTransportDriverMo()">🚐 ドライバー</button>` +
+      `</div>`;
   }else if(page==='bizcards'){
     el.innerHTML=
       `<div style="display:flex;gap:7px;align-items:center;margin-right:40px">` +
@@ -827,6 +891,7 @@ function buildPage(){
   else if(page==='dailyreport') pgDailyReport();
   else if(page==='timeshift') pgTimeShift();
   else if(page==='reservation') pgReservation();
+  else if(page==='transport') pgTransport();
   else if(page==='bizcards') pgBizCards();
   else if(page==='settings') pgSettings();
 }
@@ -3368,6 +3433,639 @@ function _dmTimelineView(docs){
       groups[ym].map(_dmDocCard).join('')+
     '</div>';
   }).join('');
+}
+
+// ============================================================
+// TRANSPORT 送迎管理
+// ============================================================
+var TP_STATUS=[
+  {id:'unconfirmed',label:'出欠未確認',icon:'❓',color:'#8a93a8'},
+  {id:'attending',  label:'出席',      icon:'✅',color:'#4a7860'},
+  {id:'absent',     label:'欠席',      icon:'✕', color:'#b84040'},
+  {id:'pickup_start',label:'お迎え出発',icon:'🚐',color:'#3a60a0'},
+  {id:'pickup_done',label:'乗車済',    icon:'👤',color:'#2980b9'},
+  {id:'arrived',    label:'施設到着',   icon:'🏥',color:'#6b5fa0'},
+  {id:'active',     label:'活動中',     icon:'🎯',color:'#b08a18'},
+  {id:'return_start',label:'帰り出発', icon:'🚐',color:'#d97706'},
+  {id:'returned',   label:'自宅到着',   icon:'🏠',color:'#4a7860'},
+];
+
+function _tpStatus(id){return TP_STATUS.find(function(s){return s.id===id;})||TP_STATUS[0];}
+function _tpNextStatus(id){
+  var idx=TP_STATUS.findIndex(function(s){return s.id===id;});
+  if(idx<0||idx>=TP_STATUS.length-1) return null;
+  // absent は次のステータスなし
+  if(id==='absent') return null;
+  // unconfirmed → attending or absent（選択制なので特別扱い）
+  if(id==='unconfirmed') return TP_STATUS[1]; // attending
+  return TP_STATUS[idx+1];
+}
+
+function _tpGetLog(userId,date){
+  if(!D.transportLogs) D.transportLogs=[];
+  var log=D.transportLogs.find(function(l){return l.userId===userId&&l.date===date;});
+  if(!log){
+    log={id:nid(),userId:userId,date:date,driverId:null,status:'unconfirmed',
+      statusHistory:[],activities:[],notes:'',guardianMessage:'',guardianReply:''};
+    D.transportLogs.push(log);
+  }
+  return log;
+}
+
+var _tpView='users'; // users, route
+
+function pgTransport(){
+  if(!D.transportUsers) D.transportUsers=[];
+  if(!D.transportDrivers) D.transportDrivers=[];
+  if(!D.transportRoutes) D.transportRoutes=[];
+  var td=today();
+  var users=D.transportUsers;
+
+  // サマリー集計
+  var statusCounts={};
+  TP_STATUS.forEach(function(s){statusCounts[s.id]=0;});
+  users.forEach(function(u){
+    var log=_tpGetLog(u.id,td);
+    statusCounts[log.status]=(statusCounts[log.status]||0)+1;
+  });
+
+  // ステータスバー
+  var statusBarHtml='<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px">';
+  TP_STATUS.forEach(function(s){
+    if(s.id==='absent'&&!statusCounts[s.id]) return;
+    statusBarHtml+='<span style="padding:3px 8px;border-radius:4px;font-size:11px;background:'+s.color+'15;color:'+s.color+'">'+s.icon+' '+s.label+' <b>'+statusCounts[s.id]+'</b></span>';
+  });
+  statusBarHtml+='<span style="padding:3px 8px;border-radius:4px;font-size:11px;background:rgba(0,0,0,.04);color:var(--text3)">合計 <b>'+users.length+'</b></span></div>';
+
+  // ビュー切り替え
+  var viewTabHtml=
+    '<div style="display:flex;gap:4px;margin-bottom:12px">'+
+      '<button class="btn bsm '+(_tpView==='users'?'bp':'bs')+'" onclick="_tpView=\'users\';buildPage()">👥 利用者</button>'+
+      '<button class="btn bsm '+(_tpView==='route'?'bp':'bs')+'" onclick="_tpView=\'route\';buildPage()">🚐 ルート</button>'+
+    '</div>';
+
+  var contentHtml='';
+  if(_tpView==='route'){
+    contentHtml=_tpRouteView(td);
+  } else {
+    contentHtml=_tpUsersView(users,td);
+  }
+
+  document.getElementById('ct').innerHTML=statusBarHtml+viewTabHtml+contentHtml;
+  save();
+}
+
+function _tpUsersView(users,td){
+  var listHtml='';
+  if(!users.length){
+    listHtml='<div class="emp" style="padding:40px 0"><div style="font-size:36px">🚐</div><div>利用者が登録されていません</div><div style="font-size:12px;color:var(--text3);margin-top:4px">「＋ 利用者登録」から追加してください</div></div>';
+  } else {
+    listHtml=users.map(function(u){
+      var log=_tpGetLog(u.id,td);
+      var st=_tpStatus(log.status);
+      var nextSt=_tpNextStatus(log.status);
+      var driverName=log.driverId?(D.transportDrivers.find(function(d){return d.id===log.driverId;})||{}).name||'':'';
+
+      var lastUpdate='';
+      if(log.statusHistory&&log.statusHistory.length){
+        var last=log.statusHistory[log.statusHistory.length-1];
+        lastUpdate=last.time||'';
+      }
+
+      return '<div class="card" style="margin-bottom:8px;padding:10px 13px;border-left:4px solid '+st.color+'">'+
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start">'+
+          '<div style="flex:1;min-width:0;cursor:pointer" onclick="showTransportTimeline('+u.id+')">'+
+            '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap">'+
+              '<span style="font-size:14px;font-weight:700">'+esc(u.name)+'</span>'+
+              '<span style="font-size:10px;padding:2px 8px;border-radius:4px;background:'+st.color+'18;color:'+st.color+';font-weight:700">'+st.icon+' '+st.label+'</span>'+
+              (lastUpdate?'<span style="font-size:9px;color:var(--text3)">'+lastUpdate+'</span>':'')+
+            '</div>'+
+            '<div style="display:flex;gap:10px;font-size:10px;color:var(--text3)">'+
+              (u.pickupTime?'<span>🕐 迎 '+esc(u.pickupTime)+'</span>':'')+
+              (u.returnTime?'<span>🕐 送 '+esc(u.returnTime)+'</span>':'')+
+              (driverName?'<span>🚐 '+esc(driverName)+'</span>':'')+
+              (u.guardianName?'<span>👪 '+esc(u.guardianName)+'</span>':'')+
+            '</div>'+
+            (log.notes?'<div style="font-size:10px;color:var(--text2);margin-top:3px;background:var(--bg3);padding:2px 6px;border-radius:3px">'+esc(log.notes)+'</div>':'')+
+          '</div>'+
+          '<div style="display:flex;gap:4px;flex-shrink:0;margin-left:8px;align-items:center">'+
+            (log.status==='unconfirmed'?
+              '<button class="btn bg bsm" onclick="event.stopPropagation();tpSetStatus('+u.id+',\'attending\')">出席</button>'+
+              '<button class="btn bd bsm" onclick="event.stopPropagation();tpSetStatus('+u.id+',\'absent\')">欠席</button>':
+              (nextSt?'<button class="btn bp bsm" onclick="event.stopPropagation();tpSetStatus('+u.id+',\''+nextSt.id+'\')" style="background:'+nextSt.color+';min-width:60px">'+nextSt.icon+' '+nextSt.label+'</button>':''))+
+            '<button class="btn bs bsm" onclick="event.stopPropagation();showTransportTimeline('+u.id+')" style="font-size:10px">詳細</button>'+
+          '</div>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+  }
+
+  // ドライバー情報
+  var driverHtml='';
+  if(D.transportDrivers.length){
+    driverHtml='<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border)"><div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px">🚐 ドライバー</div>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">'+
+      D.transportDrivers.map(function(dr){
+        return '<span style="font-size:11px;padding:4px 10px;background:var(--bg3);border-radius:6px;border:1px solid var(--border)">'+esc(dr.name)+(dr.vehicle?' · '+esc(dr.vehicle):'')+'</span>';
+      }).join('')+'</div></div>';
+  }
+  return listHtml+driverHtml;
+}
+
+// ルートビュー
+function _tpRouteView(td){
+  if(!D.transportRoutes) D.transportRoutes=[];
+  var todayRoutes=D.transportRoutes.filter(function(r){return r.date===td;});
+
+  // ルートがない場合、自動生成ボタン
+  if(!todayRoutes.length){
+    return '<div class="emp" style="padding:30px 0"><div style="font-size:36px">🚐</div><div>今日のルートがありません</div>'+
+      '<div style="margin-top:12px"><button class="btn bp" onclick="tpAutoGenerateRoutes()">📍 今日のルートを自動作成</button></div>'+
+      '<div style="font-size:11px;color:var(--text3);margin-top:6px">出席確認済みの利用者をドライバーごとにルート化します</div>'+
+    '</div>';
+  }
+
+  var html='';
+  // 朝の送迎と帰りの送迎を分けて表示
+  ['pickup','return'].forEach(function(type){
+    var routes=todayRoutes.filter(function(r){return r.type===type;});
+    if(!routes.length) return;
+    var typeLabel=type==='pickup'?'🌅 お迎えルート':'🌆 お送りルート';
+    html+='<div style="font-size:14px;font-weight:700;margin-bottom:10px;margin-top:6px">'+typeLabel+'</div>';
+
+    routes.forEach(function(route){
+      var dr=(D.transportDrivers||[]).find(function(d){return d.id===route.driverId;});
+      var driverLabel=dr?(dr.name+(dr.vehicle?' · '+esc(dr.vehicle):'')):'ドライバー未設定';
+      var stops=route.stops||[];
+      var doneCount=stops.filter(function(s){return s.status==='done';}).length;
+      var pct=stops.length?Math.round(doneCount/stops.length*100):0;
+
+      // 車両カード
+      html+='<div class="card" style="margin-bottom:12px;padding:12px 14px">'+
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
+          '<div>'+
+            '<div style="font-size:13px;font-weight:700">🚐 '+esc(driverLabel)+'</div>'+
+            '<div style="font-size:10px;color:var(--text3)">'+stops.length+'件 · 完了 '+doneCount+'/'+stops.length+
+              (route.startedAt?' · 出発 '+esc(route.startedAt):'')+
+              (route.completedAt?' · 完了 '+esc(route.completedAt):'')+
+            '</div>'+
+          '</div>'+
+          '<div style="display:flex;gap:4px">'+
+            (!route.startedAt?'<button class="btn bp bsm" onclick="tpStartRoute('+route.id+')">🚐 出発</button>':'')+
+            '<button class="btn bs bsm" onclick="showRouteEditMo('+route.id+')" style="font-size:10px">✏️ 編集</button>'+
+          '</div>'+
+        '</div>';
+
+      // プログレスバー
+      html+='<div style="background:var(--border);border-radius:4px;height:8px;margin-bottom:10px;position:relative">'+
+        '<div style="background:var(--accent);height:8px;border-radius:4px;width:'+pct+'%;transition:width .3s"></div>'+
+      '</div>';
+
+      // ストップライン
+      html+='<div style="position:relative;margin-left:16px;padding-left:20px;border-left:3px solid var(--border)">';
+      stops.forEach(function(stop,si){
+        var u=(D.transportUsers||[]).find(function(us){return us.id===stop.userId;});
+        if(!u) return;
+        var isDone=stop.status==='done';
+        var isCurrent=!isDone&&(si===0||stops[si-1].status==='done');
+        var dotColor=isDone?'var(--accent)':isCurrent?'var(--blue)':'var(--border2)';
+        var dotSize=isCurrent?'14px':'10px';
+
+        html+='<div style="position:relative;padding:8px 0;'+(isDone?'opacity:.6':'')+'">'+
+          // ドット
+          '<div style="position:absolute;left:-'+(parseInt(dotSize)/2+11)+'px;top:12px;width:'+dotSize+';height:'+dotSize+';border-radius:50%;background:'+dotColor+';border:2px solid var(--bg2)"></div>'+
+          '<div style="display:flex;justify-content:space-between;align-items:center">'+
+            '<div>'+
+              '<div style="font-size:12px;font-weight:'+(isCurrent?'700':'500')+'">'+
+                '<span style="color:var(--text3);margin-right:4px">'+(si+1)+'.</span>'+
+                esc(u.name)+
+                (isDone?' <span style="color:var(--accent)">✓</span>':'')+
+                (stop.guardianConfirmed?' <span style="color:var(--blue);font-size:10px">👪確認済</span>':'')+
+              '</div>'+
+              '<div style="font-size:10px;color:var(--text3)">'+
+                esc(u.address||'')+
+                (stop.arrivedTime?' · '+esc(stop.arrivedTime):'')+
+              '</div>'+
+            '</div>'+
+            '<div style="display:flex;gap:4px;flex-shrink:0">'+
+              (isCurrent&&route.startedAt?'<button class="btn bp bsm" onclick="tpCompleteStop('+route.id+','+si+')" style="font-size:10px">'+(type==='pickup'?'👤 乗車':'🏠 到着')+'</button>':'')+
+              (!isDone?'<button class="btn bb bsm" onclick="tpGuardianConfirm('+route.id+','+si+')" style="font-size:10px">👪 確認</button>':'')+
+            '</div>'+
+          '</div>'+
+        '</div>';
+      });
+      html+='</div></div>';
+    });
+  });
+
+  html+='<div style="margin-top:12px;display:flex;gap:6px">'+
+    '<button class="btn bp bsm" onclick="tpAutoGenerateRoutes()">📍 ルート再作成</button>'+
+    '<button class="btn bs bsm" onclick="tpClearRoutes()">🗑 今日のルートをクリア</button>'+
+  '</div>';
+
+  return html;
+}
+
+// ルート自動生成
+function tpAutoGenerateRoutes(){
+  if(!D.transportRoutes) D.transportRoutes=[];
+  var td=today();
+  // 今日のルートをクリア
+  D.transportRoutes=D.transportRoutes.filter(function(r){return r.date!==td;});
+
+  // 出席確認済みの利用者をドライバーごとにグループ化
+  var driverGroups={};
+  (D.transportUsers||[]).forEach(function(u){
+    var log=_tpGetLog(u.id,td);
+    if(log.status==='absent'||log.status==='unconfirmed') return;
+    var dId=u.defaultDriverId||'none';
+    if(!driverGroups[dId]) driverGroups[dId]=[];
+    driverGroups[dId].push(u);
+  });
+
+  // 各ドライバーに朝の迎えルートと帰りの送りルートを作成
+  Object.keys(driverGroups).forEach(function(dId){
+    var users=driverGroups[dId];
+    // 迎えはpickupTime順
+    var pickupOrder=users.slice().sort(function(a,b){return (a.pickupTime||'09:00').localeCompare(b.pickupTime||'09:00');});
+    // 送りはreturnTime順
+    var returnOrder=users.slice().sort(function(a,b){return (a.returnTime||'16:00').localeCompare(b.returnTime||'16:00');});
+
+    var driverId=dId==='none'?null:parseInt(dId);
+
+    // 迎えルート
+    D.transportRoutes.push({
+      id:nid(),date:td,type:'pickup',driverId:driverId,
+      stops:pickupOrder.map(function(u,i){
+        return {order:i+1,userId:u.id,status:'pending',arrivedTime:'',guardianConfirmed:false,guardianConfirmTime:''};
+      }),
+      startedAt:'',completedAt:''
+    });
+
+    // 送りルート
+    D.transportRoutes.push({
+      id:nid(),date:td,type:'return',driverId:driverId,
+      stops:returnOrder.map(function(u,i){
+        return {order:i+1,userId:u.id,status:'pending',arrivedTime:'',guardianConfirmed:false,guardianConfirmTime:''};
+      }),
+      startedAt:'',completedAt:''
+    });
+  });
+
+  save();_flush();buildPage();
+  toast('今日のルートを作成しました ✅');
+}
+
+function tpClearRoutes(){
+  if(!D.transportRoutes) return;
+  var td=today();
+  D.transportRoutes=D.transportRoutes.filter(function(r){return r.date!==td;});
+  save();_flush();buildPage();
+  toast('今日のルートをクリアしました');
+}
+
+// ルート出発
+function tpStartRoute(routeId){
+  var route=D.transportRoutes.find(function(r){return r.id===routeId;});
+  if(!route) return;
+  var now=new Date();
+  route.startedAt=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  save();_flush();buildPage();
+  toast('🚐 出発しました');
+}
+
+// ストップ完了（乗車 or 自宅到着）
+function tpCompleteStop(routeId,stopIdx){
+  var route=D.transportRoutes.find(function(r){return r.id===routeId;});
+  if(!route||!route.stops[stopIdx]) return;
+  var stop=route.stops[stopIdx];
+  var now=new Date();
+  var timeStr=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  stop.status='done';
+  stop.arrivedTime=timeStr;
+
+  // 利用者のステータスも連動更新
+  var u=(D.transportUsers||[]).find(function(us){return us.id===stop.userId;});
+  if(u){
+    var newStatus=route.type==='pickup'?'pickup_done':'returned';
+    tpSetStatus(stop.userId,newStatus);
+  }
+
+  // 全ストップ完了チェック
+  var allDone=route.stops.every(function(s){return s.status==='done';});
+  if(allDone){
+    route.completedAt=timeStr;
+    toast('🎉 ルート完了！');
+  } else {
+    toast('✓ '+esc(u?u.name:'')+'完了');
+  }
+  save();_flush();buildPage();
+}
+
+// 保護者確認
+function tpGuardianConfirm(routeId,stopIdx){
+  var route=D.transportRoutes.find(function(r){return r.id===routeId;});
+  if(!route||!route.stops[stopIdx]) return;
+  var stop=route.stops[stopIdx];
+  var now=new Date();
+  stop.guardianConfirmed=true;
+  stop.guardianConfirmTime=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  save();_flush();buildPage();
+  var u=(D.transportUsers||[]).find(function(us){return us.id===stop.userId;});
+  toast('👪 '+esc(u?u.guardianName||u.name:'')+' 確認済');
+}
+
+// ルート編集モーダル（並び替え）
+function showRouteEditMo(routeId){
+  var route=D.transportRoutes.find(function(r){return r.id===routeId;});
+  if(!route) return;
+  var dr=(D.transportDrivers||[]).find(function(d){return d.id===route.driverId;});
+  var typeLabel=route.type==='pickup'?'お迎え':'お送り';
+
+  var stopsHtml=(route.stops||[]).map(function(stop,i){
+    var u=(D.transportUsers||[]).find(function(us){return us.id===stop.userId;});
+    if(!u) return '';
+    return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)" data-stop-idx="'+i+'">'+
+      '<span style="font-size:12px;color:var(--text3);width:24px;text-align:center">'+(i+1)+'</span>'+
+      '<span style="flex:1;font-size:12px;font-weight:600">'+esc(u.name)+'</span>'+
+      '<span style="font-size:10px;color:var(--text3)">'+esc(u.address||'')+'</span>'+
+      '<div style="display:flex;gap:2px">'+
+        (i>0?'<button class="btn bs bsm" onclick="tpMoveStop('+routeId+','+i+',-1)" style="font-size:10px">↑</button>':'')+
+        (i<route.stops.length-1?'<button class="btn bs bsm" onclick="tpMoveStop('+routeId+','+i+',1)" style="font-size:10px">↓</button>':'')+
+        '<button class="btn bd bsm" onclick="tpRemoveStop('+routeId+','+i+')" style="font-size:9px">✕</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+
+  mo('<div class="mt">🚐 '+typeLabel+'ルート編集'+(dr?' — '+esc(dr.name):'')+'</div>'+
+    '<div style="margin-bottom:12px">'+stopsHtml+'</div>'+
+    '<div class="mf"><button class="btn bs" onclick="cmo()">閉じる</button></div>',true);
+}
+
+function tpMoveStop(routeId,idx,dir){
+  var route=D.transportRoutes.find(function(r){return r.id===routeId;});
+  if(!route) return;
+  var newIdx=idx+dir;
+  if(newIdx<0||newIdx>=route.stops.length) return;
+  var tmp=route.stops[idx];
+  route.stops[idx]=route.stops[newIdx];
+  route.stops[newIdx]=tmp;
+  save();_flush();cmo();
+  showRouteEditMo(routeId);
+}
+
+function tpRemoveStop(routeId,idx){
+  var route=D.transportRoutes.find(function(r){return r.id===routeId;});
+  if(!route) return;
+  route.stops.splice(idx,1);
+  save();_flush();cmo();
+  showRouteEditMo(routeId);
+  toast('ストップを削除しました');
+}
+
+function tpSetStatus(userId,status){
+  var td=today();
+  var log=_tpGetLog(userId,td);
+  log.status=status;
+  var now=new Date();
+  var timeStr=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  if(!log.statusHistory) log.statusHistory=[];
+  log.statusHistory.push({status:status,time:timeStr,memo:''});
+  save();_flush();buildPage();
+  var st=_tpStatus(status);
+  var u=(D.transportUsers||[]).find(function(u){return u.id===userId;});
+  toast((u?u.name:'')+'：'+st.icon+' '+st.label);
+}
+
+// 利用者の1日タイムライン
+function showTransportTimeline(userId){
+  var u=(D.transportUsers||[]).find(function(u){return u.id===userId;});
+  if(!u) return;
+  var td=today();
+  var log=_tpGetLog(u.id,td);
+  var st=_tpStatus(log.status);
+
+  // タイムライン
+  var timelineHtml='<div style="margin-bottom:12px">';
+  if(log.statusHistory&&log.statusHistory.length){
+    log.statusHistory.forEach(function(h){
+      var hs=_tpStatus(h.status);
+      timelineHtml+='<div style="display:flex;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)">'+
+        '<span style="font-size:11px;color:var(--text3);width:40px">'+esc(h.time)+'</span>'+
+        '<span style="font-size:14px">'+hs.icon+'</span>'+
+        '<span style="font-size:12px;font-weight:600;color:'+hs.color+'">'+hs.label+'</span>'+
+        (h.memo?'<span style="font-size:10px;color:var(--text3)">'+esc(h.memo)+'</span>':'')+
+      '</div>';
+    });
+  } else {
+    timelineHtml+='<div style="font-size:11px;color:var(--text3)">まだ記録がありません</div>';
+  }
+  timelineHtml+='</div>';
+
+  // 活動記録
+  var actHtml='<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px">🎯 活動記録</div>';
+  if(log.activities&&log.activities.length){
+    log.activities.forEach(function(a,i){
+      actHtml+='<div style="display:flex;gap:8px;align-items:center;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px">'+
+        '<span style="color:var(--text3);width:40px">'+esc(a.time||'')+'</span>'+
+        '<span style="flex:1">'+esc(a.content||'')+'</span>'+
+        '<button class="btn bd bsm" onclick="tpDelActivity('+u.id+','+i+')" style="font-size:9px">✕</button>'+
+      '</div>';
+    });
+  } else {
+    actHtml+='<div style="font-size:11px;color:var(--text3)">記録なし</div>';
+  }
+  actHtml+='<div style="display:flex;gap:4px;margin-top:6px">'+
+    '<input type="time" id="tp-act-time" value="'+String(new Date().getHours()).padStart(2,'0')+':'+String(new Date().getMinutes()).padStart(2,'0')+'" style="width:80px;font-size:11px">'+
+    '<input id="tp-act-content" placeholder="活動内容（食事、入浴、レク等）" style="flex:1;font-size:11px">'+
+    '<button class="btn bg bsm" onclick="tpAddActivity('+u.id+')">追加</button>'+
+  '</div></div>';
+
+  // 連絡帳
+  var contactHtml='<div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:var(--blue);margin-bottom:4px">💬 連絡帳</div>'+
+    '<div class="fr"><label class="fl">スタッフメモ（保護者に共有）</label><textarea id="tp-notes" rows="2" style="font-size:12px">'+esc(log.notes||'')+'</textarea></div>'+
+    '<div class="fr"><label class="fl">保護者からの連絡</label><textarea id="tp-guardian-msg" rows="2" style="font-size:12px">'+esc(log.guardianMessage||'')+'</textarea></div>'+
+    '<button class="btn bs bsm" onclick="tpSaveNotes('+u.id+')">💾 メモ保存</button>'+
+  '</div>';
+
+  // 利用者情報
+  var infoHtml='<div style="padding:8px;background:var(--bg3);border-radius:6px;font-size:11px;margin-bottom:12px">'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">'+
+      '<div><span style="color:var(--text3)">保護者</span> '+esc(u.guardianName||'—')+'</div>'+
+      '<div><span style="color:var(--text3)">TEL</span> '+esc(u.guardianPhone||'—')+'</div>'+
+      '<div><span style="color:var(--text3)">住所</span> '+esc(u.address||'—')+'</div>'+
+      '<div><span style="color:var(--text3)">迎え</span> '+esc(u.pickupTime||'—')+' <span style="color:var(--text3)">送り</span> '+esc(u.returnTime||'—')+'</div>'+
+    '</div>'+
+    (u.medicalNotes?'<div style="margin-top:4px;color:var(--red)">⚠️ '+esc(u.medicalNotes)+'</div>':'')+
+  '</div>';
+
+  mo('<div class="mt">'+st.icon+' '+esc(u.name)+' — '+fmtD(td)+'</div>'+
+    '<div style="text-align:center;margin-bottom:12px"><span style="font-size:16px;padding:6px 16px;border-radius:8px;background:'+st.color+'15;color:'+st.color+';font-weight:700">'+st.icon+' '+st.label+'</span></div>'+
+    timelineHtml+actHtml+contactHtml+infoHtml+
+    '<div class="mf">'+
+      '<button class="btn bs" onclick="showTransportUserMo('+u.id+')">✏️ 利用者編集</button>'+
+      '<button class="btn bs" onclick="cmo()">閉じる</button>'+
+    '</div>',true);
+}
+
+function tpAddActivity(userId){
+  var td=today();
+  var log=_tpGetLog(userId,td);
+  if(!log.activities) log.activities=[];
+  var time=document.getElementById('tp-act-time')?.value||'';
+  var content=document.getElementById('tp-act-content')?.value?.trim()||'';
+  if(!content){toast('活動内容を入力してください','er');return;}
+  log.activities.push({time:time,content:content});
+  save();_flush();cmo();
+  showTransportTimeline(userId);
+  toast('活動を記録しました ✅');
+}
+
+function tpDelActivity(userId,idx){
+  var td=today();
+  var log=_tpGetLog(userId,td);
+  if(log.activities) log.activities.splice(idx,1);
+  save();_flush();cmo();
+  showTransportTimeline(userId);
+}
+
+function tpSaveNotes(userId){
+  var td=today();
+  var log=_tpGetLog(userId,td);
+  log.notes=document.getElementById('tp-notes')?.value?.trim()||'';
+  log.guardianMessage=document.getElementById('tp-guardian-msg')?.value?.trim()||'';
+  save();_flush();
+  toast('メモを保存しました ✅');
+}
+
+// 利用者登録・編集モーダル
+function showTransportUserMo(id){
+  if(!D.transportUsers) D.transportUsers=[];
+  var u=id?D.transportUsers.find(function(us){return us.id===id;}):null;
+  var isNew=!u;
+
+  mo('<div class="mt">'+(isNew?'利用者を登録':'利用者を編集')+'</div>'+
+    '<div class="fg">'+
+      '<div class="fr"><label class="fl">利用者名 *</label><input id="tpu-name" value="'+esc(u?u.name:'')+'"></div>'+
+      '<div class="fr"><label class="fl">ふりがな</label><input id="tpu-kana" value="'+esc(u?u.kana:'')+'"></div>'+
+      '<div class="fr"><label class="fl">保護者名</label><input id="tpu-guardian" value="'+esc(u?u.guardianName:'')+'"></div>'+
+      '<div class="fr"><label class="fl">保護者 TEL</label><input id="tpu-gphone" type="tel" value="'+esc(u?u.guardianPhone:'')+'"></div>'+
+      '<div class="fr" style="grid-column:1/-1"><label class="fl">住所</label><input id="tpu-addr" value="'+esc(u?u.address:'')+'"></div>'+
+      '<div class="fr"><label class="fl">お迎え予定時間</label><input type="time" id="tpu-pickup" value="'+esc(u?u.pickupTime:'')+'"></div>'+
+      '<div class="fr"><label class="fl">お送り予定時間</label><input type="time" id="tpu-return" value="'+esc(u?u.returnTime:'')+'"></div>'+
+      '<div class="fr"><label class="fl">担当ドライバー</label><select id="tpu-driver"><option value="">— 未設定 —</option>'+
+        (D.transportDrivers||[]).map(function(dr){return '<option value="'+dr.id+'" '+(u&&u.defaultDriverId===dr.id?'selected':'')+'>'+esc(dr.name)+'</option>';}).join('')+
+      '</select></div>'+
+    '</div>'+
+    '<div class="fr"><label class="fl">医療情報・注意事項</label><textarea id="tpu-medical" rows="2" placeholder="アレルギー、服薬、注意点など...">'+esc(u?u.medicalNotes:'')+'</textarea></div>'+
+    '<div class="fr"><label class="fl">メモ</label><textarea id="tpu-memo" rows="2">'+esc(u?u.memo:'')+'</textarea></div>'+
+    '<div class="mf">'+
+      (u?'<button class="btn bd" onclick="tpDelUser('+u.id+')">🗑 削除</button>':'')+
+      '<button class="btn bs" onclick="cmo()">キャンセル</button>'+
+      '<button class="btn bp" onclick="tpSaveUser('+(u?u.id:'null')+')">💾 保存</button>'+
+    '</div>');
+}
+
+function tpSaveUser(id){
+  var name=document.getElementById('tpu-name').value.trim();
+  if(!name){toast('利用者名を入力してください','er');return;}
+  if(!D.transportUsers) D.transportUsers=[];
+  var obj={
+    name:name,
+    kana:document.getElementById('tpu-kana').value.trim(),
+    guardianName:document.getElementById('tpu-guardian').value.trim(),
+    guardianPhone:document.getElementById('tpu-gphone').value.trim(),
+    address:document.getElementById('tpu-addr').value.trim(),
+    pickupTime:document.getElementById('tpu-pickup').value||'',
+    returnTime:document.getElementById('tpu-return').value||'',
+    defaultDriverId:parseInt(document.getElementById('tpu-driver').value)||null,
+    medicalNotes:document.getElementById('tpu-medical').value.trim(),
+    memo:document.getElementById('tpu-memo').value.trim()
+  };
+  if(id&&id!=='null'){
+    var i=D.transportUsers.findIndex(function(u){return u.id===id;});
+    if(i>=0){D.transportUsers[i]={...D.transportUsers[i],...obj};toast('利用者を更新しました ✅');}
+    else{obj.id=nid();D.transportUsers.push(obj);toast('利用者を登録しました ✅');}
+  } else {
+    obj.id=nid();D.transportUsers.push(obj);toast('利用者を登録しました ✅');
+  }
+  save();_flush();cmo();buildPage();
+}
+
+function tpDelUser(id){
+  if(!D.transportUsers) return;
+  D.transportUsers=D.transportUsers.filter(function(u){return u.id!==id;});
+  save();_flush();cmo();buildPage();
+  toast('利用者を削除しました');
+}
+
+// ドライバー登録・編集モーダル
+function showTransportDriverMo(id){
+  if(!D.transportDrivers) D.transportDrivers=[];
+  var dr=id?D.transportDrivers.find(function(d){return d.id===id;}):null;
+
+  var listHtml=(D.transportDrivers||[]).length?
+    '<div style="margin-bottom:12px">'+D.transportDrivers.map(function(d){
+      return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border)">'+
+        '<span style="flex:1;font-size:12px;font-weight:600">🚐 '+esc(d.name)+(d.vehicle?' · '+esc(d.vehicle):'')+(d.phone?' · '+esc(d.phone):'')+'</span>'+
+        '<button class="btn bs bsm" onclick="cmo();showTransportDriverEditMo('+d.id+')" style="font-size:10px">✏️</button>'+
+        '<button class="btn bd bsm" onclick="tpDelDriver('+d.id+')" style="font-size:10px">✕</button>'+
+      '</div>';
+    }).join('')+'</div>':'<div style="font-size:11px;color:var(--text3);margin-bottom:12px">ドライバー未登録</div>';
+
+  mo('<div class="mt">🚐 ドライバー管理</div>'+
+    listHtml+
+    '<div style="padding-top:10px;border-top:1px solid var(--border)"><div style="font-size:12px;font-weight:700;margin-bottom:6px">＋ 新規登録</div>'+
+    '<div class="fg">'+
+      '<div class="fr"><label class="fl">氏名 *</label><input id="tpd-name"></div>'+
+      '<div class="fr"><label class="fl">電話番号</label><input id="tpd-phone" type="tel"></div>'+
+      '<div class="fr"><label class="fl">車両名</label><input id="tpd-vehicle" placeholder="例: 白いハイエース"></div>'+
+    '</div>'+
+    '<div class="mf"><button class="btn bs" onclick="cmo()">閉じる</button><button class="btn bp" onclick="tpSaveDriver()">💾 登録</button></div></div>');
+}
+
+function showTransportDriverEditMo(id){
+  var dr=(D.transportDrivers||[]).find(function(d){return d.id===id;});
+  if(!dr) return;
+  mo('<div class="mt">🚐 ドライバー編集</div>'+
+    '<div class="fg">'+
+      '<div class="fr"><label class="fl">氏名 *</label><input id="tpd-name" value="'+esc(dr.name||'')+'"></div>'+
+      '<div class="fr"><label class="fl">電話番号</label><input id="tpd-phone" type="tel" value="'+esc(dr.phone||'')+'"></div>'+
+      '<div class="fr"><label class="fl">車両名</label><input id="tpd-vehicle" value="'+esc(dr.vehicle||'')+'"></div>'+
+    '</div>'+
+    '<div class="mf"><button class="btn bd" onclick="tpDelDriver('+dr.id+')">🗑 削除</button><button class="btn bs" onclick="cmo()">キャンセル</button><button class="btn bp" onclick="tpUpdateDriver('+dr.id+')">💾 保存</button></div>');
+}
+
+function tpSaveDriver(){
+  var name=document.getElementById('tpd-name').value.trim();
+  if(!name){toast('氏名を入力してください','er');return;}
+  if(!D.transportDrivers) D.transportDrivers=[];
+  D.transportDrivers.push({
+    id:nid(),name:name,
+    phone:document.getElementById('tpd-phone').value.trim(),
+    vehicle:document.getElementById('tpd-vehicle').value.trim()
+  });
+  save();_flush();cmo();buildPage();
+  toast('ドライバーを登録しました ✅');
+}
+
+function tpUpdateDriver(id){
+  var dr=(D.transportDrivers||[]).find(function(d){return d.id===id;});
+  if(!dr) return;
+  var name=document.getElementById('tpd-name').value.trim();
+  if(!name){toast('氏名を入力してください','er');return;}
+  dr.name=name;
+  dr.phone=document.getElementById('tpd-phone').value.trim();
+  dr.vehicle=document.getElementById('tpd-vehicle').value.trim();
+  save();_flush();cmo();buildPage();
+  toast('ドライバーを更新しました ✅');
+}
+
+function tpDelDriver(id){
+  if(!D.transportDrivers) return;
+  D.transportDrivers=D.transportDrivers.filter(function(d){return d.id!==id;});
+  save();_flush();cmo();buildPage();
+  toast('ドライバーを削除しました');
 }
 
 // ============================================================
