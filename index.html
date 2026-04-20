@@ -264,10 +264,32 @@ tbody tr:hover td{background:var(--bg3)}
   #sb-ov{ display:none!important; }
   #mob-nav{ display:none !important; }
 }
+@media (max-width:900px) and (orientation:landscape){
+  #landscape-warning{
+    display:flex !important;
+    position:fixed;
+    inset:0;
+    z-index:9999;
+    background:var(--bg1);
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:16px;
+    padding:24px;
+    text-align:center;
+  }
+}
+#landscape-warning{display:none}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
+
+<div id="landscape-warning">
+  <div style="font-size:64px">📱</div>
+  <div style="font-size:18px;font-weight:700;color:var(--text)">画面を縦向きにしてください</div>
+  <div style="font-size:13px;color:var(--text2);max-width:280px;line-height:1.6">BizLockは縦向きでご利用いただく設計です。デバイスを縦にして再度ご利用ください。</div>
+</div>
 
 <div id="sb-ov" onclick="toggleSb()"></div>
 <div id="sb">
@@ -1049,7 +1071,7 @@ function pgDash(){
         '<div style="font-size:14px;font-weight:700;color:var(--red)">🚨 要対応 '+
           '<span style="display:inline-block;min-width:22px;padding:1px 6px;background:var(--red);color:#fff;border-radius:11px;font-size:11px;text-align:center;margin-left:4px">'+totalAlerts+'</span>'+
         '</div>'+
-        (allAlerts.length>previewCount?'<button class="btn bs bsm" onclick="showAllAlertsMo()" style="font-size:11px">すべて見る ▼</button>':'')+
+        '<button class="btn bs bsm" onclick="showAllAlertsMo()" style="font-size:11px">すべて見る ▼</button>'+
       '</div>'+
       '<div style="display:flex;flex-direction:column;gap:5px">';
     preview.forEach(function(a){
