@@ -353,7 +353,7 @@ tbody tr:hover td{background:var(--bg3)}
 // ============================================================
 // DATA — single in-memory object, flush to localStorage on debounce
 // ============================================================
-const K={c:'s5c',p:'s5p',q:'s5q',s:'s5s',id:'s5id',st:'s5st',si:'s5si',sl:'s5sl',bc:'s5bc',tm:'s5tm',ts:'s5ts',rsv:'s5rsv',db:'s5db',dr:'s5dr',tu:'s5tu',tl:'s5tl',td:'s5td',tr:'s5tr',cs:'s5cs'};
+const K={c:'s5c',p:'s5p',q:'s5q',s:'s5s',id:'s5id',st:'s5st',si:'s5si',sl:'s5sl',bc:'s5bc',tm:'s5tm',ts:'s5ts',rsv:'s5rsv',db:'s5db',dr:'s5dr',tu:'s5tu',tl:'s5tl',td:'s5td',tr:'s5tr',cs:'s5cs',inb:'s5inb'};
 let D=null; // THE single data object
 
 function initD(){
@@ -377,6 +377,7 @@ function initD(){
     transportDrivers: JSON.parse(localStorage.getItem(K.td)||'[]'),
     transportRoutes: JSON.parse(localStorage.getItem(K.tr)||'[]'),
     cases: JSON.parse(localStorage.getItem(K.cs)||'[]'),
+    inboxMessages: JSON.parse(localStorage.getItem(K.inb)||'[]'),
     nextId:     parseInt(localStorage.getItem(K.id)||'1'),
     cfg:        JSON.parse(localStorage.getItem('s5cfg')||'{}'),
   };
@@ -412,6 +413,7 @@ function _flush(){
     localStorage.setItem(K.td,JSON.stringify(D.transportDrivers||[]));
     localStorage.setItem(K.tr,JSON.stringify(D.transportRoutes||[]));
     localStorage.setItem(K.cs,JSON.stringify(D.cases||[]));
+    localStorage.setItem(K.inb,JSON.stringify(D.inboxMessages||[]));
     localStorage.setItem(K.id,D.nextId);
     if(D.cfg) localStorage.setItem('s5cfg',JSON.stringify(D.cfg));
     const el=document.getElementById('sv-time');
@@ -742,6 +744,13 @@ function toggleBlock(blockId){
   save();_flush();renderSidebar();buildPage();
 }
 
+function toggleDashBlock(blockId){
+  if(!D.cfg) D.cfg={};
+  if(!D.cfg.dashBlocks) D.cfg.dashBlocks={};
+  D.cfg.dashBlocks[blockId]=!D.cfg.dashBlocks[blockId];
+  save();_flush();buildPage();
+}
+
 function saveCustomPreset(){
   var name=document.getElementById('cfg-preset-name')?.value.trim();
   if(!name){toast('プリセット名を入力してください','er');return;}
@@ -959,27 +968,56 @@ function wxHtml(w){
 // DASHBOARD
 // ============================================================
 function pgDash(){
-  const done=D.projects.filter(p=>p.status==='完了').reduce((s,p)=>s+p.amount,0);
-  const act=D.projects.filter(p=>p.status==='進行中').length;
-  const pend=D.quotes.filter(q=>q.status==='提出済'||q.status==='作成中').length;
-  const tq=D.quotes.reduce((s,q)=>s+q.amount,0);
-  const now=new Date();const ws=wkStart(now);
-  const days7=Array.from({length:7},function(_,i){const d=new Date(ws);d.setDate(ws.getDate()+i);return d;});
-  const dns=['日','月','火','水','木','金','土'];
+  const now=new Date();
+  const td=today();
   const mob=window.innerWidth<=768;
 
-  // 今週のカレンダー列
+  // ============================================
+  // 1. 要対応（期限が近いもの・超過）
+  // ============================================
+  const alerts=_getAlerts();
+  const urgentAlerts=alerts.filter(a=>a.overdue||a.diff<=3).sort((a,b)=>a.date.localeCompare(b.date));
+  const upcomingAlerts=alerts.filter(a=>!a.overdue&&a.diff>3).sort((a,b)=>a.date.localeCompare(b.date));
+
+  // 在庫アラート
+  const stockLow=(D.stockItems||[]).filter(s=>s.qty<=s.reorder&&s.reorder>0);
+
+  // 案件・事件（士業）の期限
+  const casesOverdue=(D.cases||[]).filter(c=>{
+    if(!c.deadline||c.status==='completed') return false;
+    const diff=Math.floor((new Date(c.deadline)-now)/(1000*60*60*24));
+    return diff<=3;
+  });
+
+  const totalAlerts=urgentAlerts.length+stockLow.length+casesOverdue.length;
+  const allAlerts=[...urgentAlerts.map(a=>({type:'alert',...a})),...casesOverdue.map(c=>{
+    const diff=Math.floor((new Date(c.deadline)-now)/(1000*60*60*24));
+    return{type:'case',diff:diff,overdue:diff<0,label:'⚖️ '+c.title+'｜期限',date:c.deadline,caseId:c.id};
+  }),...stockLow.map(s=>({type:'stock',label:'📦 '+s.name+' 残少（'+s.qty+s.unit+'）',stockId:s.id}))];
+
+  // ============================================
+  // 2. 今日のスケジュール
+  // ============================================
+  const todaySchedules=(D.schedules||[]).filter(s=>s.date===td).sort((a,b)=>(a.st||'').localeCompare(b.st||''));
+  const todayProjs=(D.projects||[]).filter(p=>p.sd&&p.ed&&new Date(p.sd)<=now&&new Date(p.ed)>=now&&p.status!=='完了');
+
+  // ============================================
+  // 3. 今週のスケジュール
+  // ============================================
+  const ws=wkStart(now);
+  const days7=Array.from({length:7},function(_,i){const d=new Date(ws);d.setDate(ws.getDate()+i);return d;});
+  const dns=['日','月','火','水','木','金','土'];
   const cols7=days7.map(function(dd){
     const ds=dd.toISOString().slice(0,10);
     const isT=dd.toDateString()===now.toDateString();
     const dw=dd.getDay();
-    const sc=D.schedules.filter(function(s){return s.date===ds;});
-    const al=D.projects.filter(function(p){return p.sd&&p.ed&&new Date(p.sd)<=dd&&new Date(p.ed)>=dd;});
+    const sc=(D.schedules||[]).filter(function(s){return s.date===ds;});
+    const al=(D.projects||[]).filter(function(p){return p.sd&&p.ed&&new Date(p.sd)<=dd&&new Date(p.ed)>=dd&&p.status!=='完了';});
     const ev=[
-      ...al.slice(0,1).map(function(p){return'<div style="background:'+pc(p.phase)+'22;color:'+pc(p.phase)+';border-left:2px solid '+pc(p.phase)+';border-radius:3px;padding:2px 4px;font-size:9px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px">⚡'+p.title+'</div>';}),
-      ...sc.slice(0,2).map(function(s){return'<div style="background:'+(s.color||'var(--accent)')+'18;color:'+(s.color||'var(--accent)')+';border-left:2px solid '+(s.color||'var(--accent)')+';border-radius:3px;padding:2px 4px;font-size:9px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;cursor:pointer" onclick="showSchedMo('+s.id+',\''+ds+'\')">'+s.st+' '+esc(s.title)+'</div>';})
+      ...al.slice(0,1).map(function(p){return'<div style="background:'+pc(p.phase)+'22;color:'+pc(p.phase)+';border-left:2px solid '+pc(p.phase)+';border-radius:3px;padding:2px 4px;font-size:9px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px">⚡'+esc(p.title)+'</div>';}),
+      ...sc.slice(0,2).map(function(s){return'<div style="background:'+(s.color||'var(--accent)')+'18;color:'+(s.color||'var(--accent)')+';border-left:2px solid '+(s.color||'var(--accent)')+';border-radius:3px;padding:2px 4px;font-size:9px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;cursor:pointer" onclick="showSchedMo('+s.id+',\''+ds+'\')">'+(s.st||'')+' '+esc(s.title)+'</div>';})
     ].join('');
-    return'<div style="flex:1;border-right:1px solid var(--border);padding:5px 3px;min-height:80px;background:'+(isT?'rgba(74,124,95,.05)':'transparent')+';cursor:pointer" onclick="showSchedMo(null,\''+ds+'\')">'+
+    return'<div style="flex:1;border-right:1px solid var(--border);padding:5px 3px;min-height:70px;background:'+(isT?'rgba(74,124,95,.05)':'transparent')+';cursor:pointer" onclick="showSchedMo(null,\''+ds+'\')">'+
       '<div style="text-align:center;margin-bottom:4px">'+
         '<div style="font-size:9px;color:'+(dw===0?'var(--red)':dw===6?'var(--blue)':'var(--text3)')+';font-weight:700">'+dns[dw]+'</div>'+
         '<div style="font-size:13px;font-weight:900;'+(isT?'background:var(--accent);color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;font-size:11px':'')+'">'+dd.getDate()+'</div>'+
@@ -988,81 +1026,461 @@ function pgDash(){
     '</div>';
   }).join('');
 
-  // 統計カード（スマホは小さく）
-  const statCards=mob?
-    `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
-      <div class="sc" style="padding:10px 12px"><div class="sl">総顧客数</div><div style="font-size:18px;font-weight:900;color:var(--blue)">${D.customers.length}</div></div>
-      <div class="sc" style="padding:10px 12px"><div class="sl">進行中案件</div><div style="font-size:18px;font-weight:900;color:var(--accent)">${act}</div></div>
-      <div class="sc" style="padding:10px 12px"><div class="sl">未処理見積</div><div style="font-size:18px;font-weight:900;color:var(--purple)">${pend}</div></div>
-      <div class="sc" style="padding:10px 12px"><div class="sl">完了売上</div><div style="font-size:14px;font-weight:900;color:var(--green)">${fmt(done)}</div></div>
-    </div>`:
-    `<div class="sg">
-      <div class="sc"><div class="sl">総顧客数</div><div class="sv" style="color:var(--blue)">${D.customers.length}</div><div class="ss">登録顧客</div></div>
-      <div class="sc"><div class="sl">進行中案件</div><div class="sv" style="color:var(--accent)">${act}</div><div class="ss">現在稼働中</div></div>
-      <div class="sc"><div class="sl">未処理見積</div><div class="sv" style="color:var(--purple)">${pend}</div><div class="ss">要対応</div></div>
-      <div class="sc"><div class="sl">完了案件 売上</div><div class="sv" style="color:var(--green);font-size:16px">${fmt(done)}</div><div class="ss">累計</div></div>
-    </div>`;
+  // ============================================
+  // 4. 未処理・進行中の件数
+  // ============================================
+  const cntProjAct=(D.projects||[]).filter(p=>p.status==='進行中').length;
+  const cntQuotePend=(D.quotes||[]).filter(q=>q.status==='提出済'||q.status==='作成中').length;
+  const cntCaseAct=(D.cases||[]).filter(c=>c.status!=='completed').length;
+  const cntDocDraft=(D.docbox||[]).filter(d=>d.docStatus&&d.docStatus!=='done'&&d.docStatus!=='').length;
 
-  // 進行中案件・最近の見積（スマホは縦1列）
-  const midSection=mob?
-    `<div class="card" style="margin-bottom:12px">
-      <div class="ct">⚡ 進行中の案件</div>
-      ${D.projects.filter(p=>p.status!=='完了').length?
-        D.projects.filter(p=>p.status!=='完了').map(p=>`<div class="tli" style="cursor:pointer" onclick="showProjDetail(${p.id})">
-          <div class="tlic" style="background:${pc(p.phase)}22">${PI[p.phase]||'⚡'}</div>
-          <div style="flex:1;min-width:0">
-            <div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.title}</div>
-            <div style="font-size:11px;color:var(--text3)">${cname(p.cid)} · ${fmtD(p.ed)}まで</div>
-          </div>
-          <div style="text-align:right;flex-shrink:0;margin-left:8px">
-            <div class="amt" style="font-size:12px">${fmt(p.amount)}</div>
-            ${bdg(p.phase)}
-          </div>
-        </div>`).join(''):
-        '<div class="emp"><div style="font-size:30px">📭</div></div>'}
-    </div>
-    <div class="card" style="margin-bottom:12px">
-      <div class="ct">📋 最近の見積</div>
-      ${D.quotes.slice(-3).reverse().map(q=>`<div class="tli">
-        <div style="flex:1;min-width:0">
-          <div style="font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${q.title}</div>
-          <div style="font-size:11px;color:var(--text3)">${q.qn} · ${cname(q.cid)}</div>
-        </div>
-        <div style="text-align:right;flex-shrink:0;margin-left:8px">
-          <div class="amt" style="font-size:12px">${fmt(q.amount)}</div>
-          ${bdg(q.status)}
-        </div>
-      </div>`).join('')}
-      <div style="padding-top:8px;border-top:1px solid var(--border);display:flex;justify-content:space-between">
-        <span style="font-size:11px;color:var(--text3)">見積合計</span>
-        <span class="amt">${fmt(tq)}</span>
-      </div>
-    </div>`:
-    `<div style="display:grid;grid-template-columns:1.3fr 1fr;gap:12px;margin-bottom:12px">
-      <div class="card"><div class="ct">⚡ 進行中の案件</div>
-        ${D.projects.filter(p=>p.status!=='完了').length?D.projects.filter(p=>p.status!=='完了').map(p=>`<div class="tli"><div class="tlic" style="background:${pc(p.phase)}22">${PI[p.phase]||'⚡'}</div><div style="flex:1"><div style="font-weight:700;font-size:13px">${p.title}</div><div style="font-size:11px;color:var(--text3)">${cname(p.cid)} · ${fmtD(p.ed)}まで</div></div><div style="text-align:right"><div class="amt" style="font-size:12px">${fmt(p.amount)}</div>${bdg(p.phase)}</div></div>`).join(''):`<div class="emp"><div style="font-size:36px">📭</div></div>`}
-      </div>
-      <div class="card"><div class="ct">📋 最近の見積</div>
-        ${D.quotes.slice(-5).reverse().map(q=>`<div class="tli"><div style="flex:1"><div style="font-weight:600;font-size:12px">${q.title}</div><div style="font-size:11px;color:var(--text3)">${q.qn} · ${cname(q.cid)}</div></div><div style="text-align:right"><div class="amt" style="font-size:12px">${fmt(q.amount)}</div>${bdg(q.status)}</div></div>`).join('')}
-        <div style="padding-top:9px;border-top:1px solid var(--border);display:flex;justify-content:space-between"><span style="font-size:11px;color:var(--text3)">見積合計</span><span class="amt">${fmt(tq)}</span></div>
-      </div>
-    </div>`;
+  // ============================================
+  // HTML構築
+  // ============================================
+  let html='';
 
-  document.getElementById('ct').innerHTML=
-    statCards+
-    midSection+
-    `<div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div style="font-size:13px;font-weight:700">📅 今週のスケジュール</div>
-        <div style="display:flex;gap:5px">
-          <button class="btn bs bsm" onclick="nav('schedule')">カレンダーを開く →</button>
-          <button class="btn bp bsm" onclick="showSchedMo(null,'${today()}')">＋ 追加</button>
-        </div>
-      </div>
-      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow2)">
-        <div style="display:flex;overflow-x:${mob?'auto':'hidden'}">${cols7}</div>
-      </div>
-    </div>`;
+  // 要対応カード（プレビュー付き）
+  if(totalAlerts){
+    const previewCount=mob?2:3;
+    const preview=allAlerts.slice(0,previewCount);
+    const remainingCount=allAlerts.length-previewCount;
+    html+='<div class="card" style="margin-bottom:12px;border-left:4px solid var(--red)">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
+        '<div style="font-size:14px;font-weight:700;color:var(--red)">🚨 要対応 '+
+          '<span style="display:inline-block;min-width:22px;padding:1px 6px;background:var(--red);color:#fff;border-radius:11px;font-size:11px;text-align:center;margin-left:4px">'+totalAlerts+'</span>'+
+        '</div>'+
+        (allAlerts.length>previewCount?'<button class="btn bs bsm" onclick="showAllAlertsMo()" style="font-size:11px">すべて見る ▼</button>':'')+
+      '</div>'+
+      '<div style="display:flex;flex-direction:column;gap:5px">';
+    preview.forEach(function(a){
+      const diffText=a.diff!==undefined?(a.overdue?Math.abs(a.diff)+'日超過':'あと'+a.diff+'日'):'';
+      const color=a.overdue?'var(--red)':(a.diff!==undefined&&a.diff<=3?'#d97706':'var(--text3)');
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 8px;background:var(--bg3);border-radius:5px;font-size:12px">'+
+        '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(a.label||'')+'</span>'+
+        (diffText?'<span style="color:'+color+';font-weight:700;font-size:11px;white-space:nowrap;margin-left:8px">'+diffText+'</span>':'')+
+      '</div>';
+    });
+    html+='</div></div>';
+  }
+
+  // 今日のスケジュール
+  html+='<div class="card" style="margin-bottom:12px">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
+      '<div style="font-size:14px;font-weight:700">📅 今日 <span style="font-size:11px;color:var(--text3);margin-left:4px">'+fmtD(td)+'</span></div>'+
+      '<button class="btn bp bsm" onclick="showSchedMo(null,\''+td+'\')" style="font-size:11px">＋ 追加</button>'+
+    '</div>';
+  if(!todaySchedules.length&&!todayProjs.length){
+    html+='<div style="font-size:12px;color:var(--text3);text-align:center;padding:12px 0">予定はありません</div>';
+  } else {
+    html+='<div style="display:flex;flex-direction:column;gap:5px">';
+    todayProjs.forEach(function(p){
+      html+='<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:'+pc(p.phase)+'15;border-left:3px solid '+pc(p.phase)+';border-radius:5px;cursor:pointer" onclick="showProjDetail('+p.id+')">'+
+        '<span style="font-size:14px">'+(PI[p.phase]||'⚡')+'</span>'+
+        '<div style="flex:1;min-width:0">'+
+          '<div style="font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.title)+'</div>'+
+          '<div style="font-size:10px;color:var(--text3)">'+esc(cname(p.cid))+'</div>'+
+        '</div>'+
+      '</div>';
+    });
+    todaySchedules.forEach(function(s){
+      const sc=s.color||'var(--accent)';
+      html+='<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:'+sc+'15;border-left:3px solid '+sc+';border-radius:5px;cursor:pointer" onclick="showSchedMo('+s.id+',\''+td+'\')">'+
+        '<span style="font-size:11px;color:'+sc+';font-weight:700;min-width:46px">'+(s.st||'—')+'</span>'+
+        '<div style="flex:1;min-width:0;font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(s.title)+'</div>'+
+      '</div>';
+    });
+    html+='</div>';
+  }
+  html+='</div>';
+
+  // 今週のスケジュール
+  html+='<div class="card" style="margin-bottom:12px">'+
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
+      '<div style="font-size:14px;font-weight:700">📅 今週</div>'+
+      '<button class="btn bs bsm" onclick="nav(\'schedule\')" style="font-size:11px">カレンダーを開く →</button>'+
+    '</div>'+
+    '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:6px;overflow:hidden">'+
+      '<div style="display:flex;overflow-x:'+(mob?'auto':'hidden')+'">'+cols7+'</div>'+
+    '</div>'+
+  '</div>';
+
+  // 進行中サマリー
+  const activeItems=[];
+  if(cntProjAct) activeItems.push({label:'⚡ 案件',count:cntProjAct,nav:'projects'});
+  if(cntQuotePend) activeItems.push({label:'📄 見積',count:cntQuotePend,nav:'quotes'});
+  if(cntCaseAct) activeItems.push({label:'⚖️ 案件・事件',count:cntCaseAct,nav:'cases'});
+  if(cntDocDraft) activeItems.push({label:'🗂️ 書類',count:cntDocDraft,nav:'docmanage'});
+
+  if(activeItems.length){
+    html+='<div class="card" style="margin-bottom:12px">'+
+      '<div style="font-size:14px;font-weight:700;margin-bottom:8px">🔄 進行中</div>'+
+      '<div style="display:flex;gap:6px;flex-wrap:wrap">';
+    activeItems.forEach(function(item){
+      html+='<button class="btn bs" onclick="nav(\''+item.nav+'\')" style="font-size:12px;padding:6px 12px">'+item.label+' <b style="margin-left:4px">'+item.count+'</b></button>';
+    });
+    html+='</div></div>';
+  }
+
+  // ============================================
+  // 追加ブロック（設定でON/OFFできる）
+  // ============================================
+  const dashBlocks=(D.cfg&&D.cfg.dashBlocks)||{};
+
+  // 未完了案件一覧（案件+案件・事件）
+  if(dashBlocks.uncompletedProjects){
+    var upProjects=(D.projects||[]).filter(p=>p.status!=='完了'&&p.status!=='中止').map(function(p){
+      return{type:'project',id:p.id,title:p.title,sub:cname(p.cid),deadline:p.ed,phase:p.phase,status:p.status,icon:PI[p.phase]||'⚡',color:pc(p.phase)};
+    });
+    var upCases=(D.cases||[]).filter(c=>c.status!=='completed').map(function(c){
+      var st=_csStatus(c.status||'received');
+      return{type:'case',id:c.id,title:c.title,sub:c.cid?cname(c.cid):(c.kind||''),deadline:c.deadline,phase:c.status,status:st.label,icon:st.icon,color:st.color};
+    });
+    var upList=[...upProjects,...upCases].sort((a,b)=>(a.deadline||'9999-12-31').localeCompare(b.deadline||'9999-12-31'));
+
+    html+='<div class="card" style="margin-bottom:12px">'+
+      '<div style="font-size:14px;font-weight:700;margin-bottom:8px">⚡ 未完了案件 <span style="font-size:11px;color:var(--text3);margin-left:4px">'+upList.length+'件</span></div>';
+    if(upList.length){
+      html+='<div style="display:flex;flex-direction:column;gap:5px">';
+      upList.slice(0,5).forEach(function(p){
+        var onclickStr=p.type==='case'?'showCaseMo('+p.id+')':'showProjDetail('+p.id+')';
+        html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:'+p.color+'15;border-left:3px solid '+p.color+';border-radius:5px;cursor:pointer" onclick="'+onclickStr+'">'+
+          '<div style="flex:1;min-width:0">'+
+            '<div style="font-size:12px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+p.icon+' '+esc(p.title)+'</div>'+
+            '<div style="font-size:10px;color:var(--text3)">'+esc(p.sub||'')+(p.deadline?' · '+fmtD(p.deadline)+'まで':'')+'</div>'+
+          '</div>'+
+          '<span style="font-size:10px;padding:2px 6px;border-radius:3px;background:'+p.color+'18;color:'+p.color+';font-weight:700;white-space:nowrap">'+esc(p.status)+'</span>'+
+        '</div>';
+      });
+      if(upList.length>5) html+='<div style="font-size:11px;color:var(--text3);text-align:center;margin-top:4px">他'+(upList.length-5)+'件</div>';
+      html+='</div>';
+    } else {
+      html+='<div style="font-size:12px;color:var(--text3);text-align:center;padding:8px 0">未完了の案件はありません</div>';
+    }
+    html+='</div>';
+  }
+
+  // 今日の送迎状況
+  if(dashBlocks.transport){
+    const tpUsers=D.transportUsers||[];
+    const stats={unconfirmed:0,attending:0,absent:0,pickup_done:0,arrived:0,active:0,returned:0};
+    tpUsers.forEach(function(u){
+      const log=_tpGetLog(u.id,td);
+      stats[log.status]=(stats[log.status]||0)+1;
+    });
+    html+='<div class="card" style="margin-bottom:12px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
+        '<div style="font-size:14px;font-weight:700">🚐 今日の送迎 <span style="font-size:11px;color:var(--text3);margin-left:4px">'+tpUsers.length+'名</span></div>'+
+        '<button class="btn bs bsm" onclick="nav(\'transport\')" style="font-size:11px">送迎管理 →</button>'+
+      '</div>';
+    if(tpUsers.length){
+      html+='<div style="display:flex;gap:4px;flex-wrap:wrap;font-size:11px">';
+      TP_STATUS.forEach(function(s){
+        var cnt=stats[s.id]||0;
+        if(cnt) html+='<span style="padding:3px 8px;border-radius:4px;background:'+s.color+'15;color:'+s.color+';font-weight:700">'+s.icon+' '+s.label+' <b>'+cnt+'</b></span>';
+      });
+      html+='</div>';
+    } else {
+      html+='<div style="font-size:12px;color:var(--text3);text-align:center;padding:8px 0">利用者が登録されていません</div>';
+    }
+    html+='</div>';
+  }
+
+  // 今日のシフト
+  if(dashBlocks.timeshift){
+    const shifts=(D.timeShifts||{})[td]||[];
+    html+='<div class="card" style="margin-bottom:12px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
+        '<div style="font-size:14px;font-weight:700">👷 今日のシフト</div>'+
+        '<button class="btn bs bsm" onclick="nav(\'timeshift\')" style="font-size:11px">シフト管理 →</button>'+
+      '</div>';
+    if(shifts.length){
+      html+='<div style="display:flex;flex-direction:column;gap:4px">';
+      shifts.slice(0,5).forEach(function(sh){
+        var st=(D.staff||[]).find(function(s){return s.id===sh.staffId;});
+        html+='<div style="display:flex;align-items:center;gap:8px;padding:5px 10px;background:var(--bg3);border-radius:5px;font-size:12px">'+
+          '<span style="font-weight:600">'+esc(st?st.name:'—')+'</span>'+
+          '<span style="color:var(--text3);font-size:11px">'+esc(sh.start||'')+' 〜 '+esc(sh.end||'')+'</span>'+
+        '</div>';
+      });
+      if(shifts.length>5) html+='<div style="font-size:11px;color:var(--text3);text-align:center;margin-top:4px">他'+(shifts.length-5)+'件</div>';
+      html+='</div>';
+    } else {
+      html+='<div style="font-size:12px;color:var(--text3);text-align:center;padding:8px 0">今日のシフトはありません</div>';
+    }
+    html+='</div>';
+  }
+
+  // 今日・明日の予約
+  if(dashBlocks.reservations){
+    const tdStr=td;
+    const tm=new Date();tm.setDate(tm.getDate()+1);const tmStr=tm.toISOString().slice(0,10);
+    const rsvToday=(D.reservations||[]).filter(r=>r.date===tdStr).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+    const rsvTomorrow=(D.reservations||[]).filter(r=>r.date===tmStr).sort((a,b)=>(a.time||'').localeCompare(b.time||''));
+    html+='<div class="card" style="margin-bottom:12px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
+        '<div style="font-size:14px;font-weight:700">📋 予約</div>'+
+        '<button class="btn bs bsm" onclick="nav(\'reservation\')" style="font-size:11px">予約管理 →</button>'+
+      '</div>';
+    if(rsvToday.length||rsvTomorrow.length){
+      if(rsvToday.length){
+        html+='<div style="font-size:11px;font-weight:700;color:var(--accent);margin-bottom:4px">今日 '+rsvToday.length+'件</div>';
+        rsvToday.slice(0,3).forEach(function(r){
+          html+='<div style="padding:5px 10px;background:var(--bg3);border-radius:5px;font-size:12px;margin-bottom:3px">'+
+            '<span style="color:var(--accent);font-weight:700;margin-right:6px">'+esc(r.time||'—')+'</span>'+
+            esc(r.name||'')+
+          '</div>';
+        });
+        if(rsvToday.length>3) html+='<div style="font-size:10px;color:var(--text3);margin-bottom:6px">他'+(rsvToday.length-3)+'件</div>';
+      }
+      if(rsvTomorrow.length){
+        html+='<div style="font-size:11px;font-weight:700;color:var(--blue);margin:6px 0 4px">明日 '+rsvTomorrow.length+'件</div>';
+        rsvTomorrow.slice(0,3).forEach(function(r){
+          html+='<div style="padding:5px 10px;background:var(--bg3);border-radius:5px;font-size:12px;margin-bottom:3px">'+
+            '<span style="color:var(--blue);font-weight:700;margin-right:6px">'+esc(r.time||'—')+'</span>'+
+            esc(r.name||'')+
+          '</div>';
+        });
+        if(rsvTomorrow.length>3) html+='<div style="font-size:10px;color:var(--text3)">他'+(rsvTomorrow.length-3)+'件</div>';
+      }
+    } else {
+      html+='<div style="font-size:12px;color:var(--text3);text-align:center;padding:8px 0">予約はありません</div>';
+    }
+    html+='</div>';
+  }
+
+  // 未読の連絡
+  if(dashBlocks.messages){
+    const nowDate=new Date();nowDate.setHours(0,0,0,0);
+    const threeDaysAgo=new Date(nowDate);threeDaysAgo.setDate(nowDate.getDate()-3);
+
+    // 送迎管理の保護者メッセージ（今日のみ）
+    const tpMessages=(D.transportLogs||[]).filter(function(l){
+      return l.date===td&&l.guardianMessage&&!l.guardianMessageRead;
+    });
+
+    // 手動登録の連絡メモ（未読）を日付で分ける
+    const allManual=(D.inboxMessages||[]).filter(function(m){return !m.read;});
+    const recentManual=allManual.filter(function(m){
+      if(!m.date) return true;
+      return new Date(m.date)>=threeDaysAgo;
+    });
+    const oldManual=allManual.filter(function(m){
+      if(!m.date) return false;
+      return new Date(m.date)<threeDaysAgo;
+    });
+
+    const totalMsg=tpMessages.length+allManual.length;
+
+    html+='<div class="card" style="margin-bottom:12px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">'+
+        '<div style="font-size:14px;font-weight:700">💬 未読の連絡 <span style="font-size:11px;color:var(--text3);margin-left:4px">'+totalMsg+'件</span></div>'+
+        '<button class="btn bp bsm" onclick="showInboxAddMo()" style="font-size:11px">＋ メモ</button>'+
+      '</div>';
+    if(totalMsg){
+      html+='<div style="display:flex;flex-direction:column;gap:5px">';
+      tpMessages.slice(0,3).forEach(function(l){
+        var u=(D.transportUsers||[]).find(function(us){return us.id===l.userId;});
+        html+='<div style="padding:6px 10px;background:rgba(58,96,160,.08);border-left:3px solid var(--blue);border-radius:5px;font-size:12px;cursor:pointer" onclick="tpMarkMessageRead('+l.id+');showTransportTimeline('+l.userId+')">'+
+          '<div style="font-size:10px;color:var(--blue);font-weight:700;margin-bottom:2px">👪 '+esc(u?u.guardianName||u.name:'')+'</div>'+
+          '<div style="color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(l.guardianMessage)+'</div>'+
+        '</div>';
+      });
+      recentManual.forEach(function(m){
+        html+='<div style="padding:6px 10px;background:var(--bg3);border-left:3px solid var(--accent);border-radius:5px;font-size:12px;cursor:pointer" onclick="showInboxDetailMo(\''+m.id+'\')">'+
+          '<div style="display:flex;justify-content:space-between;font-size:10px;font-weight:700;margin-bottom:2px">'+
+            '<span style="color:var(--accent)">📞 '+esc(m.from||'連絡先不明')+'</span>'+
+            '<span style="color:var(--text3)">'+esc(m.date||'')+' '+esc(m.time||'')+'</span>'+
+          '</div>'+
+          '<div style="color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(m.content)+'</div>'+
+        '</div>';
+      });
+      if(oldManual.length){
+        html+='<div style="cursor:pointer;font-size:11px;color:var(--text3);text-align:center;padding:4px;background:var(--bg3);border-radius:4px;margin-top:4px" onclick="showOldInboxMo()">📁 古い連絡 '+oldManual.length+'件 ▼</div>';
+      }
+      html+='</div>';
+    } else {
+      html+='<div style="font-size:12px;color:var(--text3);text-align:center;padding:8px 0">未読の連絡はありません</div>';
+    }
+    html+='</div>';
+  }
+
+  document.getElementById('ct').innerHTML=html;
+}
+
+// 連絡メモ（受電記録）追加
+function showInboxAddMo(){
+  var now=new Date();
+  var timeStr=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  mo('<div class="mt">📞 連絡メモを追加</div>'+
+    '<div class="fg">'+
+      '<div class="fr"><label class="fl">連絡元（誰から）</label><input id="inb-from" placeholder="例: 田中建設 田中様"></div>'+
+      '<div class="fr"><label class="fl">時刻</label><input id="inb-time" value="'+timeStr+'" placeholder="例: 14:30"></div>'+
+      '<div class="fr"><label class="fl">顧客紐付け</label><select id="inb-cid"><option value="">— 紐付けなし —</option>'+
+        (D.customers||[]).map(function(c){return '<option value="'+c.id+'">['+c.cn+'] '+esc(c.name)+'</option>';}).join('')+
+      '</select></div>'+
+      '<div class="fr"><label class="fl">種別</label><select id="inb-kind">'+
+        '<option value="電話">📞 電話</option>'+
+        '<option value="メール">📧 メール</option>'+
+        '<option value="訪問">🚶 訪問</option>'+
+        '<option value="その他">💬 その他</option>'+
+      '</select></div>'+
+    '</div>'+
+    '<div class="fr"><label class="fl">内容 *</label><textarea id="inb-content" rows="3" placeholder="伝言・要件・確認事項など..."></textarea></div>'+
+    '<div class="mf"><button class="btn bs" onclick="cmo()">キャンセル</button><button class="btn bp" onclick="saveInboxMessage()">💾 保存</button></div>');
+}
+
+function saveInboxMessage(){
+  var content=document.getElementById('inb-content').value.trim();
+  if(!content){toast('内容を入力してください','er');return;}
+  if(!D.inboxMessages) D.inboxMessages=[];
+  D.inboxMessages.push({
+    id:'inb-'+nid(),
+    from:document.getElementById('inb-from').value.trim(),
+    time:document.getElementById('inb-time').value.trim(),
+    cid:parseInt(document.getElementById('inb-cid').value)||null,
+    kind:document.getElementById('inb-kind').value||'電話',
+    content:content,
+    date:today(),
+    read:false,
+    created:new Date().toISOString()
+  });
+  save();_flush();cmo();buildPage();
+  toast('連絡メモを追加しました ✅');
+}
+
+function showInboxDetailMo(id){
+  if(!D.inboxMessages) return;
+  var m=D.inboxMessages.find(function(x){return x.id===id;});
+  if(!m) return;
+  var custName=m.cid?cname(m.cid):'';
+
+  mo('<div class="mt">📞 連絡メモ</div>'+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">'+
+      '<div><div class="ik">連絡元</div><div class="iv">'+esc(m.from||'—')+'</div></div>'+
+      '<div><div class="ik">時刻</div><div class="iv">'+esc(m.date)+' '+esc(m.time||'')+'</div></div>'+
+      '<div><div class="ik">種別</div><div class="iv">'+esc(m.kind||'—')+'</div></div>'+
+      (custName?'<div><div class="ik">顧客</div><div class="iv" style="display:flex;align-items:center;gap:6px">'+esc(custName)+' <button class="btn bs bsm" onclick="cmo();nav(\'customers\','+m.cid+')" style="font-size:10px;padding:1px 6px">→ 開く</button></div></div>':'')+
+    '</div>'+
+    '<div style="padding:10px;background:var(--bg3);border-radius:6px;font-size:12px;white-space:pre-wrap;margin-bottom:12px">'+esc(m.content)+'</div>'+
+    '<div class="mf">'+
+      '<button class="btn bd" onclick="delInboxMessage(\''+m.id+'\')">🗑 削除</button>'+
+      '<button class="btn bs" onclick="cmo()">閉じる</button>'+
+      (m.read?'<button class="btn bs" onclick="markInboxUnread(\''+m.id+'\')">↩ 未対応に戻す</button>':'<button class="btn bp" onclick="markInboxRead(\''+m.id+'\')">✓ 対応済</button>')+
+    '</div>');
+}
+
+function markInboxUnread(id){
+  if(!D.inboxMessages) return;
+  var m=D.inboxMessages.find(function(x){return x.id===id;});
+  if(m){m.read=false;save();_flush();cmo();buildPage();toast('未対応に戻しました');}
+}
+
+// 古い未読連絡の一覧モーダル
+function showOldInboxMo(){
+  const nowDate=new Date();nowDate.setHours(0,0,0,0);
+  const threeDaysAgo=new Date(nowDate);threeDaysAgo.setDate(nowDate.getDate()-3);
+  const oldMsgs=(D.inboxMessages||[]).filter(function(m){
+    return !m.read&&m.date&&new Date(m.date)<threeDaysAgo;
+  }).sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
+
+  var html='<div class="mt">📁 古い未読連絡</div>';
+  if(oldMsgs.length){
+    html+='<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px">';
+    oldMsgs.forEach(function(m){
+      html+='<div style="padding:8px 12px;background:var(--bg3);border-left:3px solid var(--accent);border-radius:5px;font-size:12px;cursor:pointer" onclick="cmo();showInboxDetailMo(\''+m.id+'\')">'+
+        '<div style="display:flex;justify-content:space-between;font-size:10px;font-weight:700;margin-bottom:3px">'+
+          '<span style="color:var(--accent)">📞 '+esc(m.from||'連絡先不明')+'</span>'+
+          '<span style="color:var(--text3)">'+esc(m.date||'')+' '+esc(m.time||'')+'</span>'+
+        '</div>'+
+        '<div style="color:var(--text2)">'+esc(m.content).slice(0,100)+(m.content.length>100?'...':'')+'</div>'+
+        (m.cid?'<div style="font-size:10px;color:var(--blue);margin-top:2px">👤 '+esc(cname(m.cid))+'</div>':'')+
+      '</div>';
+    });
+    html+='</div>';
+  } else {
+    html+='<div class="emp" style="padding:20px 0"><div style="font-size:30px">📭</div><div>古い未読連絡はありません</div></div>';
+  }
+  html+='<div class="mf"><button class="btn bs" onclick="cmo()">閉じる</button></div>';
+  mo(html,true);
+}
+
+function markInboxRead(id){
+  if(!D.inboxMessages) return;
+  var m=D.inboxMessages.find(function(x){return x.id===id;});
+  if(m){m.read=true;save();_flush();cmo();buildPage();toast('対応済にしました ✅');}
+}
+
+function delInboxMessage(id){
+  if(!D.inboxMessages) return;
+  D.inboxMessages=D.inboxMessages.filter(function(m){return m.id!==id;});
+  save();_flush();cmo();buildPage();
+  toast('削除しました');
+}
+
+function tpMarkMessageRead(logId){
+  var log=(D.transportLogs||[]).find(function(l){return l.id===logId;});
+  if(log){log.guardianMessageRead=true;save();_flush();}
+}
+
+// 全アラート表示モーダル
+function showAllAlertsMo(){
+  const now=new Date();
+  const alerts=_getAlerts();
+  const urgentAlerts=alerts.filter(a=>a.overdue||a.diff<=3).sort((a,b)=>a.date.localeCompare(b.date));
+  const futureAlerts=alerts.filter(a=>!a.overdue&&a.diff>3).sort((a,b)=>a.date.localeCompare(b.date));
+  const stockLow=(D.stockItems||[]).filter(s=>s.qty<=s.reorder&&s.reorder>0);
+  const casesOverdue=(D.cases||[]).filter(c=>{
+    if(!c.deadline||c.status==='completed') return false;
+    const diff=Math.floor((new Date(c.deadline)-now)/(1000*60*60*24));
+    return diff<=3;
+  });
+
+  let html='<div class="mt">🚨 要対応一覧</div>';
+
+  if(urgentAlerts.length||casesOverdue.length||stockLow.length){
+    html+='<div style="font-size:12px;font-weight:700;color:var(--red);margin:8px 0 6px">⚠️ 緊急（期限3日以内・超過）</div>';
+    urgentAlerts.forEach(function(a){
+      const diffText=a.overdue?Math.abs(a.diff)+'日超過':'あと'+a.diff+'日';
+      const color=a.overdue?'var(--red)':'#d97706';
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--bg3);border-radius:5px;font-size:12px;margin-bottom:4px">'+
+        '<span style="flex:1;overflow:hidden;text-overflow:ellipsis">'+esc(a.label||'')+'</span>'+
+        '<span style="color:'+color+';font-weight:700;font-size:11px;margin-left:8px">'+diffText+'</span>'+
+      '</div>';
+    });
+    casesOverdue.forEach(function(c){
+      const diff=Math.floor((new Date(c.deadline)-now)/(1000*60*60*24));
+      const color=diff<0?'var(--red)':'#d97706';
+      const diffText=diff<0?Math.abs(diff)+'日超過':'あと'+diff+'日';
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--bg3);border-radius:5px;font-size:12px;margin-bottom:4px;cursor:pointer" onclick="cmo();showCaseMo('+c.id+')">'+
+        '<span style="flex:1;overflow:hidden;text-overflow:ellipsis">⚖️ '+esc(c.title)+'｜期限</span>'+
+        '<span style="color:'+color+';font-weight:700;font-size:11px;margin-left:8px">'+diffText+'</span>'+
+      '</div>';
+    });
+    stockLow.forEach(function(s){
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--bg3);border-radius:5px;font-size:12px;margin-bottom:4px;cursor:pointer" onclick="cmo();nav(\'stock\')">'+
+        '<span style="flex:1">📦 '+esc(s.name)+' 残少</span>'+
+        '<span style="color:var(--red);font-weight:700;font-size:11px">残 '+s.qty+s.unit+'</span>'+
+      '</div>';
+    });
+  }
+
+  if(futureAlerts.length){
+    html+='<div style="font-size:12px;font-weight:700;color:var(--text2);margin:12px 0 6px">📋 今後の予定</div>';
+    futureAlerts.slice(0,15).forEach(function(a){
+      html+='<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--bg3);border-radius:5px;font-size:12px;margin-bottom:4px">'+
+        '<span style="flex:1;overflow:hidden;text-overflow:ellipsis">'+esc(a.label||'')+'</span>'+
+        '<span style="color:var(--text3);font-size:11px;margin-left:8px">あと'+a.diff+'日</span>'+
+      '</div>';
+    });
+    if(futureAlerts.length>15) html+='<div style="font-size:11px;color:var(--text3);text-align:center;margin-top:4px">他'+(futureAlerts.length-15)+'件</div>';
+  }
+
+  if(!urgentAlerts.length&&!futureAlerts.length&&!stockLow.length&&!casesOverdue.length){
+    html+='<div class="emp" style="padding:30px 0"><div style="font-size:36px">✅</div><div>対応が必要なものはありません</div></div>';
+  }
+
+  html+='<div class="mf"><button class="btn bs" onclick="cmo()">閉じる</button></div>';
+  mo(html,true);
 }
 
 
@@ -1149,6 +1567,7 @@ function pgCustDetail(){
         <button class="tbtn" id="dt-c" onclick="swDTab('c')" style="text-align:center;line-height:1.3">📄<br>契約</button>
         <button class="tbtn" id="dt-p" onclick="swDTab('p')" style="text-align:center;line-height:1.3">⚡<br>案件</button>
         <button class="tbtn" id="dt-q" onclick="swDTab('q')" style="text-align:center;line-height:1.3">📋<br>見積</button>
+        <button class="tbtn" id="dt-i" onclick="swDTab('i')" style="text-align:center;line-height:1.3">💬<br>連絡</button>
         <button class="tbtn" id="dt-r" onclick="swDTab('r')" style="text-align:center;line-height:1.3">📝<br>レポ<br>ート</button>
       </div>
       <div id="dt-body">${dtHistory(pjs,qts)}</div>
@@ -1172,7 +1591,38 @@ function swDTab(t){
   else if(t==='q') body.innerHTML=dtQuots(qts);
   else if(t==='e') body.innerHTML=dtEquip(c);
   else if(t==='c') body.innerHTML=dtContracts();
+  else if(t==='i') body.innerHTML=dtInbox(detCid);
   else if(t==='r') body.innerHTML=dtReport(pjs);
+}
+
+function dtInbox(cid){
+  var msgs=(D.inboxMessages||[]).filter(function(m){return m.cid===cid;}).sort(function(a,b){
+    return (b.date||'').localeCompare(a.date||'')||(b.time||'').localeCompare(a.time||'');
+  });
+  var addBtn='<div style="margin-bottom:10px"><button class="btn bp bsm" onclick="showInboxAddMoForCust('+cid+')">＋ 連絡メモを追加</button></div>';
+  if(!msgs.length) return addBtn+'<div class="emp"><div style="font-size:30px">💬</div><div>連絡履歴がありません</div></div>';
+  var html=addBtn+'<div style="display:flex;flex-direction:column;gap:6px">';
+  msgs.forEach(function(m){
+    var statusBg=m.read?'var(--bg3)':'rgba(74,124,95,.08)';
+    var statusBorder=m.read?'var(--border)':'var(--accent)';
+    html+='<div style="padding:8px 12px;background:'+statusBg+';border-left:3px solid '+statusBorder+';border-radius:5px;font-size:12px;cursor:pointer" onclick="showInboxDetailMo(\''+m.id+'\')">'+
+      '<div style="display:flex;justify-content:space-between;font-size:10px;font-weight:700;margin-bottom:3px">'+
+        '<span style="color:var(--accent)">'+esc(m.kind||'📞')+' '+esc(m.from||'連絡元不明')+'</span>'+
+        '<span style="color:var(--text3)">'+esc(m.date||'')+' '+esc(m.time||'')+(m.read?' · ✓対応済':'')+'</span>'+
+      '</div>'+
+      '<div style="color:var(--text2)">'+esc(m.content).slice(0,120)+(m.content.length>120?'...':'')+'</div>'+
+    '</div>';
+  });
+  html+='</div>';
+  return html;
+}
+
+function showInboxAddMoForCust(cid){
+  showInboxAddMo();
+  setTimeout(function(){
+    var sel=document.getElementById('inb-cid');
+    if(sel) sel.value=cid;
+  },50);
 }
 function dtProjs(pjs){
   if(!pjs.length)return`<div class="emp"><div style="font-size:30px">📭</div><div>案件がありません</div></div>`;
@@ -5901,6 +6351,25 @@ function pgSettings(){
             <label style="display:flex;align-items:center;gap:5px;cursor:pointer"><input type="radio" name="cfg-popup" value="0" ${c.alertPopup===false?'checked':''}> 表示しない</label>
           </div>
         </div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <div class="ct">📊 ダッシュボード設定</div>
+      <div class="fl" style="margin-bottom:8px;font-size:12px;color:var(--text2)">ダッシュボードに追加表示するブロックを選択できます。</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px">
+        ${[
+          {id:'uncompletedProjects',icon:'⚡',label:'未完了案件'},
+          {id:'transport',icon:'🚐',label:'今日の送迎状況'},
+          {id:'timeshift',icon:'👷',label:'今日のシフト'},
+          {id:'reservations',icon:'📋',label:'今日・明日の予約'},
+          {id:'messages',icon:'💬',label:'未読の連絡メモ'},
+        ].map(b=>{
+          var active=(c.dashBlocks||{})[b.id];
+          return `<label style="display:flex;align-items:center;gap:6px;padding:6px 10px;background:${active?'rgba(74,124,95,.06)':'var(--bg3)'};border-radius:6px;border:1px solid ${active?'rgba(74,124,95,.2)':'var(--border)'};cursor:pointer">
+            <input type="checkbox" ${active?'checked':''} onchange="toggleDashBlock('${b.id}')" style="accent-color:var(--accent)">
+            <span style="font-size:12px">${b.icon} ${b.label}</span>
+          </label>`;
+        }).join('')}
       </div>
     </div>
     <div class="card" style="margin-bottom:12px">
